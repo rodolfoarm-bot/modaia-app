@@ -307,6 +307,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .login-error{background:var(--danger-l);color:var(--danger);border-radius:var(--radius);padding:10px 14px;font-size:13px;font-weight:600;text-align:center;display:none}
 .login-footer{font-size:12px;color:var(--text3);margin-top:24px;text-align:center}
 
+
+/* ── PERFIL ── */
+.perfil-avatar{width:72px;height:72px;border-radius:50%;background:var(--topbar-bg);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.perfil-nome{font-size:20px;font-weight:800;color:var(--text1);text-align:center;margin-bottom:4px}
+.perfil-email{font-size:13px;color:var(--text2);text-align:center;margin-bottom:24px}
+.perfil-card{background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.perfil-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.perfil-row:last-child{border-bottom:none}
+.perfil-lbl{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.perfil-val{font-size:14px;font-weight:600;color:var(--text1)}
+.perfil-val.accent{color:var(--accent)}
+
+
+/* ── PERFIL ── */
+.perfil-card{background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);padding:20px;margin:0 16px 12px;box-shadow:var(--shadow)}
+.perfil-avatar{width:64px;height:64px;border-radius:50%;background:var(--topbar-bg);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;box-shadow:0 4px 12px rgba(124,58,237,.3)}
+.perfil-nome{font-size:18px;font-weight:700;color:var(--text1);text-align:center;margin-bottom:4px}
+.perfil-email{font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px}
+.perfil-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.perfil-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.perfil-val{font-size:14px;font-weight:600;color:var(--text1)}
+.perfil-val.accent{color:var(--accent)}
+
 .loading-row{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 16px;color:var(--text2);font-size:14px;font-weight:500}
 
 /* ── DETAIL SHEET ── */
@@ -627,7 +650,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <div class="tb">
     <div class="tb-row"><span class="tb-title">Relatórios</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     <div class="period-tabs" id="ptabs">
-      <button class="ptab on" data-p="hoje">Hoje</button>
+      <button class="ptab on" data-p="hoje">Dia</button>
       <button class="ptab" data-p="semana">Semana</button>
       <button class="ptab" data-p="mes">Mês</button>
       <button class="ptab" data-p="trimestre">Trimestre</button>
@@ -635,7 +658,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </div>
   </div>
   <div class="period-header">
-    <span style="font-size:14px;font-weight:700;color:var(--text1)" id="ph-label">Hoje</span>
+    <span style="font-size:14px;font-weight:700;color:var(--text1)" id="ph-label">Dia</span>
     <div class="ph-nav">
       <button class="ph-btn" id="ph-prev" onclick="navPeriod(-1)">‹</button>
       <span style="font-size:13px;color:var(--text2);font-weight:500" id="ph-cur"></span>
@@ -660,7 +683,99 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   </div>
 </div>
 
+<!-- PERFIL -->
+<div id="sc-perfil" class="screen">
+  <div class="tb">
+    <div class="tb-row"><span class="tb-title">Meu Perfil</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+  </div>
+  <div class="scroll" style="padding:20px 16px">
+    <div class="perfil-avatar">👤</div>
+    <div class="perfil-nome" id="perfil-nome">—</div>
+    <div class="perfil-email" id="perfil-email">—</div>
+
+    <div class="perfil-card">
+      <div class="perfil-row">
+        <span class="perfil-lbl">Loja</span>
+        <span class="perfil-val accent" id="perfil-loja">—</span>
+      </div>
+      <div class="perfil-row">
+        <span class="perfil-lbl">Papel</span>
+        <span class="perfil-val" id="perfil-papel">—</span>
+      </div>
+      <div class="perfil-row">
+        <span class="perfil-lbl">Produtos cadastrados</span>
+        <span class="perfil-val" id="perfil-produtos">—</span>
+      </div>
+      <div class="perfil-row">
+        <span class="perfil-lbl">Vendas registradas</span>
+        <span class="perfil-val" id="perfil-vendas">—</span>
+      </div>
+    </div>
+
+    <div class="perfil-card">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">Alterar senha</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input class="finput" id="perfil-nova-senha" type="password" placeholder="Nova senha (mín. 6 caracteres)"/>
+        <input class="finput" id="perfil-conf-senha" type="password" placeholder="Confirmar nova senha"/>
+        <button class="fbtn" onclick="alterarSenha()">Salvar nova senha</button>
+      </div>
+    </div>
+
+    <button onclick="fazerLogout()" style="width:100%;padding:13px;background:var(--danger-l);color:var(--danger);border:1.5px solid var(--danger);border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;margin-top:8px">
+      🚪 Sair da conta
+    </button>
+  </div>
+</div>
+
 <!-- ══════ BOTTOM NAV ══════ -->
+
+<!-- PERFIL -->
+<div id="sc-perfil" class="screen">
+  <div class="tb">
+    <div class="tb-row">
+      <span class="tb-title">Meu Perfil</span>
+      <button class="theme-btn" onclick="toggleTheme()">🌙</button>
+    </div>
+  </div>
+  <div class="scroll" style="padding-top:20px">
+    <div class="perfil-card">
+      <div class="perfil-avatar">👤</div>
+      <div class="perfil-nome" id="perfil-nome">—</div>
+      <div class="perfil-email" id="perfil-email">—</div>
+      <div class="perfil-row">
+        <span class="perfil-label">Loja</span>
+        <span class="perfil-val accent" id="perfil-loja">—</span>
+      </div>
+      <div class="perfil-row">
+        <span class="perfil-label">Perfil</span>
+        <span class="perfil-val" id="perfil-papel">—</span>
+      </div>
+      <div class="perfil-row" style="border:none">
+        <span class="perfil-label">Versão</span>
+        <span class="perfil-val">ModaIA v3.0</span>
+      </div>
+    </div>
+
+    <div style="padding:0 16px;display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <button onclick="abrirAlterarSenha()" class="fbtn fbtn-outline">🔑 Alterar senha</button>
+      <button onclick="fazerLogout()" style="width:100%;padding:13px;background:var(--danger-l);color:var(--danger);border:1.5px solid var(--danger);border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer">🚪 Sair da conta</button>
+    </div>
+
+    <!-- Alterar senha -->
+    <div id="alterar-senha-form" style="display:none;padding:16px;display:none;flex-direction:column;gap:12px;margin-top:8px">
+      <div class="perfil-card">
+        <div style="font-size:14px;font-weight:700;color:var(--text1);margin-bottom:14px">Alterar senha</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input class="finput" id="nova-senha" type="password" placeholder="Nova senha (mín. 6 caracteres)"/>
+          <input class="finput" id="nova-senha-conf" type="password" placeholder="Confirmar nova senha"/>
+          <button class="fbtn" onclick="salvarNovaSenha()">Salvar nova senha</button>
+          <button class="fbtn-outline fbtn" onclick="fecharAlterarSenha()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <nav class="bnav" id="bnav">
   <button class="bnav-item on" data-sc="estoque" onclick="navTo('estoque')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 3v18M16 3v18M2 9h20M2 15h20"/></svg>
@@ -675,9 +790,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
     <span class="bnav-lb">Alertas</span>
   </button>
+  <button class="bnav-item" data-sc="perfil" onclick="navTo('perfil')">
+    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span class="bnav-lb">Perfil</span>
+  </button>
   <button class="bnav-item" data-sc="relatorios" onclick="navTo('relatorios')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="bnav-lb">Relatórios</span>
+  </button>
+  <button class="bnav-item" data-sc="perfil" onclick="navTo('perfil')">
+    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span class="bnav-lb">Perfil</span>
   </button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -735,6 +858,8 @@ function navTo(sc){
   if(sc==='estoque')carregarEstoque();
   if(sc==='alertas')carregarAlertas();
   if(sc==='relatorios')carregarRelatorios();
+  if(sc==='perfil')carregarPerfil();
+  if(sc==='perfil')carregarPerfil();
 }
 
 /* ═══ AGRUPAMENTO ═══ */
@@ -890,7 +1015,7 @@ function openDetalhe(key){
       </div>`:''}
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="fbtn" style="width:100%" onclick="salvarSheet('${key}')">${temVenda&&temEntrada?'✔ Confirmar Operações':temVenda?'✔ Confirmar Venda':'✔ Confirmar Entrada'}</button>
-        <button style="width:100%;padding:12px;background:none;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:14px;font-weight:600;color:var(--text2);cursor:pointer" onclick="cancelarSheet('${key}')">Cancelar</button>
+        <button style="width:100%;padding:12px;background:none;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;pointer-events:auto;position:relative;z-index:10;touch-action:manipulation" onclick="cancelarSheet('${key}')">Cancelar</button>
       </div>
     </div>`;
   }
@@ -1071,9 +1196,8 @@ function abrirCrop(src){
     cropImgNatW=img.naturalWidth;cropImgNatH=img.naturalHeight;
     const dw=img.offsetWidth,dh=img.offsetHeight;
     cropDisplayScale=cropImgNatW/dw;
-    // Inicializa o recorte como 80% da imagem centralizado
-    const margin=dw*0.1;
-    cropRect={x:margin,y:margin*dh/dw,w:dw-margin*2,h:dh-margin*2*dh/dw};
+    // Inicializa o recorte cobrindo toda a imagem (dimensões originais)
+    cropRect={x:0,y:0,w:dw,h:dh};
     atualizarCropBox();
     bindCropEvents();
   };
@@ -1524,24 +1648,38 @@ async function processarAudioBusca(audioBase64){
   st.style.display='block';
   st.textContent='Transcrevendo com IA...';
   try{
+    const lojaAtual=LOJA_ID||'loja_001';
     const resp=await fetch(N8N_BUSCA,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tipo:'audio',conteudo:audioBase64,loja_id:LOJA_ID})
+      body:JSON.stringify({tipo:'audio',conteudo:audioBase64,loja_id:lojaAtual})
     });
     if(!resp.ok)throw new Error('n8n retornou '+resp.status);
-    const data=await resp.json();
-    console.log('🎤 Resposta n8n (audio):', JSON.stringify(data).substring(0,500));
+    const rawText=await resp.text();
+    console.log('🎤 Resposta raw:', rawText.substring(0,300));
+    let data;
+    try{ data=JSON.parse(rawText); }catch(e){ throw new Error('Resposta inválida do n8n: '+rawText.substring(0,100)); }
 
-    // Aceita array wrapper do n8n: [{produtos:[...], texto_transcrito:"..."}] ou objeto direto
-    const dataObj=Array.isArray(data)?data[0]:data;
-    const texto=dataObj.texto_transcrito||dataObj.texto||data.texto_transcrito||data.texto||'';
-    const produtos=Array.isArray(dataObj.produtos)?dataObj.produtos:
-      Array.isArray(data)?data:
-      Array.isArray(data.produtos)?data.produtos:
-      Array.isArray(data.data)?data.data:
-      (data.result||[]);
-    console.log('🎤 Texto:', texto, '| Produtos:', produtos.length);
+    // Normalizar: n8n "All Incoming Items" retorna array wrapper
+    // Tentar todas as estruturas possíveis
+    let texto='', produtos=[];
+    if(Array.isArray(data)){
+      // [{produtos:[...], texto_transcrito:"..."}] ou [{id:..., similaridade:...}]
+      if(data[0]?.produtos!==undefined){
+        texto=data[0].texto_transcrito||data[0].texto||'';
+        produtos=data[0].produtos||[];
+      } else if(data[0]?.id){
+        // array direto de produtos
+        produtos=data;
+        texto='';
+      }
+    } else if(data?.produtos!==undefined){
+      texto=data.texto_transcrito||data.texto||'';
+      produtos=data.produtos||[];
+    } else if(data?.data?.[0]?.embedding===undefined && data?.id){
+      produtos=[data];
+    }
+    console.log('🎤 Texto transcrito:', texto, '| Produtos:', produtos.length, '| Primeiro:', JSON.stringify(produtos[0])?.substring(0,100));
 
     // Mostrar texto transcrito no campo de busca
     if(texto){
@@ -1553,10 +1691,12 @@ async function processarAudioBusca(audioBase64){
       st.style.display='none';
     }
 
-    // Exibir produtos retornados — ordenados por similaridade
-    if(produtos.length){
+    // Exibir produtos retornados — ordenados por similaridade, corte 50%
+    const CORTE_AUDIO=0.50;
+    const produtosFiltrados=produtos.filter(r=>Number(r.similaridade||0)>=CORTE_AUDIO);
+    if(produtosFiltrados.length){
       // Enriquecer com dados completos do PRODS local (foto, etc)
-      const enrich=produtos.map(r=>{
+      const enrich=produtosFiltrados.map(r=>{
         const f=PRODS.find(p=>p.id===r.id);
         return f?{...f,similaridade:r.similaridade}:r;
       }).filter(r=>Number(r.quantidade)>0&&r.ativo!==false);
@@ -1608,7 +1748,8 @@ async function processarAudioBusca(audioBase64){
       }).join('');
 
     } else if(texto){
-      // Se não veio lista mas veio texto, faz busca local+vetorial
+      // Nenhum produto acima do corte — tenta busca local com o texto transcrito
+      showToast('Nenhum resultado acima de 50% — buscando localmente...');
       buscarSemanticoLocal(texto);
     } else {
       showToast('Não foi possível entender o áudio',true);
@@ -1691,7 +1832,7 @@ async function carregarAlertasOLD(){
 
 /* ═══ RELATÓRIOS ═══ */
 const PD={
-  hoje:{label:'Hoje',navs:['Hoje','Ontem','2 dias atrás','3 dias atrás'],dias:1},
+  hoje:{label:'Dia',navs:['Hoje','Ontem','2 dias atrás','3 dias atrás'],dias:1},
   semana:{label:'Esta semana',navs:['Esta semana','Semana passada','Há 2 semanas','Há 3 semanas'],dias:7},
   mes:{label:'Este mês',navs:['Maio 2026','Abril 2026','Março 2026','Fevereiro 2026'],dias:30},
   trimestre:{label:'Trimestre',navs:['Abr–Jun 2026','Jan–Mar 2026','Out–Dez 2025','Jul–Set 2025'],dias:90},
@@ -1973,6 +2114,97 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.key==='Enter')document.getElementById('login-senha')?.focus();
   });
 });
+
+
+/* ── PERFIL ── */
+async function carregarPerfil(){
+  try{
+    // Dados do usuário
+    if(usuarioLogado){
+      document.getElementById('perfil-email').textContent=usuarioLogado.email||'—';
+    }
+    // Dados da loja
+    const ul=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
+    if(ul&&ul[0]){
+      document.getElementById('perfil-nome').textContent=ul[0].nome||'Vendedor';
+      document.getElementById('perfil-loja').textContent=ul[0].loja_id||'—';
+      document.getElementById('perfil-papel').textContent=
+        ul[0].papel==='admin'?'Administrador':'Vendedor';
+    }
+    // Contadores
+    try{
+      const prods=await sbGet(TABELA,'select=id&ativo=neq.false');
+      document.getElementById('perfil-produtos').textContent=prods.length+' produtos';
+    }catch(e){}
+    try{
+      const vendas=await sbGet('vendas','select=id');
+      document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';
+    }catch(e){}
+  }catch(e){console.warn('Erro ao carregar perfil:',e);}
+}
+
+async function alterarSenha(){
+  const nova=document.getElementById('perfil-nova-senha').value;
+  const conf=document.getElementById('perfil-conf-senha').value;
+  if(!nova||nova.length<6){showToast('Senha deve ter pelo menos 6 caracteres',true);return;}
+  if(nova!==conf){showToast('As senhas não coincidem',true);return;}
+  try{
+    const r=await fetch(SB_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{apikey:SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||''),'Content-Type':'application/json'},
+      body:JSON.stringify({password:nova})
+    });
+    if(r.ok){
+      showToast('Senha alterada com sucesso!');
+      document.getElementById('perfil-nova-senha').value='';
+      document.getElementById('perfil-conf-senha').value='';
+    } else {
+      showToast('Erro ao alterar senha',true);
+    }
+  }catch(e){showToast('Erro de conexão',true);}
+}
+
+
+/* ── PERFIL ── */
+async function carregarPerfil(){
+  try{
+    const data=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
+    if(data&&data[0]){
+      document.getElementById('perfil-nome').textContent=data[0].nome||'Vendedor';
+      document.getElementById('perfil-loja').textContent=data[0].loja_id||'—';
+      document.getElementById('perfil-papel').textContent=
+        data[0].papel==='admin'?'Administrador':'Vendedor';
+    }
+    if(usuarioLogado){
+      document.getElementById('perfil-email').textContent=usuarioLogado.email||'—';
+    }
+  }catch(e){console.warn('Erro ao carregar perfil:',e);}
+}
+
+function abrirAlterarSenha(){
+  document.getElementById('alterar-senha-form').style.display='flex';
+}
+function fecharAlterarSenha(){
+  document.getElementById('alterar-senha-form').style.display='none';
+  document.getElementById('nova-senha').value='';
+  document.getElementById('nova-senha-conf').value='';
+}
+async function salvarNovaSenha(){
+  const nova=document.getElementById('nova-senha').value;
+  const conf=document.getElementById('nova-senha-conf').value;
+  if(nova.length<6){showToast('Senha deve ter pelo menos 6 caracteres',true);return;}
+  if(nova!==conf){showToast('As senhas não coincidem',true);return;}
+  try{
+    const token=localStorage.getItem('sb_token');
+    const r=await fetch(SB_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{apikey:SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({password:nova})
+    });
+    if(r.ok){showToast('Senha alterada com sucesso!');fecharAlterarSenha();}
+    else{const e=await r.json();showToast(e.message||'Erro ao alterar senha',true);}
+  }catch(e){showToast('Erro de conexão',true);}
+}
 
 /* ═══ INIT ═══ */
 verificarSessao();
