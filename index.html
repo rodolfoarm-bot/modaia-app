@@ -258,67 +258,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .asb-text{flex:1;font-size:12px;font-weight:600;color:var(--text1)}
 .asb-sub{font-size:11px;color:var(--text2);font-weight:400;margin-top:1px}
 
-/* ── PULL TO REFRESH ── */
+/* ── PULL-TO-REFRESH ── */
 .ptr-indicator{
   position:absolute;top:0;left:50%;transform:translateX(-50%) translateY(-60px);
-  background:var(--surface);border-radius:50%;width:42px;height:42px;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 14px rgba(0,0,0,.15);z-index:25;transition:transform .25s cubic-bezier(.4,0,.2,1);
-  pointer-events:none;border:1.5px solid var(--border)
+  width:42px;height:42px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow-md);
+  display:flex;align-items:center;justify-content:center;z-index:20;transition:transform .25s;
+  border:1px solid var(--border);
 }
 .ptr-indicator.show{transform:translateX(-50%) translateY(12px)}
-.ptr-indicator.refreshing{transform:translateX(-50%) translateY(12px)}
-.ptr-arrow{font-size:18px;color:var(--accent);transition:transform .2s}
-.ptr-arrow.flip{transform:rotate(180deg)}
-.ptr-spinner{width:20px;height:20px;border:2.5px solid var(--accent-l);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+.ptr-indicator.refreshing svg{animation:ptrSpin 1s linear infinite}
+.ptr-indicator svg{width:22px;height:22px;stroke:var(--accent);transition:transform .2s}
+@keyframes ptrSpin{to{transform:rotate(360deg)}}
+.scroll-ptr{position:relative}
 
-/* ── DROPDOWN FILTROS ── */
-.filtros-row{padding:12px 16px 6px;display:flex;gap:8px;align-items:center;flex-shrink:0}
-.filtro-dd{flex:1;position:relative}
-.filtro-dd-btn{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:6px;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.filtro-dd-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.filtro-dd-btn .arr{font-size:10px;flex-shrink:0;opacity:.7}
-.filtro-dd-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);z-index:15;overflow:hidden}
-.filtro-dd-list.show{display:block}
-.filtro-dd-list div{padding:10px 14px;font-size:13px;color:var(--text1);border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;font-weight:500}
-.filtro-dd-list div:last-child{border-bottom:none}
-.filtro-dd-list div:active,.filtro-dd-list div.sel{background:var(--accent-l);color:var(--accent);font-weight:700}
-.filtro-clear{background:var(--surface);border:1.5px solid var(--border);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);cursor:pointer;flex-shrink:0;font-weight:700;transition:all .15s}
-.filtro-clear.active{background:var(--danger-l);border-color:var(--danger);color:var(--danger)}
+/* ── FILTROS DROPDOWN ── */
+.filter-row{padding:10px 16px 6px;display:flex;gap:8px;flex-shrink:0;align-items:center}
+.filter-clear{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.filter-clear.active{border-color:var(--danger);color:var(--danger);background:var(--danger-l)}
+.filter-select{flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:13px;color:var(--text1);outline:none;-webkit-appearance:none;font-weight:600;cursor:pointer;transition:border-color .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237C3AED' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.filter-select.has-value{border-color:var(--accent);color:var(--accent);background-color:var(--accent-l)}
+.filter-select:focus{border-color:var(--accent)}
 
-/* ── ALERTAS AGRUPADOS POR TIPO ── */
-.alerta-tipo-card{background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);margin:0 16px 10px;box-shadow:var(--shadow);overflow:hidden}
-.alerta-tipo-hd{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;transition:background .15s}
-.alerta-tipo-hd:active{background:var(--surface2)}
-.alerta-tipo-ic{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+/* ── ALERTAS POR TIPO ── */
+.alerta-tipo-card{margin:0 16px 10px;background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+.alerta-tipo-header{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border-bottom:1px solid var(--border)}
+.alerta-tipo-icon{font-size:22px;flex-shrink:0}
 .alerta-tipo-info{flex:1;min-width:0}
-.alerta-tipo-nome{font-size:15px;font-weight:700;color:var(--text1);text-transform:capitalize}
+.alerta-tipo-nome{font-size:14px;font-weight:700;color:var(--text1);text-transform:capitalize}
 .alerta-tipo-sub{font-size:11px;color:var(--text2);margin-top:2px}
-.alerta-tipo-num{display:flex;flex-direction:column;align-items:center;border-radius:10px;padding:6px 12px;flex-shrink:0;min-width:50px}
-.alerta-tipo-num .qtd{font-size:22px;font-weight:800;line-height:1}
-.alerta-tipo-num .lb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
-.alerta-tipo-arr{font-size:14px;color:var(--text3);transition:transform .2s;flex-shrink:0;margin-left:4px}
-.alerta-tipo-arr.open{transform:rotate(180deg)}
-.alerta-tipo-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
-.alerta-tipo-body.show{display:block}
-.alerta-sub-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
-.alerta-sub-row:last-child{border-bottom:none}
-.alerta-sub-img{width:42px;height:42px;border-radius:8px;background:var(--surface2);object-fit:cover;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden}
+.alerta-tipo-total{display:flex;flex-direction:column;align-items:center;border-radius:8px;padding:6px 10px;flex-shrink:0;min-width:48px}
+.alerta-tipo-total .num{font-size:20px;font-weight:800;line-height:1}
+.alerta-tipo-total .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.alerta-tipo-chevron{margin-left:6px;color:var(--text3);font-size:14px;transition:transform .2s}
+.alerta-tipo-card.expanded .alerta-tipo-chevron{transform:rotate(180deg)}
+.alerta-tipo-body{display:none;padding:8px}
+.alerta-tipo-card.expanded .alerta-tipo-body{display:block}
+.alerta-sub-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg)}
+.alerta-sub-row+.alerta-sub-row{margin-top:6px}
+.alerta-sub-img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden}
 .alerta-sub-info{flex:1;min-width:0}
-.alerta-sub-nome{font-size:13px;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.alerta-sub-meta{font-size:11px;color:var(--text2);margin-top:2px}
-.alerta-sub-qtd{font-size:13px;font-weight:800;padding:3px 10px;border-radius:8px;flex-shrink:0}
+.alerta-sub-nome{font-size:12px;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alerta-sub-meta{font-size:10px;color:var(--text2);margin-top:1px}
+.alerta-sub-qtd{font-size:14px;font-weight:800;border-radius:6px;padding:4px 10px;flex-shrink:0;min-width:36px;text-align:center}
 
-/* ── CONFIG DE PARÂMETROS ── */
-.param-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:12px}
+/* ── PARÂMETROS LOJA ── */
+.param-row{padding:14px 0;border-bottom:1px solid var(--border)}
 .param-row:last-child{border-bottom:none}
-.param-info{flex:1;min-width:0}
-.param-nome{font-size:13px;font-weight:700;color:var(--text1)}
-.param-desc{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4}
-.param-input-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.param-input{width:64px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:8px;padding:8px;font-size:14px;font-weight:700;color:var(--text1);text-align:center;outline:none}
-.param-input:focus{border-color:var(--accent);background:var(--surface)}
-.param-suffix{font-size:11px;color:var(--text2);font-weight:600}
+.param-label{font-size:13px;font-weight:600;color:var(--text1);margin-bottom:8px;display:block}
+.param-help{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.4}
+.param-input-wrap{display:flex;align-items:center;gap:8px}
+.param-input{width:80px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;font-size:14px;color:var(--text1);outline:none;text-align:center;font-weight:700}
+.param-input:focus{border-color:var(--accent)}
+.param-suffix{font-size:12px;color:var(--text2);font-weight:500}
 </style>
 </head>
 <body>
@@ -351,9 +342,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <div id="sc-estoque" class="screen active">
   <div class="tb">
     <div class="tb-row">
-      <span class="tb-title">Produtos</span>
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <span class="tb-title">Produtos</span>
+        <span style="font-size:13px;color:rgba(255,255,255,.85);font-weight:600" id="tb-total-pecas">—</span>
+      </div>
       <div class="tb-actions">
-        <span class="tb-badge" id="badge-total">—</span>
         <span id="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span>
         <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
       </div>
@@ -361,7 +354,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <div class="srch-wrap">
       <div class="srch" style="position:relative">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;opacity:.7"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-        <input type="text" id="srch-in" placeholder="Buscar por cor, tipo, ocasião..." oninput="busca=this.value;buscarMultiplo(this.value)" style="padding-right:32px"/>
+        <input type="text" id="srch-in" placeholder="Buscar por cor, tipo, ocasião, tag..." oninput="busca=this.value;buscarMultiplo(this.value)" style="padding-right:32px"/>
         <button id="srch-clear" onclick="limparBusca()" style="display:flex;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:14px;cursor:pointer;align-items:center;justify-content:center;font-weight:700;line-height:1">×</button>
       </div>
       <button class="mic-btn" id="mic-est-btn" onclick="toggleMicEst()">
@@ -384,14 +377,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <span style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600">Buscando semanticamente...</span>
     </div>
   </div>
-  <div class="chips" id="chips">
-    <button class="chip on" data-f="todos">Todos</button>
-    <button class="chip" data-f="infantil_f">Menina</button>
-    <button class="chip" data-f="infantil_m">Menino</button>
-    <button class="chip" data-f="bebe">Bebê (0-2)</button>
-    <button class="chip" data-f="infantil_pequeno">3-5 anos</button>
-    <button class="chip" data-f="infantil_medio">6-9 anos</button>
-    <button class="chip" data-f="infantil_grande">10-14 anos</button>
+  <div class="filter-row">
+    <button class="filter-clear" id="filter-clear-btn" onclick="limparFiltros()" title="Limpar filtros">×</button>
+    <select class="filter-select" id="filter-genero" onchange="aplicarFiltros()">
+      <option value="">Gênero</option>
+      <option value="infantil_f">Menina</option>
+      <option value="infantil_m">Menino</option>
+      <option value="bebe">Bebê</option>
+      <option value="unissex">Unissex</option>
+    </select>
+    <select class="filter-select" id="filter-idade" onchange="aplicarFiltros()">
+      <option value="">Faixa etária</option>
+      <option value="bebe">Bebê (0-2)</option>
+      <option value="infantil_pequeno">3-5 anos</option>
+      <option value="infantil_medio">6-9 anos</option>
+      <option value="infantil_grande">10-14 anos</option>
+    </select>
   </div>
   <div class="srow">
     <span class="srow-ct" id="srow-ct">Carregando...</span>
@@ -402,7 +403,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <option value="data_asc">Mais antigos</option>
     </select>
   </div>
-  <div class="scroll">
+  <div class="scroll scroll-ptr" id="scroll-estoque">
+    <div class="ptr-indicator" id="ptr-estoque">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </div>
     <div class="loading-row" id="est-loading"><span class="proc-dot" style="background:var(--accent)"></span>Carregando produtos...</div>
     <div class="pgrid" id="pgrid" style="display:none"></div>
     <div class="empty" id="empty-est" style="display:none"><div class="empty-ic">🔍</div><div class="empty-txt">Nenhum produto encontrado</div></div>
@@ -521,18 +525,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <span class="tb-title">Alertas</span>
       <div class="tb-actions"><span class="tb-badge" id="badge-alerta">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
-    <div class="tb-sub">Produtos com estoque crítico</div>
+    <div class="tb-sub">Estoque crítico agrupado por tipo de produto</div>
     <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:8px;padding-bottom:2px" id="alerta-chips">
       <button class="chip on" data-af="todos" onclick="filtrarAlertas('todos')" style="font-size:12px;padding:4px 12px">Todos</button>
       <button class="chip" data-af="esgotado" onclick="filtrarAlertas('esgotado')" style="font-size:12px;padding:4px 12px">Esgotados</button>
-      <button class="chip" data-af="critico" onclick="filtrarAlertas('critico')" style="font-size:12px;padding:4px 12px">1-2 un.</button>
-      <button class="chip" data-af="baixo" onclick="filtrarAlertas('baixo')" style="font-size:12px;padding:4px 12px">3 un.</button>
+      <button class="chip" data-af="critico" onclick="filtrarAlertas('critico')" style="font-size:12px;padding:4px 12px">Crítico</button>
+      <button class="chip" data-af="baixo" onclick="filtrarAlertas('baixo')" style="font-size:12px;padding:4px 12px">Baixo</button>
       <button class="chip" data-af="infantil_f" onclick="filtrarAlertas('infantil_f')" style="font-size:12px;padding:4px 12px">Menina</button>
       <button class="chip" data-af="infantil_m" onclick="filtrarAlertas('infantil_m')" style="font-size:12px;padding:4px 12px">Menino</button>
       <button class="chip" data-af="bebe" onclick="filtrarAlertas('bebe')" style="font-size:12px;padding:4px 12px">Bebê</button>
     </div>
   </div>
-  <div class="scroll" style="padding-top:12px">
+  <div class="scroll scroll-ptr" id="scroll-alertas" style="padding-top:12px">
+    <div class="ptr-indicator" id="ptr-alertas">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </div>
     <div class="loading-row" id="alerta-loading" style="display:none"><span class="proc-dot" style="background:var(--success)"></span>Carregando...</div>
     <div id="alertas-list"></div>
     <div class="empty" id="alertas-empty" style="display:none"><div class="empty-ic">✅</div><div class="empty-txt">Tudo em ordem — nenhum produto crítico</div></div>
@@ -559,7 +566,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <button class="ph-btn" id="ph-next" onclick="navPeriod(1)">›</button>
     </div>
   </div>
-  <div class="scroll">
+  <div class="scroll scroll-ptr" id="scroll-relatorios">
+    <div class="ptr-indicator" id="ptr-relatorios">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </div>
     <div class="loading-row" id="rel-loading"><span class="proc-dot" style="background:var(--success)"></span>Carregando...</div>
     <div id="rel-body" style="display:none">
       <div class="stats-grid" id="rel-stats"></div>
@@ -582,7 +592,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <div class="tb">
     <div class="tb-row"><span class="tb-title">Meu Perfil</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
   </div>
-  <div class="scroll" style="padding:20px 16px">
+  <div class="scroll scroll-ptr" id="scroll-perfil" style="padding:20px 16px">
+    <div class="ptr-indicator" id="ptr-perfil">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </div>
     <div class="perfil-avatar">👤</div>
     <div class="perfil-nome" id="perfil-nome" style="text-align:center;margin-bottom:4px">—</div>
     <div class="perfil-email" id="perfil-email" style="text-align:center;margin-bottom:20px">—</div>
@@ -604,8 +617,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <span class="perfil-val" id="perfil-vendas">—</span>
       </div>
     </div>
+
+    <!-- ── PARÂMETROS DA LOJA ── -->
     <div class="perfil-card">
-      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">Alterar senha</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">⚙️ Parâmetros da loja</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Configurações usadas em Alertas e Estoque</div>
+
+      <div class="param-row">
+        <label class="param-label">Limite de estoque baixo (por tipo)</label>
+        <div class="param-input-wrap">
+          <input class="param-input" id="param-baixo" type="number" min="1" max="999" value="10"/>
+          <span class="param-suffix">un. — abaixo disso, o tipo aparece em Alertas</span>
+        </div>
+        <div class="param-help">Ex: se for 10, um tipo com 8 macacões no total já gera alerta. É o estoque agregado por tipo de produto, não por SKU.</div>
+      </div>
+
+      <div class="param-row">
+        <label class="param-label">Limite de estoque crítico (por tipo)</label>
+        <div class="param-input-wrap">
+          <input class="param-input" id="param-critico" type="number" min="1" max="999" value="5"/>
+          <span class="param-suffix">un. — abaixo disso, alerta vermelho</span>
+        </div>
+        <div class="param-help">Quando o total de um tipo cai abaixo deste limite, ele entra na categoria "Crítico".</div>
+      </div>
+
+      <div class="param-row">
+        <label class="param-label">Corte de similaridade (busca por voz)</label>
+        <div class="param-input-wrap">
+          <input class="param-input" id="param-corte" type="number" min="10" max="95" step="5" value="50"/>
+          <span class="param-suffix">% mínimo</span>
+        </div>
+        <div class="param-help">Apenas resultados acima deste percentual aparecem na busca por áudio. Padrão: 50%.</div>
+      </div>
+
+      <button class="fbtn" onclick="salvarParametros()" style="margin-top:14px">Salvar parâmetros</button>
+    </div>
+
+    <div class="perfil-card">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">🔒 Alterar senha</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <input class="finput" id="perfil-nova-senha" type="password" placeholder="Nova senha (mín. 6 caracteres)"/>
         <input class="finput" id="perfil-conf-senha" type="password" placeholder="Confirmar nova senha"/>
@@ -661,7 +710,7 @@ async function sbPatch(t,f,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?${f}`,
 /* ═══ ESTADO ═══ */
 const COR_MAP={'rosa':'#F472B6','azul':'#60A5FA','verde':'#34D399','amarelo':'#FCD34D','vermelho':'#F87171','branco':'#E5E7EB','cinza':'#9CA3AF','roxo':'#C084FC','laranja':'#FB923C','azul marinho':'#3B82F6','verde menta':'#6EE7B7','lilas':'#DDD6FE','creme':'#FDE68A','preto':'#6B7280'};
 let PRODS=[],GRUPOS=[],VENDAS=[];
-let filtro='todos',busca='',sortMode='data_desc';
+let filtroGen='',filtroIdade='',busca='',sortMode='data_desc';
 let vrSelectedId=null,vrQtd=1;
 let curPeriod='hoje',curOffset=0;
 let iaData={tipo:'',gen:'',cor:'',ocas:[],desc:'',tags:[]};
@@ -669,6 +718,13 @@ let fotoBlob=null,editingField=null,tamId=0,tamRowsData=[];
 let marcasCadastradas=[];
 let isDark=false;
 let sheetDeltas={};
+// Parâmetros configuráveis pelo lojista (persistidos no localStorage)
+const PARAM_DEFAULTS={baixo:10,critico:5,corteVoz:50};
+let PARAMS={...PARAM_DEFAULTS};
+function carregarParametros(){
+  try{const s=localStorage.getItem('modaia_params');if(s){PARAMS={...PARAM_DEFAULTS,...JSON.parse(s)};}}catch(e){}
+}
+carregarParametros();
 
 /* ═══ TEMA ═══ */
 function toggleTheme(){isDark=!isDark;document.documentElement.setAttribute('data-theme',isDark?'dark':'');document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=isDark?'☀️':'🌙');localStorage.setItem('theme',isDark?'dark':'light');}
@@ -680,6 +736,25 @@ function stkcls(q){return q==0?'szr':q<=3?'slow':'sok'}
 function stklb(q){return q==0?'Esgotado':q<=3?q+' restam':q+' un.'}
 function showToast(m,err=false){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',3000);}
 function limparBusca(){document.getElementById('srch-in').value='';busca='';buscarMultiplo('');fecharAudioBanner();}
+
+/* ── Limpa descrição semântica para exibição (remove tags e referências culturais) ── */
+function descricaoVisivel(p){
+  const desc=(p.descricao_semantica||'').trim();
+  if(!desc)return'';
+  const tags=(p.tags_adicionais||'').split(',').map(t=>t.trim().toLowerCase()).filter(Boolean);
+  // Remove sentenças que parecem ser apenas listas de tags ou referências culturais
+  const partes=desc.split(';').map(s=>s.trim()).filter(s=>{
+    if(!s)return false;
+    const sl=s.toLowerCase();
+    // Heurística: se a sentença é majoritariamente composta de tags conhecidas, ocultar
+    const palavras=sl.split(/[\s,]+/).filter(w=>w.length>2);
+    if(palavras.length<=3)return false; // muito curta — provavelmente lista de tags
+    const pctTags=palavras.filter(w=>tags.some(t=>t.includes(w)||w.includes(t))).length/palavras.length;
+    if(pctTags>0.6)return false; // mais de 60% das palavras são tags
+    return true;
+  });
+  return partes.join(' ');
+}
 
 /* ── AUDIO BANNER ── */
 function setAudioBanner(estado,text,sub=''){
@@ -727,7 +802,6 @@ function agrupar(prods){
   return Object.values(map);
 }
 
-/* ═══ RENDER CARDS ═══ */
 function renderCards(grupos,highlightSim=false){
   const g=document.getElementById('pgrid');
   const em=document.getElementById('empty-est');
@@ -770,23 +844,51 @@ async function carregarEstoque(){
 }
 function filtrado(){
   return PRODS.filter(p=>{
-    const mf=filtro==='todos'?true:
-      filtro==='bebe'?p.genero==='bebe':
-      filtro==='infantil_f'?p.genero==='infantil_f':
-      filtro==='infantil_m'?p.genero==='infantil_m':
-      filtro==='infantil_pequeno'?p.faixa_etaria==='infantil_pequeno'||(p.genero!=='bebe'&&['P','PP','1','2','3','4','5'].includes(p.tamanho)):
-      filtro==='infantil_medio'?p.faixa_etaria==='infantil_medio'||(p.genero!=='bebe'&&['6','7','8','9','10'].includes(p.tamanho)):
-      filtro==='infantil_grande'?p.faixa_etaria==='infantil_grande'||(p.genero!=='bebe'&&['12','14','16'].includes(p.tamanho)):
-      p.genero===filtro;
-    const mb=busca===''||[p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',p.descricao_semantica||'',p.tags_adicionais||''].join(' ').toLowerCase().includes(busca.toLowerCase());
-    return mf&&mb;
+    // Filtro de gênero
+    let mfg=true;
+    if(filtroGen){
+      mfg=p.genero===filtroGen;
+    }
+    // Filtro de idade
+    let mfi=true;
+    if(filtroIdade){
+      if(filtroIdade==='bebe'){mfi=p.genero==='bebe'||p.faixa_etaria==='bebe';}
+      else if(filtroIdade==='infantil_pequeno'){mfi=p.faixa_etaria==='infantil_pequeno'||(p.genero!=='bebe'&&['P','PP','1','2','3','4','5'].includes(p.tamanho));}
+      else if(filtroIdade==='infantil_medio'){mfi=p.faixa_etaria==='infantil_medio'||(p.genero!=='bebe'&&['6','7','8','9','10'].includes(p.tamanho));}
+      else if(filtroIdade==='infantil_grande'){mfi=p.faixa_etaria==='infantil_grande'||(p.genero!=='bebe'&&['12','14','16'].includes(p.tamanho));}
+    }
+    // Busca textual: inclui descricao_semantica E tags_adicionais (mesmo que não estejam visíveis no UI)
+    const mb=busca===''||[
+      p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',
+      p.descricao_semantica||'',p.tags_adicionais||'',
+      p.material||'',p.tamanho||'',p.referencias_culturais||''
+    ].join(' ').toLowerCase().includes(busca.toLowerCase());
+    return mfg&&mfi&&mb;
   });
+}
+function aplicarFiltros(){
+  filtroGen=document.getElementById('filter-genero').value;
+  filtroIdade=document.getElementById('filter-idade').value;
+  document.getElementById('filter-genero').classList.toggle('has-value',!!filtroGen);
+  document.getElementById('filter-idade').classList.toggle('has-value',!!filtroIdade);
+  document.getElementById('filter-clear-btn').classList.toggle('active',!!(filtroGen||filtroIdade));
+  renderEstoque();
+}
+function limparFiltros(){
+  filtroGen='';filtroIdade='';
+  document.getElementById('filter-genero').value='';
+  document.getElementById('filter-idade').value='';
+  document.getElementById('filter-genero').classList.remove('has-value');
+  document.getElementById('filter-idade').classList.remove('has-value');
+  document.getElementById('filter-clear-btn').classList.remove('active');
+  renderEstoque();
 }
 function renderEstoque(){
   const list=filtrado();
   GRUPOS=agrupar(list);
-  document.getElementById('badge-total').textContent=PRODS.length+' peças';
-  document.getElementById('srow-ct').textContent=GRUPOS.length===agrupar(PRODS).length?'Exibindo todos':GRUPOS.length+' de '+agrupar(PRODS).length+' grupos';
+  document.getElementById('tb-total-pecas').textContent=PRODS.length+' peças';
+  const totalGrupos=agrupar(PRODS).length;
+  document.getElementById('srow-ct').textContent=GRUPOS.length===totalGrupos?'Exibindo todos':GRUPOS.length+' de '+totalGrupos+' grupos';
   if(sortMode==='preco_asc')GRUPOS.sort((a,b)=>a._precoMin-b._precoMin);
   else if(sortMode==='preco_desc')GRUPOS.sort((a,b)=>b._precoMin-a._precoMin);
   else if(sortMode==='data_desc')GRUPOS.sort((a,b)=>new Date(b._vars[0].criado_em||0)-new Date(a._vars[0].criado_em||0));
@@ -794,11 +896,6 @@ function renderEstoque(){
   renderCards(GRUPOS,false);
 }
 function mudarOrdem(v){sortMode=v;renderEstoque();}
-document.getElementById('chips').addEventListener('click',e=>{
-  const c=e.target.closest('.chip');if(!c)return;
-  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
-  c.classList.add('on');filtro=c.dataset.f;renderEstoque();
-});
 
 /* ═══ DETALHE COM VARIAÇÕES ═══ */
 function openDetalhe(key){
@@ -860,7 +957,7 @@ function openDetalhe(key){
           ${p.ocasiao?`<span class="det-tag accent">${p.ocasiao}</span>`:''}
           ${(p.tags_adicionais||'').split(',').slice(0,3).filter(Boolean).map(t=>`<span class="det-tag neutral">${t.trim()}</span>`).join('')}
         </div>
-        ${p.descricao_semantica?`<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">${p.descricao_semantica}</div>`:''}
+        ${(()=>{const dv=descricaoVisivel(p);return dv?`<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">${dv}</div>`:'';})()}
       </div>
       <div class="det-divider"></div>
       <div class="var-section">
@@ -926,7 +1023,7 @@ function addTam(tam='',pr='',qt=''){
   w.appendChild(r);
 }
 function delTam(id){tamRowsData=tamRowsData.filter(x=>x!==id);document.getElementById('row-'+id)?.remove();}
-addTam('P','','');addTam('M','','');
+addTam('','','');
 
 function aplicarPrecoIgual(){
   const chk=document.getElementById('preco-igual');
@@ -1071,7 +1168,11 @@ async function salvarProduto(){
       await fetch(N8N_INPUT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto_url:fotoUrl,loja_id:LOJA_ID,marca,tamanho:r.tam,preco:parseFloat(r.pr),quantidade:parseInt(r.qt)})});
       s++;
     }
-    showToast(s+' variação(ões) enviada(s) para a IA!');resetCadastro();setTimeout(()=>{navTo('estoque');carregarEstoque();},1500);
+    showToast(s+' variação(ões) enviada(s) para a IA!');
+    resetCadastro();
+    // Recarrega estoque em background, mas mantém usuário na tela de Cadastro
+    carregarEstoque();
+    carregarMarcas();
   }catch(e){showToast('Erro: '+e.message,true);btn.textContent='Salvar produto';btn.disabled=false;}
 }
 function deletarFoto(){
@@ -1088,7 +1189,7 @@ function resetCadastro(){
   document.getElementById('fphoto-sz').style.display='none';document.getElementById('compress-info').style.display='none';
   document.getElementById('ia-waiting').style.display='block';document.getElementById('ia-fields').style.display='none';document.getElementById('ia-processing').style.display='none';document.getElementById('ia-post-save').style.display='none';
   document.getElementById('f-marca').value='';document.getElementById('tamanhos-wrap').innerHTML='';const chk=document.getElementById('preco-igual');if(chk)chk.checked=false;
-  tamRowsData=[];addTam('P','','');addTam('M','','');document.getElementById('salvar-btn').disabled=true;document.getElementById('salvar-btn').textContent='Salvar produto';document.getElementById('btn-delete-foto').style.display='none';
+  tamRowsData=[];addTam('','','');document.getElementById('salvar-btn').disabled=true;document.getElementById('salvar-btn').textContent='Salvar produto';document.getElementById('btn-delete-foto').style.display='none';
 }
 
 /* ═══ MARCAS ═══ */
@@ -1106,7 +1207,7 @@ function selecionarMarca(m){document.getElementById('f-marca').value=m;document.
 /* ═══════════════════════════════════════════════════════════
    BUSCA EM 3 CAMADAS
 ═══════════════════════════════════════════════════════════ */
-const CORTE_SIM = 0.50; // corte de similaridade — só exibe acima de 50%
+function getCorteSim(){return(PARAMS.corteVoz||50)/100;}
 let buscaTimer=null,ultimaBusca='';
 
 function buscarMultiplo(q){
@@ -1159,8 +1260,9 @@ async function buscarCamada3(q){
     const dataObj=Array.isArray(data)?data[0]:data;
     const vetorial=Array.isArray(dataObj?.produtos)?dataObj.produtos:Array.isArray(data)?data:(data?.produtos||[]);
 
-    // Filtro estrito: ≥ CORTE_SIM
-    const vetFiltrado=vetorial.filter(r=>Number(r.similaridade||0)>=CORTE_SIM);
+    // Filtro estrito: ≥ corte configurado
+    const CORTE=getCorteSim();
+    const vetFiltrado=vetorial.filter(r=>Number(r.similaridade||0)>=CORTE);
     if(!vetFiltrado.length){document.getElementById('srch-loading').style.display='none';return;}
 
     // Enriquecer com dados completos
@@ -1183,7 +1285,7 @@ async function buscarCamada3(q){
     GRUPOS.sort((a,b)=>b._simMedia-a._simMedia);
 
     renderCards(GRUPOS,true); // true = mostrar badge de %
-    document.getElementById('srow-ct').textContent=GRUPOS.length+' resultado(s) para "'+q+'" (≥'+Math.round(CORTE_SIM*100)+'% similar)';
+    document.getElementById('srow-ct').textContent=GRUPOS.length+' resultado(s) para "'+q+'" (≥'+Math.round(CORTE*100)+'% similar)';
   }catch(e){console.warn('Busca vetorial indisponível:',e.message);}
   document.getElementById('srch-loading').style.display='none';
 }
@@ -1241,12 +1343,13 @@ async function processarAudioBusca(audioBase64){
     }else if(data?.produtos!==undefined){texto=data.texto_transcrito||data.texto||'';produtos=data.produtos||[];}
     else if(data?.id){produtos=[data];}
 
-    // ── FILTRO ESTRITO: só ≥ CORTE_SIM ──
-    const produtosFiltrados=produtos.filter(r=>Number(r.similaridade||0)>=CORTE_SIM);
+    // ── FILTRO ESTRITO: só ≥ corte configurado ──
+    const CORTE=getCorteSim();
+    const produtosFiltrados=produtos.filter(r=>Number(r.similaridade||0)>=CORTE);
 
     if(!produtosFiltrados.length){
       if(texto){
-        setAudioBanner('error','"'+texto+'"','Nenhum produto acima de '+Math.round(CORTE_SIM*100)+'% de similaridade');
+        setAudioBanner('error','"'+texto+'"','Nenhum produto acima de '+Math.round(CORTE*100)+'% de similaridade');
         // Tenta busca local como fallback
         document.getElementById('srch-in').value=texto;ultimaBusca=texto;
         const res12=buscarCamadas12(texto);
@@ -1283,43 +1386,124 @@ async function processarAudioBusca(audioBase64){
   }
 }
 
-/* ═══ ALERTAS ═══ */
-let ALERTAS_ALL=[],alertaFiltro='todos';
+/* ═══ ALERTAS — AGRUPADO POR TIPO DE PRODUTO ═══ */
+let ALERTAS_ALL=[],alertaFiltro='todos',alertasExpand={};
+const TIPO_ICONS={vestido:'👗',camiseta:'👕',camisa:'👕',blusa:'👚',calça:'👖',calca:'👖',shorts:'🩳',saia:'👗',pijama:'🌙',macacão:'🦺',macacao:'🦺',body:'👶',conjunto:'🎽',jaqueta:'🧥',casaco:'🧥',moletom:'🧥'};
+function iconeTipo(t){const k=(t||'').toLowerCase().trim();return TIPO_ICONS[k]||'👗';}
+
 function filtrarAlertas(f){
   alertaFiltro=f;document.querySelectorAll('#alerta-chips .chip').forEach(c=>c.classList.toggle('on',c.dataset.af===f));renderAlertas();
 }
+
 function renderAlertas(){
-  const list=ALERTAS_ALL.filter(p=>{
-    if(alertaFiltro==='todos')return true;if(alertaFiltro==='esgotado')return p.quantidade===0;
-    if(alertaFiltro==='critico')return p.quantidade>0&&p.quantidade<=2;if(alertaFiltro==='baixo')return p.quantidade===3;
-    return p.genero===alertaFiltro;
+  // ALERTAS_ALL contém produtos individuais com qtd ≤ limite_baixo
+  // Agrupar por tipo, somando estoque
+  let lista=ALERTAS_ALL.slice();
+  // Aplicar filtro de gênero (chip)
+  if(['infantil_f','infantil_m','bebe'].includes(alertaFiltro)){
+    lista=lista.filter(p=>p.genero===alertaFiltro);
+  }
+
+  // Agrupar por tipo
+  const grupos={};
+  lista.forEach(p=>{
+    const tipo=(p.tipo||'outros').toLowerCase().trim();
+    if(!grupos[tipo])grupos[tipo]={tipo,total:0,produtos:[],generos:new Set()};
+    grupos[tipo].total+=Number(p.quantidade||0);
+    grupos[tipo].produtos.push(p);
+    if(p.genero)grupos[tipo].generos.add(p.genero);
   });
-  const el=document.getElementById('alertas-list');const em=document.getElementById('alertas-empty');
-  if(!list.length){el.innerHTML='';em.style.display='block';return;}
+
+  // Classificar cada tipo (esgotado / crítico / baixo) com base no total agregado
+  Object.values(grupos).forEach(g=>{
+    if(g.total===0)g.severidade='esgotado';
+    else if(g.total<=PARAMS.critico)g.severidade='critico';
+    else g.severidade='baixo';
+  });
+
+  // Aplicar filtro de severidade
+  let arr=Object.values(grupos);
+  if(alertaFiltro==='esgotado')arr=arr.filter(g=>g.severidade==='esgotado');
+  else if(alertaFiltro==='critico')arr=arr.filter(g=>g.severidade==='critico');
+  else if(alertaFiltro==='baixo')arr=arr.filter(g=>g.severidade==='baixo');
+
+  // Ordenar: esgotado → crítico → baixo, e dentro de cada, por menor estoque
+  const sevOrder={esgotado:0,critico:1,baixo:2};
+  arr.sort((a,b)=>{
+    const so=sevOrder[a.severidade]-sevOrder[b.severidade];
+    if(so!==0)return so;
+    return a.total-b.total;
+  });
+
+  const el=document.getElementById('alertas-list');
+  const em=document.getElementById('alertas-empty');
+  if(!arr.length){el.innerHTML='';em.style.display='block';return;}
   em.style.display='none';
-  el.innerHTML=list.map(p=>{
-    const qn=Number(p.quantidade);
-    const corBg=qn===0?'var(--danger-l)':qn<=2?'#FEE2E2':qn===3?'var(--warning-l)':'var(--success-l)';
-    const corTxt=qn===0?'var(--danger)':qn<=2?'var(--danger)':qn===3?'var(--warning)':'var(--success)';
-    const imgH=p.foto_url?`<img src="${p.foto_url}" style="width:56px;height:56px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\'width:56px;height:56px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0\'>👗</div>'"/>`:`<div style="width:56px;height:56px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">👗</div>`;
-    return`<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);margin:0 16px 10px;box-shadow:var(--shadow)">
-      ${imgH}<div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto'}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.cores||'—'} · Tam ${p.tamanho||'—'}</div>
+
+  el.innerHTML=arr.map(g=>{
+    const sev=g.severidade;
+    const corBg=sev==='esgotado'?'var(--danger-l)':sev==='critico'?'#FEE2E2':'var(--warning-l)';
+    const corTxt=sev==='esgotado'?'var(--danger)':sev==='critico'?'var(--danger)':'var(--warning)';
+    const sevLb=sev==='esgotado'?'esgot.':sev==='critico'?'crítico':'baixo';
+    const expanded=alertasExpand[g.tipo]?'expanded':'';
+    const generos=[...g.generos].map(gen=>{
+      return gen==='infantil_f'?'Menina':gen==='infantil_m'?'Menino':gen==='bebe'?'Bebê':gen==='unissex'?'Unissex':gen;
+    }).join(' · ');
+    const skuCount=g.produtos.length;
+
+    const subItems=g.produtos
+      .sort((a,b)=>Number(a.quantidade)-Number(b.quantidade))
+      .map(p=>{
+        const qn=Number(p.quantidade);
+        const pCorBg=qn===0?'var(--danger-l)':qn<=2?'#FEE2E2':qn<=PARAMS.critico?'var(--warning-l)':'var(--success-l)';
+        const pCorTxt=qn===0?'var(--danger)':qn<=2?'var(--danger)':qn<=PARAMS.critico?'var(--warning)':'var(--success)';
+        const imgH=p.foto_url?`<img src="${p.foto_url}" class="alerta-sub-img" style="object-fit:cover" onerror="this.outerHTML='<div class=\'alerta-sub-img\'>👗</div>'"/>`:`<div class="alerta-sub-img">👗</div>`;
+        return`<div class="alerta-sub-row">
+          ${imgH}
+          <div class="alerta-sub-info">
+            <div class="alerta-sub-nome">${[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto'}</div>
+            <div class="alerta-sub-meta">${p.cores||'—'} · Tam ${p.tamanho||'—'}</div>
+          </div>
+          <div class="alerta-sub-qtd" style="background:${pCorBg};color:${pCorTxt}">${qn}</div>
+        </div>`;
+      }).join('');
+
+    return`<div class="alerta-tipo-card ${expanded}" id="atc-${g.tipo}">
+      <div class="alerta-tipo-header" onclick="toggleAlertaTipo('${g.tipo}')">
+        <span class="alerta-tipo-icon">${iconeTipo(g.tipo)}</span>
+        <div class="alerta-tipo-info">
+          <div class="alerta-tipo-nome">${g.tipo}</div>
+          <div class="alerta-tipo-sub">${skuCount} variação(ões)${generos?' · '+generos:''}</div>
+        </div>
+        <div class="alerta-tipo-total" style="background:${corBg};color:${corTxt}">
+          <div class="num">${g.total}</div>
+          <div class="lbl">${sevLb}</div>
+        </div>
+        <span class="alerta-tipo-chevron">▾</span>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;background:${corBg};border-radius:10px;padding:8px 12px;flex-shrink:0;min-width:52px">
-        <div style="font-size:26px;font-weight:800;line-height:1;color:${corTxt}">${qn}</div>
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:${corTxt};margin-top:2px">${qn===0?'esgot.':'restam'}</div>
-      </div>
+      <div class="alerta-tipo-body">${subItems}</div>
     </div>`;
   }).join('');
 }
+
+function toggleAlertaTipo(tipo){
+  alertasExpand[tipo]=!alertasExpand[tipo];
+  document.getElementById('atc-'+tipo)?.classList.toggle('expanded',alertasExpand[tipo]);
+}
+
 async function carregarAlertas(){
   document.getElementById('alerta-loading').style.display='flex';document.getElementById('alertas-list').innerHTML='';document.getElementById('alertas-empty').style.display='none';
   try{
-    const crit=await sbGet(TABELA,'ativo=neq.false&quantidade=lte.3&order=quantidade.asc');
-    document.getElementById('alerta-loading').style.display='none';ALERTAS_ALL=crit;document.getElementById('badge-alerta').textContent=crit.length;
-    if(!crit.length){document.getElementById('alertas-empty').style.display='block';return;}renderAlertas();
+    // Buscar produtos com qtd ≤ limite de baixo definido pelo lojista
+    const limite=PARAMS.baixo;
+    const crit=await sbGet(TABELA,'ativo=neq.false&quantidade=lte.'+limite+'&order=quantidade.asc');
+    document.getElementById('alerta-loading').style.display='none';
+    ALERTAS_ALL=crit;
+    // Agrupa por tipo para o badge
+    const tiposUnicos=new Set(crit.map(p=>(p.tipo||'').toLowerCase().trim()));
+    document.getElementById('badge-alerta').textContent=tiposUnicos.size;
+    if(!crit.length){document.getElementById('alertas-empty').style.display='block';return;}
+    renderAlertas();
   }catch(e){document.getElementById('alerta-loading').style.display='none';showToast('Erro ao carregar alertas',true);}
 }
 async function arquivarGrupo(key){
@@ -1417,8 +1601,28 @@ async function carregarPerfil(){
     if(ul&&ul[0]){document.getElementById('perfil-nome').textContent=ul[0].nome||'Vendedor';document.getElementById('perfil-loja').textContent=ul[0].loja_id||'—';document.getElementById('perfil-papel').textContent=ul[0].papel==='admin'?'Administrador':'Vendedor';}
     try{const prods=await sbGet(TABELA,'select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
     try{const vendas=await sbGet('vendas','select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
+    // Sincroniza inputs de parâmetros
+    document.getElementById('param-baixo').value=PARAMS.baixo;
+    document.getElementById('param-critico').value=PARAMS.critico;
+    document.getElementById('param-corte').value=PARAMS.corteVoz;
   }catch(e){console.warn('Erro ao carregar perfil:',e);}
 }
+
+function salvarParametros(){
+  const baixo=parseInt(document.getElementById('param-baixo').value);
+  const critico=parseInt(document.getElementById('param-critico').value);
+  const corte=parseInt(document.getElementById('param-corte').value);
+  if(!baixo||baixo<1||baixo>999){showToast('Limite de estoque baixo inválido',true);return;}
+  if(!critico||critico<1||critico>999){showToast('Limite crítico inválido',true);return;}
+  if(critico>=baixo){showToast('Crítico deve ser menor que Baixo',true);return;}
+  if(!corte||corte<10||corte>95){showToast('Corte de similaridade entre 10 e 95',true);return;}
+  PARAMS.baixo=baixo;PARAMS.critico=critico;PARAMS.corteVoz=corte;
+  localStorage.setItem('modaia_params',JSON.stringify(PARAMS));
+  showToast('Parâmetros salvos!');
+  // Recarrega alertas com novos limites
+  if(document.getElementById('sc-alertas').classList.contains('active')){carregarAlertas();}
+}
+
 async function alterarSenha(){
   const nova=document.getElementById('perfil-nova-senha').value;const conf=document.getElementById('perfil-conf-senha').value;
   if(!nova||nova.length<6){showToast('Senha deve ter pelo menos 6 caracteres',true);return;}
@@ -1430,8 +1634,87 @@ async function alterarSenha(){
   }catch(e){showToast('Erro de conexão',true);}
 }
 
+/* ═══ PULL-TO-REFRESH ═══ */
+function bindPullToRefresh(scrollEl,indicator,onRefresh){
+  let startY=0,currentY=0,pulling=false,refreshing=false;
+  const THRESHOLD=70;
+  const MAX_PULL=120;
+
+  scrollEl.addEventListener('touchstart',e=>{
+    if(refreshing)return;
+    if(scrollEl.scrollTop<=0){
+      startY=e.touches[0].clientY;
+      pulling=true;
+    }
+  },{passive:true});
+
+  scrollEl.addEventListener('touchmove',e=>{
+    if(!pulling||refreshing)return;
+    currentY=e.touches[0].clientY;
+    const dy=currentY-startY;
+    if(dy>0&&scrollEl.scrollTop<=0){
+      const pull=Math.min(dy*0.5,MAX_PULL);
+      indicator.style.transform=`translateX(-50%) translateY(${pull-50}px)`;
+      indicator.style.transition='none';
+      const rotation=Math.min(pull/THRESHOLD*180,180);
+      const svg=indicator.querySelector('svg');
+      if(svg)svg.style.transform=`rotate(${rotation}deg)`;
+      if(pull>=THRESHOLD){indicator.classList.add('show');}
+    } else {
+      pulling=false;
+    }
+  },{passive:true});
+
+  scrollEl.addEventListener('touchend',async e=>{
+    if(!pulling||refreshing){pulling=false;return;}
+    pulling=false;
+    const dy=currentY-startY;
+    indicator.style.transition='transform .25s';
+    if(dy*0.5>=THRESHOLD){
+      refreshing=true;
+      indicator.classList.add('show','refreshing');
+      indicator.style.transform='translateX(-50%) translateY(12px)';
+      try{await onRefresh();}catch(e){console.warn('PTR erro:',e);}
+      setTimeout(()=>{
+        indicator.classList.remove('show','refreshing');
+        indicator.style.transform='translateX(-50%) translateY(-60px)';
+        const svg=indicator.querySelector('svg');if(svg)svg.style.transform='';
+        refreshing=false;
+      },500);
+    } else {
+      indicator.classList.remove('show');
+      indicator.style.transform='translateX(-50%) translateY(-60px)';
+      const svg=indicator.querySelector('svg');if(svg)svg.style.transform='';
+    }
+  });
+}
+
+function setupPullToRefresh(){
+  bindPullToRefresh(
+    document.getElementById('scroll-estoque'),
+    document.getElementById('ptr-estoque'),
+    async()=>{await carregarEstoque();showToast('Atualizado');}
+  );
+  bindPullToRefresh(
+    document.getElementById('scroll-alertas'),
+    document.getElementById('ptr-alertas'),
+    async()=>{await carregarAlertas();showToast('Atualizado');}
+  );
+  bindPullToRefresh(
+    document.getElementById('scroll-relatorios'),
+    document.getElementById('ptr-relatorios'),
+    async()=>{await carregarRelatorios();showToast('Atualizado');}
+  );
+  bindPullToRefresh(
+    document.getElementById('scroll-perfil'),
+    document.getElementById('ptr-perfil'),
+    async()=>{await carregarPerfil();showToast('Atualizado');}
+  );
+}
+
 /* ═══ INIT ═══ */
 verificarSessao();
+setupPullToRefresh();
 </script>
 </body>
 </html>
