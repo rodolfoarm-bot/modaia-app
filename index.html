@@ -312,11 +312,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .param-suffix{font-size:12px;color:var(--text2);font-weight:500}
 
 /* ── FULLSCREEN IMAGE VIEWER ── */
-.fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:200;display:flex;align-items:center;justify-content:center;animation:fsFade .2s}
+.fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fsFade .2s;transition:opacity .2s;overflow:hidden}
 @keyframes fsFade{from{opacity:0}to{opacity:1}}
-.fs-img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-out;transition:transform .3s;touch-action:none}
-.fs-close{position:absolute;top:max(env(safe-area-inset-top),16px);right:16px;background:rgba(255,255,255,.18);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:22px;font-weight:700;backdrop-filter:blur(8px);z-index:2}
-.fs-hint{position:absolute;bottom:max(env(safe-area-inset-bottom),20px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,.15);color:#fff;font-size:11px;padding:6px 14px;border-radius:20px;backdrop-filter:blur(8px);font-weight:600}
+.fs-img{max-width:100vw;max-height:100vh;width:auto;height:auto;object-fit:contain;cursor:zoom-out;touch-action:none;user-select:none;-webkit-user-drag:none;will-change:transform;transform-origin:center center}
+.fs-close{position:fixed;top:max(env(safe-area-inset-top),16px);right:16px;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:24px;font-weight:700;backdrop-filter:blur(10px);z-index:10001;-webkit-tap-highlight-color:transparent;line-height:1}
+.fs-close:active{background:rgba(255,255,255,.35)}
+.fs-hint{position:fixed;bottom:max(env(safe-area-inset-bottom),24px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,.18);color:#fff;font-size:11px;padding:7px 16px;border-radius:20px;backdrop-filter:blur(10px);font-weight:600;z-index:10001;pointer-events:none;white-space:nowrap}
 .det-img{cursor:zoom-in}
 </style>
 </head>
@@ -325,13 +326,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 
 <!-- LOGIN -->
 <div id="sc-login">
-  <div class="login-logo" style="background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%);padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center">
-    <svg viewBox="0 0 100 100" width="48" height="48" fill="none">
-      <path d="M50 20 a30 30 0 1 1 -21 8.8" stroke="#C084FC" stroke-width="14" stroke-linecap="round"/>
-      <path d="M50 20 a30 30 0 0 1 21 8.8 L65 35 L78 22 L85 28" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      <text x="50" y="68" text-anchor="middle" font-family="-apple-system,sans-serif" font-weight="800" font-size="32" fill="#fff">G</text>
-    </svg>
-  </div>
+  <img src="data:image/jpeg;base64,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" 
+       alt="Giro"
+       style="width:110px;height:110px;border-radius:26px;margin-bottom:20px;box-shadow:0 12px 32px rgba(124,58,237,.4);object-fit:cover"/>
   <div class="login-title">Giro</div>
   <div class="login-sub">Gestão inteligente para sua loja</div>
   <div class="login-form">
@@ -387,10 +384,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </select>
     <select class="filter-select" id="filter-idade" onchange="aplicarFiltros()">
       <option value="">Idade</option>
-      <option value="bebe">Bebê (0-2)</option>
-      <option value="infantil_pequeno">3-5 anos</option>
-      <option value="infantil_medio">6-9 anos</option>
-      <option value="infantil_grande">10-14 anos</option>
+      <option value="rn">Recém-nascido (0-3m)</option>
+      <option value="bebe_pequeno">Bebê pequeno (3-12m)</option>
+      <option value="bebe">Bebê (12-24m)</option>
+      <option value="infantil_pequeno">Infantil pequeno (2-5a)</option>
+      <option value="infantil_medio">Infantil médio (6-10a)</option>
+      <option value="infantil_grande">Infantil grande (11-16a)</option>
     </select>
   </div>
   <div class="srow">
@@ -649,6 +648,45 @@ async function sbGet(t,p=''){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}`,{
 async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:getHDR(),body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json();}
 async function sbPatch(t,f,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?${f}`,{method:'PATCH',headers:getHDR(),body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json();}
 
+/* ═══ TABELA DE REFERÊNCIA OFICIAL — TAMANHOS × IDADE × PESO × ALTURA
+   Fonte única de verdade para todo o app e para o WhatsApp.
+   Se mudar aqui, toda a derivação (filtros, badges, busca por idade/peso/altura) muda junto.
+   Ordem importa: usada para ordenação visual nos dropdowns. */
+const TABELA_TAMANHOS = [
+  { tam:'RN', idade_label:'0 a 1 mês',    idade_min_meses:0,   idade_max_meses:1,   peso_min:2.5,  peso_max:4,   altura_min:45, altura_max:53,  faixa_etaria:'rn' },
+  { tam:'P',  idade_label:'1 a 3 meses',  idade_min_meses:1,   idade_max_meses:3,   peso_min:3.5,  peso_max:6,   altura_min:53, altura_max:62,  faixa_etaria:'rn' },
+  { tam:'M',  idade_label:'3 a 6 meses',  idade_min_meses:3,   idade_max_meses:6,   peso_min:5,    peso_max:8,   altura_min:60, altura_max:67,  faixa_etaria:'bebe_pequeno' },
+  { tam:'G',  idade_label:'6 a 9 meses',  idade_min_meses:6,   idade_max_meses:9,   peso_min:7,    peso_max:9,   altura_min:67, altura_max:73,  faixa_etaria:'bebe_pequeno' },
+  { tam:'GG', idade_label:'9 a 12 meses', idade_min_meses:9,   idade_max_meses:12,  peso_min:9,    peso_max:11,  altura_min:73, altura_max:80,  faixa_etaria:'bebe_pequeno' },
+  { tam:'1',  idade_label:'12 a 18 meses',idade_min_meses:12,  idade_max_meses:18,  peso_min:10,   peso_max:12,  altura_min:80, altura_max:85,  faixa_etaria:'bebe' },
+  { tam:'2',  idade_label:'18 a 24 meses',idade_min_meses:18,  idade_max_meses:24,  peso_min:12,   peso_max:14,  altura_min:85, altura_max:90,  faixa_etaria:'bebe' },
+  { tam:'3',  idade_label:'2 a 3 anos',   idade_min_meses:24,  idade_max_meses:36,  peso_min:14,   peso_max:16,  altura_min:90, altura_max:95,  faixa_etaria:'infantil_pequeno' },
+  { tam:'4',  idade_label:'3 a 4 anos',   idade_min_meses:36,  idade_max_meses:48,  peso_min:15,   peso_max:18,  altura_min:95, altura_max:102, faixa_etaria:'infantil_pequeno' },
+  { tam:'5',  idade_label:'4 a 5 anos',   idade_min_meses:48,  idade_max_meses:60,  peso_min:17,   peso_max:21,  altura_min:102,altura_max:108, faixa_etaria:'infantil_pequeno' },
+  { tam:'6',  idade_label:'5 a 6 anos',   idade_min_meses:60,  idade_max_meses:72,  peso_min:19,   peso_max:23,  altura_min:108,altura_max:114, faixa_etaria:'infantil_medio' },
+  { tam:'8',  idade_label:'7 a 8 anos',   idade_min_meses:84,  idade_max_meses:96,  peso_min:22,   peso_max:27,  altura_min:120,altura_max:128, faixa_etaria:'infantil_medio' },
+  { tam:'10', idade_label:'9 a 10 anos',  idade_min_meses:108, idade_max_meses:120, peso_min:27,   peso_max:33,  altura_min:130,altura_max:140, faixa_etaria:'infantil_medio' },
+  { tam:'12', idade_label:'11 a 12 anos', idade_min_meses:132, idade_max_meses:144, peso_min:33,   peso_max:40,  altura_min:140,altura_max:150, faixa_etaria:'infantil_grande' },
+  { tam:'14', idade_label:'13 a 14 anos', idade_min_meses:156, idade_max_meses:168, peso_min:40,   peso_max:50,  altura_min:150,altura_max:160, faixa_etaria:'infantil_grande' },
+  { tam:'16', idade_label:'15 a 16 anos', idade_min_meses:180, idade_max_meses:192, peso_min:48,   peso_max:60,  altura_min:160,altura_max:170, faixa_etaria:'infantil_grande' }
+];
+/* Index rápido por tamanho (case-insensitive) */
+const TAM_BY_KEY = Object.fromEntries(
+  TABELA_TAMANHOS.map(t => [t.tam.toLowerCase(), t])
+);
+function getTamInfo(tamanho){
+  return TAM_BY_KEY[(tamanho||'').toString().trim().toLowerCase()];
+}
+/* Faixas etárias agrupadas — usadas no filtro do dropdown de Idade */
+const FAIXAS_ETARIAS = [
+  { value:'rn',                label:'Recém-nascido (0-3m)',    tams:['RN','P'] },
+  { value:'bebe_pequeno',      label:'Bebê pequeno (3-12m)',    tams:['M','G','GG'] },
+  { value:'bebe',              label:'Bebê (12-24m)',           tams:['1','2'] },
+  { value:'infantil_pequeno',  label:'Infantil pequeno (2-5a)', tams:['3','4','5'] },
+  { value:'infantil_medio',    label:'Infantil médio (6-10a)',  tams:['6','8','10'] },
+  { value:'infantil_grande',   label:'Infantil grande (11-16a)',tams:['12','14','16'] }
+];
+
 /* ═══ ESTADO ═══ */
 const COR_MAP={'rosa':'#F472B6','azul':'#60A5FA','verde':'#34D399','amarelo':'#FCD34D','vermelho':'#F87171','branco':'#E5E7EB','cinza':'#9CA3AF','roxo':'#C084FC','laranja':'#FB923C','azul marinho':'#3B82F6','verde menta':'#6EE7B7','lilas':'#DDD6FE','creme':'#FDE68A','preto':'#6B7280'};
 let PRODS=[],GRUPOS=[],VENDAS=[];
@@ -744,7 +782,15 @@ function agrupar(prods){
     map[key]._vars.push(p);
   });
   Object.values(map).forEach(g=>{
-    g._vars.sort((a,b)=>(a.tamanho||'').localeCompare(b.tamanho||'',undefined,{numeric:true}));
+    // Ordena variações pela ordem oficial da TABELA_TAMANHOS (RN→P→M→G→1→2→...)
+    g._vars.sort((a,b)=>{
+      const idxA=TABELA_TAMANHOS.findIndex(t=>t.tam.toLowerCase()===(a.tamanho||'').toLowerCase());
+      const idxB=TABELA_TAMANHOS.findIndex(t=>t.tam.toLowerCase()===(b.tamanho||'').toLowerCase());
+      if(idxA===-1&&idxB===-1)return(a.tamanho||'').localeCompare(b.tamanho||'',undefined,{numeric:true});
+      if(idxA===-1)return 1;
+      if(idxB===-1)return -1;
+      return idxA-idxB;
+    });
     const precos=g._vars.map(v=>Number(v.preco||0));
     g._precoMin=Math.min(...precos);g._precoMax=Math.max(...precos);
     g._qtdTotal=g._vars.reduce((s,v)=>s+Number(v.quantidade||0),0);
@@ -806,10 +852,11 @@ function filtrado(){
     if(filtroTam)mft=(p.tamanho||'').toString().toLowerCase()===filtroTam.toString().toLowerCase();
     let mfi=true;
     if(filtroIdade){
-      if(filtroIdade==='bebe'){mfi=p.genero==='bebe'||p.faixa_etaria==='bebe'||p.faixa_etaria==='rn'||p.faixa_etaria==='bebe_pequeno';}
-      else if(filtroIdade==='infantil_pequeno'){mfi=p.faixa_etaria==='infantil_pequeno'||(p.genero!=='bebe'&&['P','PP','1','2','3','4','5'].includes(p.tamanho));}
-      else if(filtroIdade==='infantil_medio'){mfi=p.faixa_etaria==='infantil_medio'||(p.genero!=='bebe'&&['6','7','8','9','10'].includes(p.tamanho));}
-      else if(filtroIdade==='infantil_grande'){mfi=p.faixa_etaria==='infantil_grande'||(p.genero!=='bebe'&&['12','14','16'].includes(p.tamanho));}
+      // Deriva faixa pelo TAMANHO usando a tabela oficial (mais confiável que p.faixa_etaria)
+      const info=getTamInfo(p.tamanho);
+      const faixaDoTam=info?info.faixa_etaria:null;
+      // Aceita tanto a derivação pela tabela quanto o campo do banco (compatibilidade)
+      mfi=faixaDoTam===filtroIdade||p.faixa_etaria===filtroIdade;
     }
     const mb=busca===''||[
       p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',
@@ -824,18 +871,21 @@ function popularFiltroTamanhos(){
   const sel=document.getElementById('filter-tamanho');
   if(!sel)return;
   const valorAtual=sel.value;
-  const tamanhos=[...new Set(PRODS.map(p=>p.tamanho).filter(Boolean))];
-  // Ordena: primeiro letras (P,M,G,GG), depois números
-  tamanhos.sort((a,b)=>{
-    const aN=parseInt(a),bN=parseInt(b);
-    const aIsNum=!isNaN(aN),bIsNum=!isNaN(bN);
-    if(aIsNum&&bIsNum)return aN-bN;
-    if(aIsNum&&!bIsNum)return 1;
-    if(!aIsNum&&bIsNum)return -1;
-    const ordem={'PP':0,'P':1,'M':2,'G':3,'GG':4,'XG':5,'XGG':6};
-    return(ordem[a.toUpperCase()]??99)-(ordem[b.toUpperCase()]??99);
+  const tamanhosUsados=[...new Set(PRODS.map(p=>(p.tamanho||'').toString().trim()).filter(Boolean))];
+  // Ordena pela ordem oficial da TABELA_TAMANHOS; tamanhos não-padrão vão pro final
+  tamanhosUsados.sort((a,b)=>{
+    const idxA=TABELA_TAMANHOS.findIndex(t=>t.tam.toLowerCase()===a.toLowerCase());
+    const idxB=TABELA_TAMANHOS.findIndex(t=>t.tam.toLowerCase()===b.toLowerCase());
+    if(idxA===-1&&idxB===-1)return a.localeCompare(b,undefined,{numeric:true});
+    if(idxA===-1)return 1;
+    if(idxB===-1)return -1;
+    return idxA-idxB;
   });
-  sel.innerHTML='<option value="">Tamanho</option>'+tamanhos.map(t=>`<option value="${t}" ${t===valorAtual?'selected':''}>${t}</option>`).join('');
+  sel.innerHTML='<option value="">Tamanho</option>'+tamanhosUsados.map(t=>{
+    const info=getTamInfo(t);
+    const label=info?`${t} · ${info.idade_label}`:t;
+    return`<option value="${t}" ${t===valorAtual?'selected':''}>${label}</option>`;
+  }).join('');
 }
 function aplicarFiltros(){
   filtroGen=document.getElementById('filter-genero').value;
