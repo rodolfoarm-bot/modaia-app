@@ -780,13 +780,24 @@ function navTo(sc){
   if(sc==='perfil')carregarPerfil();
 }
 
-/* ═══ AGRUPAMENTO ═══ */
+/* ═══ AGRUPAMENTO ═══
+   Estratégia: produtos do MESMO LOTE (mesma foto, mesmo tipo, mesma marca,
+   mesmas cores) viram um único card com várias variações de tamanho.
+   A chave de agrupamento usa apenas a foto_url como âncora confiável,
+   pois ela é compartilhada entre todas as variações cadastradas no mesmo upload. */
 function agrupar(prods){
   const map={};
   prods.forEach(p=>{
-    const coresNorm=(p.cores||'').split(',')[0].trim().toLowerCase();
     const fotoKey=p.foto_url?p.foto_url.split('/').pop().split('.')[0]:'';
-    const key=fotoKey?[p.tipo||'',p.marca||'',fotoKey].join('|'):[p.tipo||'',p.marca||'',coresNorm,p.genero||''].join('|');
+    // Chave: foto_url é único por lote (cada cadastro gera Date.now()+'.jpg')
+    // Fallback: tipo+marca+cor+genero
+    let key;
+    if(fotoKey){
+      key='foto:'+fotoKey;
+    } else {
+      const corKey=(p.cores||'').split(',')[0].trim().toLowerCase();
+      key=[p.tipo||'',p.marca||'',corKey,p.genero||''].join('|');
+    }
     if(!map[key])map[key]={...p,_vars:[],_key:key};
     map[key]._vars.push(p);
   });
@@ -795,7 +806,6 @@ function agrupar(prods){
     const precos=g._vars.map(v=>Number(v.preco||0));
     g._precoMin=Math.min(...precos);g._precoMax=Math.max(...precos);
     g._qtdTotal=g._vars.reduce((s,v)=>s+Number(v.quantidade||0),0);
-    // Similaridade média do grupo (para ordenação por relevância)
     const sims=g._vars.map(v=>Number(v._sim||v.similaridade||0)).filter(s=>s>0);
     g._simMedia=sims.length?sims.reduce((a,b)=>a+b,0)/sims.length:0;
   });
@@ -808,8 +818,9 @@ function renderCards(grupos,highlightSim=false){
   if(!grupos.length){g.style.display='none';em.style.display='block';return;}
   g.style.display='grid';em.style.display='none';
   g.innerHTML=grupos.map(gr=>{
-    const c=COR_MAP[gr.cores]||'#A78BFA';
     const p=gr._vars[0];
+    const corPrimaria=(p.cores||'').split(',')[0].trim().toLowerCase();
+    const c=COR_MAP[corPrimaria]||'#A78BFA';
     const imgHtml=p.foto_url?`<img src="${p.foto_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"/>`:`<span class="noimg">👗</span>`;
     const allZero=gr._qtdTotal===0;
     const hasLow=gr._vars.some(v=>v.quantidade>0&&v.quantidade<=3);
@@ -819,11 +830,13 @@ function renderCards(grupos,highlightSim=false){
     const tamChips=gr._vars.map(v=>`<span class="tam-chip${v.quantidade==0?' zero':''}">${v.tamanho||'—'}</span>`).join('');
     const simPct=highlightSim&&gr._simMedia>0?Math.round(gr._simMedia*100):'';
     const simBadge=simPct?`<span class="sim-badge">${simPct}%</span>`:'';
+    const nome=[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto';
+    const corDisplay=p.cores||'sem cor definida';
     return`<div class="pcard" onclick="openDetalhe('${gr._key}')">
       <div class="pcard-img" style="background:${c}18">${imgHtml}<span class="stk-badge ${stkCls}">${stkLbl}</span></div>
       <div class="pcard-body">
-        <div class="pcard-nome">${[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto'}</div>
-        <div class="pcard-sub"><span class="cdot" style="background:${c}"></span>${p.cores||'—'}${simBadge?'&nbsp;'+simBadge:''}</div>
+        <div class="pcard-nome">${nome}</div>
+        <div class="pcard-sub"><span class="cdot" style="background:${c}"></span>${corDisplay}${simBadge?'&nbsp;'+simBadge:''}</div>
         <div class="tam-chips">${tamChips}</div>
         <div class="pcard-preco">${precoStr}</div>
       </div>
@@ -1634,43 +1647,61 @@ async function alterarSenha(){
   }catch(e){showToast('Erro de conexão',true);}
 }
 
-/* ═══ PULL-TO-REFRESH ═══ */
+/* ═══ PULL-TO-REFRESH ═══
+   Lógica: só ativa se
+   1. scroll está no topo (scrollTop <= 0)
+   2. o toque NÃO começou dentro de um botão/link/input (evita cliques)
+   3. o movimento vertical é claramente maior que o horizontal
+   4. o movimento ultrapassa o ATIVAR_MIN antes de começar a mostrar o indicador */
 function bindPullToRefresh(scrollEl,indicator,onRefresh){
-  let startY=0,currentY=0,pulling=false,refreshing=false;
+  let startY=0,startX=0,currentY=0,pulling=false,refreshing=false,activated=false;
   const THRESHOLD=70;
   const MAX_PULL=120;
+  const ATIVAR_MIN=15; // só começa a "puxar" depois de 15px de movimento vertical
 
   scrollEl.addEventListener('touchstart',e=>{
     if(refreshing)return;
-    if(scrollEl.scrollTop<=0){
-      startY=e.touches[0].clientY;
-      pulling=true;
-    }
+    // Não ativa PTR se o toque começou em um elemento interativo
+    const target=e.target;
+    if(target.closest('button, a, input, select, textarea, .pcard, .vrcard, .alerta-tipo-header, .var-row, .tam-row, .ia-edit-btn, .modal-overlay'))return;
+    if(scrollEl.scrollTop>0)return;
+    startY=e.touches[0].clientY;
+    startX=e.touches[0].clientX;
+    pulling=true;
+    activated=false;
   },{passive:true});
 
   scrollEl.addEventListener('touchmove',e=>{
     if(!pulling||refreshing)return;
     currentY=e.touches[0].clientY;
     const dy=currentY-startY;
-    if(dy>0&&scrollEl.scrollTop<=0){
-      const pull=Math.min(dy*0.5,MAX_PULL);
+    const dx=Math.abs(e.touches[0].clientX-startX);
+    // Cancela se o movimento for mais horizontal que vertical (scroll lateral, swipe)
+    if(dx>Math.abs(dy)){pulling=false;return;}
+    // Cancela se subiu (scroll normal)
+    if(dy<=0){pulling=false;return;}
+    // Só ativa o efeito visual depois do mínimo
+    if(dy<ATIVAR_MIN)return;
+    activated=true;
+    if(scrollEl.scrollTop<=0){
+      const pull=Math.min((dy-ATIVAR_MIN)*0.5,MAX_PULL);
       indicator.style.transform=`translateX(-50%) translateY(${pull-50}px)`;
       indicator.style.transition='none';
       const rotation=Math.min(pull/THRESHOLD*180,180);
       const svg=indicator.querySelector('svg');
       if(svg)svg.style.transform=`rotate(${rotation}deg)`;
       if(pull>=THRESHOLD){indicator.classList.add('show');}
-    } else {
-      pulling=false;
     }
   },{passive:true});
 
   scrollEl.addEventListener('touchend',async e=>{
-    if(!pulling||refreshing){pulling=false;return;}
+    if(!pulling||refreshing){pulling=false;activated=false;return;}
     pulling=false;
+    if(!activated){activated=false;return;} // não chegou ao threshold mínimo
+    activated=false;
     const dy=currentY-startY;
     indicator.style.transition='transform .25s';
-    if(dy*0.5>=THRESHOLD){
+    if((dy-ATIVAR_MIN)*0.5>=THRESHOLD){
       refreshing=true;
       indicator.classList.add('show','refreshing');
       indicator.style.transform='translateX(-50%) translateY(12px)';
@@ -1686,6 +1717,15 @@ function bindPullToRefresh(scrollEl,indicator,onRefresh){
       indicator.style.transform='translateX(-50%) translateY(-60px)';
       const svg=indicator.querySelector('svg');if(svg)svg.style.transform='';
     }
+  });
+
+  // Cancela se o toque é interrompido (chamada, notificação, etc)
+  scrollEl.addEventListener('touchcancel',()=>{
+    pulling=false;activated=false;
+    indicator.style.transition='transform .25s';
+    indicator.classList.remove('show');
+    indicator.style.transform='translateX(-50%) translateY(-60px)';
+    const svg=indicator.querySelector('svg');if(svg)svg.style.transform='';
   });
 }
 
