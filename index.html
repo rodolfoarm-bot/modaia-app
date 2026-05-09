@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>ModaIA — Gestão Inteligente</title>
+<title>Giro — Gestão Inteligente</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -73,7 +73,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .tam-chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;border:1px solid var(--border);color:var(--text2);background:var(--surface2)}
 .tam-chip.zero{color:var(--text3);border-style:dashed;text-decoration:line-through}
 .pcard-preco{font-size:14px;font-weight:700;color:var(--accent)}
-.bnav{background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 max(env(safe-area-inset-bottom),6px);flex-shrink:0;height:62px}
+.bnav{background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 16px max(env(safe-area-inset-bottom),6px);flex-shrink:0;height:62px;gap:4px}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;border:none;background:none;transition:opacity .15s}
 .bnav-ic{width:22px;height:22px;stroke:var(--text3);fill:none;transition:stroke .15s}
 .bnav-lb{font-size:10px;color:var(--text3);transition:color .15s;font-weight:500}
@@ -310,6 +310,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .param-input{width:80px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;font-size:14px;color:var(--text1);outline:none;text-align:center;font-weight:700}
 .param-input:focus{border-color:var(--accent)}
 .param-suffix{font-size:12px;color:var(--text2);font-weight:500}
+
+/* ── FULLSCREEN IMAGE VIEWER ── */
+.fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:200;display:flex;align-items:center;justify-content:center;animation:fsFade .2s}
+@keyframes fsFade{from{opacity:0}to{opacity:1}}
+.fs-img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-out;transition:transform .3s;touch-action:none}
+.fs-close{position:absolute;top:max(env(safe-area-inset-top),16px);right:16px;background:rgba(255,255,255,.18);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:22px;font-weight:700;backdrop-filter:blur(8px);z-index:2}
+.fs-hint{position:absolute;bottom:max(env(safe-area-inset-bottom),20px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,.15);color:#fff;font-size:11px;padding:6px 14px;border-radius:20px;backdrop-filter:blur(8px);font-weight:600}
+.det-img{cursor:zoom-in}
 </style>
 </head>
 <body>
@@ -317,8 +325,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 
 <!-- LOGIN -->
 <div id="sc-login">
-  <div class="login-logo">👗</div>
-  <div class="login-title">ModaIA</div>
+  <div class="login-logo" style="background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%);padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center">
+    <svg viewBox="0 0 100 100" width="48" height="48" fill="none">
+      <path d="M50 20 a30 30 0 1 1 -21 8.8" stroke="#C084FC" stroke-width="14" stroke-linecap="round"/>
+      <path d="M50 20 a30 30 0 0 1 21 8.8 L65 35 L78 22 L85 28" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="50" y="68" text-anchor="middle" font-family="-apple-system,sans-serif" font-weight="800" font-size="32" fill="#fff">G</text>
+    </svg>
+  </div>
+  <div class="login-title">Giro</div>
   <div class="login-sub">Gestão inteligente para sua loja</div>
   <div class="login-form">
     <div>
@@ -335,7 +349,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <div class="login-error" id="login-error"></div>
     <button class="login-btn" id="login-btn" onclick="fazerLogin()">Entrar</button>
   </div>
-  <div class="login-footer">ModaIA © 2026 · Acesso restrito</div>
+  <div class="login-footer">Giro © 2026 · Acesso restrito</div>
 </div>
 
 <!-- TELA: PRODUTOS -->
@@ -357,24 +371,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <input type="text" id="srch-in" placeholder="Buscar por cor, tipo, ocasião, tag..." oninput="busca=this.value;buscarMultiplo(this.value)" style="padding-right:32px"/>
         <button id="srch-clear" onclick="limparBusca()" style="display:flex;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:14px;cursor:pointer;align-items:center;justify-content:center;font-weight:700;line-height:1">×</button>
       </div>
-      <button class="mic-btn" id="mic-est-btn" onclick="toggleMicEst()">
-        <svg id="mic-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        <span id="mic-lbl">IA</span>
-      </button>
-    </div>
-    <div id="audio-banner" style="display:none" class="audio-status-banner">
-      <div class="asb-icon" id="audio-banner-icon">🎤</div>
-      <div style="flex:1">
-        <div class="asb-text" id="audio-banner-text">—</div>
-        <div class="asb-sub" id="audio-banner-sub"></div>
-      </div>
-      <button onclick="fecharAudioBanner()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text2);padding:2px 6px">×</button>
-    </div>
-    <div id="srch-loading" style="display:none;align-items:center;gap:6px;margin-top:6px;justify-content:center">
-      <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.8);animation:blink 1s infinite"></div>
-      <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.8);animation:blink 1s .2s infinite"></div>
-      <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.8);animation:blink 1s .4s infinite"></div>
-      <span style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600">Buscando semanticamente...</span>
     </div>
   </div>
   <div class="filter-row">
@@ -386,8 +382,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <option value="bebe">Bebê</option>
       <option value="unissex">Unissex</option>
     </select>
+    <select class="filter-select" id="filter-tamanho" onchange="aplicarFiltros()">
+      <option value="">Tamanho</option>
+    </select>
     <select class="filter-select" id="filter-idade" onchange="aplicarFiltros()">
-      <option value="">Faixa etária</option>
+      <option value="">Idade</option>
       <option value="bebe">Bebê (0-2)</option>
       <option value="infantil_pequeno">3-5 anos</option>
       <option value="infantil_medio">6-9 anos</option>
@@ -417,21 +416,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <div id="sc-cadastro" class="screen">
   <div class="tb">
     <div class="tb-row"><span class="tb-title">Novo produto</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
-    <div class="tb-sub">Campos manuais acima · IA preenche abaixo automaticamente</div>
+    <div class="tb-sub">Tire a foto e preencha os dados — a catalogação acontece em segundo plano</div>
   </div>
   <div class="scroll">
-    <div class="zone-label">
-      <div class="zl-dot" style="background:var(--info)"></div>
-      <span class="zl-txt" style="color:var(--info)">CAMPOS MANUAIS</span>
-      <span class="zl-badge" style="background:var(--info-l);color:var(--info)">você preenche</span>
-    </div>
-    <div class="manual-zone">
+    <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
       <div>
-        <label class="flabel info">Foto do produto</label>
+        <label class="flabel" style="color:var(--accent)">Foto do produto</label>
         <div class="fphoto" id="fphoto" onclick="document.getElementById('file-input').click()">
           <div id="fphoto-ic" style="font-size:30px">📷</div>
           <div id="fphoto-lb" style="font-size:13px;color:var(--text2);text-align:center;font-weight:500">Toque para fotografar<br><span style="font-size:11px;opacity:.7">Comprimida automaticamente ~50 KB</span></div>
-          <div id="fphoto-sz" style="display:none;font-size:11px;color:var(--info);font-weight:700"></div>
+          <div id="fphoto-sz" style="display:none;font-size:11px;color:var(--accent);font-weight:700"></div>
         </div>
         <button id="btn-delete-foto" onclick="deletarFoto()" style="display:none;margin-top:8px;width:100%;padding:9px;background:var(--danger-l);border:1px solid var(--danger);border-radius:var(--radius);font-size:13px;font-weight:700;color:var(--danger);cursor:pointer">🗑️ Tirar outra foto</button>
         <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none" onchange="processarFoto(this)"/>
@@ -443,18 +437,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
           </div>
         </div>
       </div>
+
       <div class="marca-wrap">
-        <label class="flabel info">Marca</label>
+        <label class="flabel" style="color:var(--accent)">Marca</label>
         <input class="finput" id="f-marca" placeholder="Ex: Kyly, Hering Kids..." autocomplete="off"
           oninput="filtrarMarcas(this.value)"
-          onfocus="filtrarMarcas(this.value)"
+          onfocus="filtrarMarcas('')"
           onblur="setTimeout(()=>{document.getElementById('marcas-dd').style.display='none'},200)"/>
         <div class="marcas-dd" id="marcas-dd"></div>
       </div>
+
       <div>
-        <div class="chk-row" style="margin-bottom:10px">
-          <input type="checkbox" id="preco-igual" onchange="aplicarPrecoIgual()"/>
-          <label for="preco-igual">Mesmo preço para todos os tamanhos</label>
+        <div class="chk-row" style="margin-bottom:10px;background:var(--accent-l);border-color:var(--accent)">
+          <input type="checkbox" id="preco-igual" onchange="aplicarPrecoIgual()" style="accent-color:var(--accent)"/>
+          <label for="preco-igual" style="color:var(--accent)">Mesmo preço para todos os tamanhos</label>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:0 2px;margin-bottom:6px">
           <div style="font-size:10px;color:var(--text2);text-align:center;font-weight:700;text-transform:uppercase;letter-spacing:.3px">Tamanho</div>
@@ -462,57 +458,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
           <div style="font-size:10px;color:var(--text2);text-align:center;font-weight:700;text-transform:uppercase;letter-spacing:.3px">Qtd</div>
         </div>
         <div id="tamanhos-wrap"></div>
-        <button class="add-tam-btn" onclick="addTam()">
+        <button class="add-tam-btn" onclick="addTam()" style="color:var(--accent)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Adicionar tamanho
         </button>
       </div>
-    </div>
-    <div class="zone-label">
-      <div class="zl-dot" style="background:var(--accent)"></div>
-      <span class="zl-txt" style="color:var(--accent)">PREENCHIDO PELA IA</span>
-      <span class="zl-badge" style="background:var(--accent-l);color:var(--accent)">✨ automático</span>
-    </div>
-    <div class="ia-zone">
-      <div id="ia-waiting" style="text-align:center;padding:20px 0;color:var(--text2)">
-        <div style="font-size:13px;font-weight:600;color:var(--accent)">Aguardando foto...</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:4px">Após capturar, a IA analisa e preenche automaticamente</div>
-      </div>
-      <div id="ia-processing" style="display:none">
-        <div class="ia-spinner">
-          <div class="ia-orbit"><div class="ia-ring"></div><div class="ia-ring2"></div><div class="ia-core">✨</div></div>
-          <div class="ia-dots"><div class="ia-dot"></div><div class="ia-dot"></div><div class="ia-dot"></div></div>
-          <div style="font-size:13px;font-weight:700;color:var(--accent)" id="proc-txt">IA analisando a imagem...</div>
-          <div style="font-size:11px;color:var(--text2);text-align:center">Os campos abaixo serão preenchidos<br>automaticamente em instantes</div>
-        </div>
-      </div>
-      <div id="ia-post-save" style="display:none;text-align:center;padding:16px 0">
-        <div style="font-size:28px;margin-bottom:8px">⏳</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent)">Produto enviado com sucesso!</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:4px">Os dados gerados pela IA aparecerão<br>na aba Produtos em instantes.</div>
-      </div>
-      <div id="ia-fields" style="display:none;flex-direction:column;gap:14px">
-        <div><label class="flabel accent">Tipo de peça</label>
-          <div class="ia-field" id="iaf-tipo"><span class="ia-val" id="iav-tipo"></span><button class="ia-edit-btn" onclick="editIA('tipo')">Editar</button></div></div>
-        <div><label class="flabel accent">Gênero</label>
-          <div class="ia-field" id="iaf-gen"><span class="ia-val" id="iav-gen"></span><button class="ia-edit-btn" onclick="editIA('gen')">Editar</button></div></div>
-        <div><label class="flabel accent">Cor principal</label>
-          <div class="ia-field" id="iaf-cor"><span class="ia-val" id="iav-cor"></span><button class="ia-edit-btn" onclick="editIA('cor')">Editar</button></div></div>
-        <div><label class="flabel accent">Ocasião e estilo</label>
-          <div class="ia-field" id="iaf-ocas" style="align-items:flex-start">
-            <div id="iav-ocas" style="flex:1;display:flex;flex-wrap:wrap"></div>
-            <button class="ia-edit-btn" onclick="editIA('ocas')">Editar</button></div></div>
-        <div><label class="flabel accent">Descrição semântica</label>
-          <div class="ia-field" id="iaf-desc" style="align-items:flex-start">
-            <span class="ia-val" id="iav-desc" style="font-size:13px;line-height:1.6"></span>
-            <button class="ia-edit-btn" onclick="editIA('desc')">Editar</button></div></div>
-        <div><label class="flabel accent">Tags adicionais</label>
-          <div class="ia-field" id="iaf-tags" style="align-items:flex-start">
-            <div id="iav-tags" style="flex:1;display:flex;flex-wrap:wrap"></div>
-            <button class="ia-edit-btn" onclick="editIA('tags')">Editar</button></div></div>
-      </div>
-    </div>
-    <div style="padding:16px">
+
       <button class="fbtn" id="salvar-btn" onclick="salvarProduto()" disabled>Salvar produto</button>
     </div>
   </div>
@@ -641,15 +592,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <div class="param-help">Quando o total de um tipo cai abaixo deste limite, ele entra na categoria "Crítico".</div>
       </div>
 
-      <div class="param-row">
-        <label class="param-label">Corte de similaridade (busca por voz)</label>
-        <div class="param-input-wrap">
-          <input class="param-input" id="param-corte" type="number" min="10" max="95" step="5" value="50"/>
-          <span class="param-suffix">% mínimo</span>
-        </div>
-        <div class="param-help">Apenas resultados acima deste percentual aparecem na busca por áudio. Padrão: 50%.</div>
-      </div>
-
       <button class="fbtn" onclick="salvarParametros()" style="margin-top:14px">Salvar parâmetros</button>
     </div>
 
@@ -710,7 +652,7 @@ async function sbPatch(t,f,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?${f}`,
 /* ═══ ESTADO ═══ */
 const COR_MAP={'rosa':'#F472B6','azul':'#60A5FA','verde':'#34D399','amarelo':'#FCD34D','vermelho':'#F87171','branco':'#E5E7EB','cinza':'#9CA3AF','roxo':'#C084FC','laranja':'#FB923C','azul marinho':'#3B82F6','verde menta':'#6EE7B7','lilas':'#DDD6FE','creme':'#FDE68A','preto':'#6B7280'};
 let PRODS=[],GRUPOS=[],VENDAS=[];
-let filtroGen='',filtroIdade='',busca='',sortMode='data_desc';
+let filtroGen='',filtroTam='',filtroIdade='',busca='',sortMode='data_desc';
 let vrSelectedId=null,vrQtd=1;
 let curPeriod='hoje',curOffset=0;
 let iaData={tipo:'',gen:'',cor:'',ocas:[],desc:'',tags:[]};
@@ -851,47 +793,67 @@ async function carregarEstoque(){
   document.getElementById('empty-est').style.display='none';
   try{
     PRODS=await sbGet(TABELA,'ativo=neq.false&order=criado_em.desc&limit=500');
+    popularFiltroTamanhos();
     GRUPOS=agrupar(filtrado());renderEstoque();
   }catch(e){showToast('Erro ao carregar estoque',true);}
   document.getElementById('est-loading').style.display='none';
 }
 function filtrado(){
   return PRODS.filter(p=>{
-    // Filtro de gênero
     let mfg=true;
-    if(filtroGen){
-      mfg=p.genero===filtroGen;
-    }
-    // Filtro de idade
+    if(filtroGen)mfg=p.genero===filtroGen;
+    let mft=true;
+    if(filtroTam)mft=(p.tamanho||'').toString().toLowerCase()===filtroTam.toString().toLowerCase();
     let mfi=true;
     if(filtroIdade){
-      if(filtroIdade==='bebe'){mfi=p.genero==='bebe'||p.faixa_etaria==='bebe';}
+      if(filtroIdade==='bebe'){mfi=p.genero==='bebe'||p.faixa_etaria==='bebe'||p.faixa_etaria==='rn'||p.faixa_etaria==='bebe_pequeno';}
       else if(filtroIdade==='infantil_pequeno'){mfi=p.faixa_etaria==='infantil_pequeno'||(p.genero!=='bebe'&&['P','PP','1','2','3','4','5'].includes(p.tamanho));}
       else if(filtroIdade==='infantil_medio'){mfi=p.faixa_etaria==='infantil_medio'||(p.genero!=='bebe'&&['6','7','8','9','10'].includes(p.tamanho));}
       else if(filtroIdade==='infantil_grande'){mfi=p.faixa_etaria==='infantil_grande'||(p.genero!=='bebe'&&['12','14','16'].includes(p.tamanho));}
     }
-    // Busca textual: inclui descricao_semantica E tags_adicionais (mesmo que não estejam visíveis no UI)
     const mb=busca===''||[
       p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',
       p.descricao_semantica||'',p.tags_adicionais||'',
-      p.material||'',p.tamanho||'',p.referencias_culturais||''
+      p.material||'',p.tamanho||'',p.referencias_culturais||'',
+      p.descricao_estampa||'',p.personagem||'',p.franquia||''
     ].join(' ').toLowerCase().includes(busca.toLowerCase());
-    return mfg&&mfi&&mb;
+    return mfg&&mft&&mfi&&mb;
   });
+}
+function popularFiltroTamanhos(){
+  const sel=document.getElementById('filter-tamanho');
+  if(!sel)return;
+  const valorAtual=sel.value;
+  const tamanhos=[...new Set(PRODS.map(p=>p.tamanho).filter(Boolean))];
+  // Ordena: primeiro letras (P,M,G,GG), depois números
+  tamanhos.sort((a,b)=>{
+    const aN=parseInt(a),bN=parseInt(b);
+    const aIsNum=!isNaN(aN),bIsNum=!isNaN(bN);
+    if(aIsNum&&bIsNum)return aN-bN;
+    if(aIsNum&&!bIsNum)return 1;
+    if(!aIsNum&&bIsNum)return -1;
+    const ordem={'PP':0,'P':1,'M':2,'G':3,'GG':4,'XG':5,'XGG':6};
+    return(ordem[a.toUpperCase()]??99)-(ordem[b.toUpperCase()]??99);
+  });
+  sel.innerHTML='<option value="">Tamanho</option>'+tamanhos.map(t=>`<option value="${t}" ${t===valorAtual?'selected':''}>${t}</option>`).join('');
 }
 function aplicarFiltros(){
   filtroGen=document.getElementById('filter-genero').value;
+  filtroTam=document.getElementById('filter-tamanho').value;
   filtroIdade=document.getElementById('filter-idade').value;
   document.getElementById('filter-genero').classList.toggle('has-value',!!filtroGen);
+  document.getElementById('filter-tamanho').classList.toggle('has-value',!!filtroTam);
   document.getElementById('filter-idade').classList.toggle('has-value',!!filtroIdade);
-  document.getElementById('filter-clear-btn').classList.toggle('active',!!(filtroGen||filtroIdade));
+  document.getElementById('filter-clear-btn').classList.toggle('active',!!(filtroGen||filtroTam||filtroIdade));
   renderEstoque();
 }
 function limparFiltros(){
-  filtroGen='';filtroIdade='';
+  filtroGen='';filtroTam='';filtroIdade='';
   document.getElementById('filter-genero').value='';
+  document.getElementById('filter-tamanho').value='';
   document.getElementById('filter-idade').value='';
   document.getElementById('filter-genero').classList.remove('has-value');
+  document.getElementById('filter-tamanho').classList.remove('has-value');
   document.getElementById('filter-idade').classList.remove('has-value');
   document.getElementById('filter-clear-btn').classList.remove('active');
   renderEstoque();
@@ -957,7 +919,7 @@ function openDetalhe(key){
     </div>`;
   }
 
-  const imgHtml=p.foto_url?`<img class="det-img" src="${p.foto_url}" style="background:${c}11" onerror="this.style.display='none'"/>`:`<div class="det-img-ph" style="background:${c}18">👗</div>`;
+  const imgHtml=p.foto_url?`<img class="det-img" src="${p.foto_url}" style="background:${c}11" onclick="abrirFotoFullscreen('${p.foto_url}')" onerror="this.style.display='none'"/>`:`<div class="det-img-ph" style="background:${c}18">👗</div>`;
   const ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-overlay';
   ov.innerHTML=`<div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -1130,44 +1092,16 @@ function confirmarCrop(){
       document.getElementById('btn-delete-foto').style.display='block';document.getElementById('salvar-btn').disabled=false;
       const ci=document.getElementById('compress-info');ci.style.display='flex';
       document.getElementById('compress-bar').style.width='100%';document.getElementById('compress-txt').textContent='Foto recortada — '+kb+' KB';
-      runIA();
     },'image/jpeg',0.65);
   };
   fullImg.src=cropImgSrc;
 }
-function runIA(){
-  document.getElementById('ia-waiting').style.display='none';document.getElementById('ia-processing').style.display='block';document.getElementById('ia-fields').style.display='none';
-  const msgs=['IA analisando a imagem...','Identificando tipo e gênero...','Detectando cores e padrões...','Gerando descrição semântica...','Criando embedding vetorial...'];
-  let mi=0;const iv=setInterval(()=>{if(mi<msgs.length)document.getElementById('proc-txt').textContent=msgs[mi++];},800);
-  setTimeout(()=>{clearInterval(iv);document.getElementById('ia-processing').style.display='none';document.getElementById('ia-post-save').style.display='block';},5000);
-}
-function applyIA(){
-  document.getElementById('iav-tipo').textContent=iaData.tipo;document.getElementById('iav-gen').textContent=iaData.gen;document.getElementById('iav-cor').textContent=iaData.cor;
-  document.getElementById('iav-ocas').innerHTML=iaData.ocas.map(o=>`<span class="ia-tag">${o}</span>`).join('');
-  document.getElementById('iav-desc').textContent=iaData.desc;document.getElementById('iav-tags').innerHTML=iaData.tags.map(t=>`<span class="ia-tag">${t}</span>`).join('');
-}
-const EDIT_CFG={tipo:{opts:['Vestido','Camiseta','Calça','Shorts','Conjunto','Macacão','Body','Saia','Pijama','Blusa']},gen:{opts:['Infantil Feminino','Infantil Masculino','Bebê','Unissex']},cor:{opts:null},ocas:{opts:null},desc:{opts:null},tags:{opts:null}};
-function editIA(field){
-  if(editingField===field){saveEdit(field,document.getElementById('edit-'+field)?.value||'');return;}
-  editingField=field;
-  const valEl=document.getElementById('iav-'+field);
-  const cur=field==='ocas'?iaData.ocas.join(', '):field==='tags'?iaData.tags.join(', '):(iaData[field]||'');
-  const cfg=EDIT_CFG[field];
-  if(cfg.opts){const sel=document.createElement('select');sel.className='ia-edit-input';sel.id='edit-'+field;sel.innerHTML=cfg.opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('');sel.onchange=()=>saveEdit(field,sel.value);valEl.parentNode.insertBefore(sel,valEl);}
-  else{const tag=field==='desc'?'textarea':'input';const inp=document.createElement(tag);inp.className='ia-edit-input';inp.id='edit-'+field;inp.value=cur;if(tag==='textarea'){inp.rows=3;inp.style.cssText='resize:none;font-family:inherit;font-size:14px;width:100%';}inp.onblur=()=>saveEdit(field,inp.value);valEl.parentNode.insertBefore(inp,valEl);setTimeout(()=>inp.focus(),50);}
-  valEl.style.display='none';document.getElementById('iaf-'+field).querySelector('.ia-edit-btn').textContent='Salvar';
-}
-function saveEdit(field,val){
-  if(field==='ocas')iaData.ocas=val.split(',').map(x=>x.trim()).filter(Boolean);
-  else if(field==='tags')iaData.tags=val.split(',').map(x=>x.trim()).filter(Boolean);
-  else iaData[field]=val;
-  document.getElementById('edit-'+field)?.remove();document.getElementById('iav-'+field).style.display='';document.getElementById('iaf-'+field).querySelector('.ia-edit-btn').textContent='Editar';editingField=null;applyIA();
-}
+
 async function salvarProduto(){
   if(!fotoBlob){showToast('Capture a foto primeiro',true);return;}
   const rows=tamRowsData.map(id=>({tam:document.getElementById('tam-'+id)?.value,pr:document.getElementById('pr-'+id)?.value,qt:document.getElementById('qt-'+id)?.value})).filter(r=>r.tam&&r.pr&&r.qt);
   if(!rows.length){showToast('Adicione pelo menos um tamanho',true);return;}
-  const btn=document.getElementById('salvar-btn');btn.textContent='Enviando para a IA...';btn.disabled=true;
+  const btn=document.getElementById('salvar-btn');btn.textContent='Enviando...';btn.disabled=true;
   try{
     let fotoUrl=null;
     const nome=LOJA_ID+'/'+Date.now()+'.jpg';
@@ -1177,30 +1111,30 @@ async function salvarProduto(){
     const marca=document.getElementById('f-marca').value.trim()||null;
     let s=0;
     for(const r of rows){
-      btn.textContent='Catalogando '+(s+1)+' de '+rows.length+'...';
+      btn.textContent='Salvando '+(s+1)+' de '+rows.length+'...';
       await fetch(N8N_INPUT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto_url:fotoUrl,loja_id:LOJA_ID,marca,tamanho:r.tam,preco:parseFloat(r.pr),quantidade:parseInt(r.qt)})});
       s++;
     }
-    showToast(s+' variação(ões) enviada(s) para a IA!');
+    showToast('Produto salvo!');
     resetCadastro();
-    // Recarrega estoque em background, mas mantém usuário na tela de Cadastro
     carregarEstoque();
     carregarMarcas();
   }catch(e){showToast('Erro: '+e.message,true);btn.textContent='Salvar produto';btn.disabled=false;}
 }
+
 function deletarFoto(){
   fotoBlob=null;const ph=document.getElementById('fphoto');ph.classList.remove('done');ph.querySelectorAll('img').forEach(i=>i.remove());
   document.getElementById('fphoto-ic').style.display='';document.getElementById('fphoto-ic').textContent='📷';
   document.getElementById('fphoto-lb').style.display='';document.getElementById('fphoto-lb').innerHTML='Toque para fotografar<br><span style="font-size:11px;opacity:.7">Comprimida automaticamente ~50 KB</span>';
   document.getElementById('fphoto-sz').style.display='none';document.getElementById('btn-delete-foto').style.display='none';document.getElementById('compress-info').style.display='none';
-  document.getElementById('ia-waiting').style.display='block';document.getElementById('ia-fields').style.display='none';document.getElementById('ia-processing').style.display='none';
-  document.getElementById('salvar-btn').disabled=true;document.getElementById('file-input').value='';iaData={tipo:'',gen:'',cor:'',ocas:[],desc:'',tags:[]};
+  document.getElementById('salvar-btn').disabled=true;document.getElementById('file-input').value='';
 }
+
 function resetCadastro(){
   fotoBlob=null;const ph=document.getElementById('fphoto');ph.classList.remove('done');ph.querySelectorAll('img').forEach(i=>i.remove());
-  document.getElementById('fphoto-ic').style.display='';document.getElementById('fphoto-ic').textContent='📷';document.getElementById('fphoto-lb').style.display='';document.getElementById('fphoto-lb').innerHTML='Toque para fotografar<br><span style="font-size:11px;opacity:.7">Comprimida automaticamente ~50 KB</span>';
+  document.getElementById('fphoto-ic').style.display='';document.getElementById('fphoto-ic').textContent='📷';
+  document.getElementById('fphoto-lb').style.display='';document.getElementById('fphoto-lb').innerHTML='Toque para fotografar<br><span style="font-size:11px;opacity:.7">Comprimida automaticamente ~50 KB</span>';
   document.getElementById('fphoto-sz').style.display='none';document.getElementById('compress-info').style.display='none';
-  document.getElementById('ia-waiting').style.display='block';document.getElementById('ia-fields').style.display='none';document.getElementById('ia-processing').style.display='none';document.getElementById('ia-post-save').style.display='none';
   document.getElementById('f-marca').value='';document.getElementById('tamanhos-wrap').innerHTML='';const chk=document.getElementById('preco-igual');if(chk)chk.checked=false;
   tamRowsData=[];addTam('','','');document.getElementById('salvar-btn').disabled=true;document.getElementById('salvar-btn').textContent='Salvar produto';document.getElementById('btn-delete-foto').style.display='none';
 }
@@ -1218,184 +1152,31 @@ function filtrarMarcas(q){
 function selecionarMarca(m){document.getElementById('f-marca').value=m;document.getElementById('marcas-dd').style.display='none';}
 
 /* ═══════════════════════════════════════════════════════════
-   BUSCA EM 3 CAMADAS
+   BUSCA TEXTUAL LOCAL — sem vetorial, sem áudio
+   Suporta múltiplos termos com ";" (AND)
 ═══════════════════════════════════════════════════════════ */
-function getCorteSim(){return(PARAMS.corteVoz||50)/100;}
-let buscaTimer=null,ultimaBusca='';
-
 function buscarMultiplo(q){
-  clearTimeout(buscaTimer);busca=q;
-  if(!q||q.length<1){GRUPOS=agrupar(PRODS);renderEstoque();document.getElementById('srow-ct').textContent='Exibindo todos';document.getElementById('srch-loading').style.display='none';return;}
+  busca=q;
+  if(!q||q.length<1){
+    GRUPOS=agrupar(PRODS);renderEstoque();
+    document.getElementById('srow-ct').textContent='Exibindo todos';
+    return;
+  }
   const termos=q.split(';').map(t=>t.trim().toLowerCase()).filter(t=>t.length>1);
   if(termos.length>1){
     // Multi-termo AND
     const local=PRODS.filter(p=>{
-      const campos=[p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',p.descricao_semantica||'',p.tags_adicionais||'',p.tamanho||'',p.faixa_etaria||'',p.material||''].join(' ').toLowerCase();
+      const campos=[p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',
+        p.descricao_semantica||'',p.tags_adicionais||'',p.tamanho||'',
+        p.faixa_etaria||'',p.material||'',p.referencias_culturais||'',
+        p.descricao_estampa||'',p.personagem||'',p.franquia||''].join(' ').toLowerCase();
       return termos.every(t=>campos.includes(t));
     });
-    GRUPOS=agrupar(local.length?local:PRODS);renderEstoque();
-    document.getElementById('srow-ct').textContent=local.length?GRUPOS.length+' grupo(s) — filtro: "'+termos.join('" + "')+'"':'Nenhum resultado';
-    ultimaBusca=q;buscaTimer=setTimeout(()=>buscarCamada3(termos.join(' ')),700);
+    GRUPOS=agrupar(local);renderEstoque();
+    document.getElementById('srow-ct').textContent=local.length?GRUPOS.length+' grupo(s) — filtros: '+termos.map(t=>'"'+t+'"').join(' + '):'Nenhum resultado';
   }else{
-    buscarSemanticoLocal(q);
-  }
-}
-
-function buscarCamadas12(q){
-  const ql=q.toLowerCase().trim();const palavras=ql.split(/\s+/).filter(w=>w.length>1);
-  return PRODS.map(p=>{
-    const c1=[p.tipo,p.cores,p.tamanho,p.marca||'',p.genero,p.ocasiao,p.estilo].join(' ').toLowerCase();
-    const c2=[p.descricao_semantica||'',p.tags_adicionais||''].join(' ').toLowerCase();
-    let score=0;
-    if(c1.includes(ql))score+=20;palavras.forEach(w=>{if(c1.includes(w))score+=10;});
-    if(c2.includes(ql))score+=6;palavras.forEach(w=>{if(c2.includes(w))score+=3;});
-    return{...p,_score:score};
-  }).filter(p=>p._score>0).sort((a,b)=>b._score-a._score);
-}
-
-function buscarSemanticoLocal(q){
-  clearTimeout(buscaTimer);
-  if(!q||q.length<2){GRUPOS=agrupar(PRODS);renderEstoque();document.getElementById('srow-ct').textContent='Exibindo todos';document.getElementById('srch-loading').style.display='none';return;}
-  ultimaBusca=q;
-  const res12=buscarCamadas12(q);
-  GRUPOS=agrupar(res12);renderEstoque();
-  document.getElementById('srow-ct').textContent=GRUPOS.length?GRUPOS.length+' grupo(s) encontrado(s)':'Buscando...';
-  buscaTimer=setTimeout(()=>buscarCamada3(q),700);
-}
-
-async function buscarCamada3(q){
-  if(q!==ultimaBusca)return;
-  document.getElementById('srch-loading').style.display='flex';
-  try{
-    const resp=await fetch(N8N_BUSCA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:q,loja_id:LOJA_ID})});
-    if(!resp.ok)throw new Error('status '+resp.status);
-    const data=await resp.json();
-    const dataObj=Array.isArray(data)?data[0]:data;
-    const vetorial=Array.isArray(dataObj?.produtos)?dataObj.produtos:Array.isArray(data)?data:(data?.produtos||[]);
-
-    // Filtro estrito: ≥ corte configurado
-    const CORTE=getCorteSim();
-    const vetFiltrado=vetorial.filter(r=>Number(r.similaridade||0)>=CORTE);
-    if(!vetFiltrado.length){document.getElementById('srch-loading').style.display='none';return;}
-
-    // Enriquecer com dados completos
-    const enriq=vetFiltrado.map(r=>{const full=PRODS.find(p=>p.id===r.id);return full?{...full,_sim:Number(r.similaridade)}:{...r,_sim:Number(r.similaridade)};}).filter(r=>r.ativo!==false&&Number(r.quantidade)>=0);
-
-    // Unir com camadas 1+2 (sem duplicatas), priorizando score local
-    const local12=buscarCamadas12(q);
-    const idsLocal=new Set(local12.map(p=>p.id));
-    const somenteVet=enriq.filter(r=>!idsLocal.has(r.id));
-
-    // Marcar itens locais com _sim se o vetorial também os retornou
-    const idsVet=new Map(enriq.map(r=>[r.id,r._sim]));
-    const local12com=local12.map(p=>({...p,_sim:idsVet.get(p.id)||0}));
-
-    const final=[...local12com,...somenteVet];
-    if(!final.length){document.getElementById('srch-loading').style.display='none';return;}
-
-    // Agrupar e ordenar por similaridade média (desc) → maior relevância primeiro
-    GRUPOS=agrupar(final);
-    GRUPOS.sort((a,b)=>b._simMedia-a._simMedia);
-
-    renderCards(GRUPOS,true); // true = mostrar badge de %
-    document.getElementById('srow-ct').textContent=GRUPOS.length+' resultado(s) para "'+q+'" (≥'+Math.round(CORTE*100)+'% similar)';
-  }catch(e){console.warn('Busca vetorial indisponível:',e.message);}
-  document.getElementById('srch-loading').style.display='none';
-}
-
-/* ═══════════════════════════════════════════════════════════
-   ÁUDIO COM EMBEDDING — FLUXO ROBUSTO
-   1. Grava com MediaRecorder
-   2. Envia base64 ao n8n → Whisper transcreve → embedding → cosSim
-   3. Filtra APENAS resultados ≥ CORTE_SIM (50%)
-   4. Ordena por similaridade descrescente
-   5. Exibe badge de % em cada card
-═══════════════════════════════════════════════════════════ */
-let micRec=false,mediaRecorder=null,audioChunks=[],micTimer=null;
-
-async function toggleMicEst(){
-  const btn=document.getElementById('mic-est-btn');
-  if(!micRec){
-    try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      const mimeType=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm';
-      mediaRecorder=new MediaRecorder(stream,{mimeType});audioChunks=[];
-      mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
-      mediaRecorder.onstop=async()=>{
-        stream.getTracks().forEach(t=>t.stop());
-        btn.classList.remove('mic-recording');
-        setAudioBanner('processing','Transcrevendo com IA...','Aguarde — isso leva alguns segundos');
-        const blob=new Blob(audioChunks,{type:mimeType});
-        const reader=new FileReader();
-        reader.onloadend=async()=>{const b64=reader.result.split(',')[1];await processarAudioBusca(b64);};
-        reader.readAsDataURL(blob);
-      };
-      mediaRecorder.start();micRec=true;
-      btn.classList.add('mic-recording');
-      let s=0;
-      setAudioBanner('recording','Gravando... toque IA para parar','0s');
-      micTimer=setInterval(()=>{s++;document.getElementById('audio-banner-sub').textContent=s+'s · toque IA para parar';if(s>=30){clearInterval(micTimer);pararGravacao();}},1000);
-    }catch(e){showToast('Microfone não autorizado',true);}
-  }else{pararGravacao();}
-}
-function pararGravacao(){clearInterval(micTimer);micRec=false;if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();}
-
-async function processarAudioBusca(audioBase64){
-  try{
-    const resp=await fetch(N8N_BUSCA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:'audio',conteudo:audioBase64,loja_id:LOJA_ID||'loja_001'})});
-    if(!resp.ok)throw new Error('n8n retornou '+resp.status);
-    const rawText=await resp.text();
-    let data;
-    try{data=JSON.parse(rawText);}catch(e){throw new Error('Resposta inválida: '+rawText.substring(0,80));}
-
-    // Normalizar estrutura — n8n pode retornar array wrapper
-    let texto='',produtos=[];
-    if(Array.isArray(data)){
-      if(data[0]?.produtos!==undefined){texto=data[0].texto_transcrito||data[0].texto||'';produtos=data[0].produtos||[];}
-      else if(data[0]?.id){produtos=data;texto='';}
-    }else if(data?.produtos!==undefined){texto=data.texto_transcrito||data.texto||'';produtos=data.produtos||[];}
-    else if(data?.id){produtos=[data];}
-
-    // ── FILTRO ESTRITO: só ≥ corte configurado ──
-    const CORTE=getCorteSim();
-    const produtosFiltrados=produtos.filter(r=>Number(r.similaridade||0)>=CORTE);
-
-    if(!produtosFiltrados.length){
-      if(texto){
-        setAudioBanner('error','"'+texto+'"','Nenhum produto acima de '+Math.round(CORTE*100)+'% de similaridade');
-        // Tenta busca local como fallback
-        document.getElementById('srch-in').value=texto;ultimaBusca=texto;
-        const res12=buscarCamadas12(texto);
-        if(res12.length){GRUPOS=agrupar(res12);renderCards(GRUPOS,false);document.getElementById('srow-ct').textContent=GRUPOS.length+' resultado(s) local para "'+texto+'"';}
-      }else{setAudioBanner('error','Não foi possível transcrever o áudio','Tente novamente em silêncio');}
-      return;
-    }
-
-    // Enriquecer e ordenar por similaridade (maior primeiro)
-    const enrich=produtosFiltrados
-      .sort((a,b)=>Number(b.similaridade)-Number(a.similaridade))
-      .map(r=>{const f=PRODS.find(p=>p.id===r.id);return f?{...f,_sim:Number(r.similaridade)}:{...r,_sim:Number(r.similaridade)};})
-      .filter(r=>r.ativo!==false&&Number(r.quantidade)>=0);
-
-    // Preencher campo de busca com texto transcrito
-    if(texto){document.getElementById('srch-in').value=texto;ultimaBusca=texto;}
-
-    // Agrupar mantendo ordenação por sim média
-    GRUPOS=agrupar(enrich);
-    GRUPOS.sort((a,b)=>b._simMedia-a._simMedia);
-
-    renderCards(GRUPOS,true); // mostra badges %
-    const minSim=Math.round(Math.min(...enrich.map(r=>r._sim))*100);
-    const maxSim=Math.round(Math.max(...enrich.map(r=>r._sim))*100);
-    const simRange=minSim===maxSim?minSim+'%':minSim+'–'+maxSim+'%';
-    setAudioBanner('results',
-      texto?'"'+texto+'" — '+GRUPOS.length+' grupo(s) encontrado(s)':GRUPOS.length+' grupo(s) encontrado(s)',
-      'Similaridade: '+simRange+' · ordenado por relevância'
-    );
-    document.getElementById('srow-ct').textContent=GRUPOS.length+' resultado(s) por voz ('+simRange+' similar)';
-  }catch(e){
-    console.error('Erro no áudio:',e);
-    setAudioBanner('error','Erro ao processar áudio',e.message);
+    // Termo único — usa filtrado() padrão que já inclui o campo busca
+    renderEstoque();
   }
 }
 
@@ -1617,22 +1398,18 @@ async function carregarPerfil(){
     // Sincroniza inputs de parâmetros
     document.getElementById('param-baixo').value=PARAMS.baixo;
     document.getElementById('param-critico').value=PARAMS.critico;
-    document.getElementById('param-corte').value=PARAMS.corteVoz;
   }catch(e){console.warn('Erro ao carregar perfil:',e);}
 }
 
 function salvarParametros(){
   const baixo=parseInt(document.getElementById('param-baixo').value);
   const critico=parseInt(document.getElementById('param-critico').value);
-  const corte=parseInt(document.getElementById('param-corte').value);
   if(!baixo||baixo<1||baixo>999){showToast('Limite de estoque baixo inválido',true);return;}
   if(!critico||critico<1||critico>999){showToast('Limite crítico inválido',true);return;}
   if(critico>=baixo){showToast('Crítico deve ser menor que Baixo',true);return;}
-  if(!corte||corte<10||corte>95){showToast('Corte de similaridade entre 10 e 95',true);return;}
-  PARAMS.baixo=baixo;PARAMS.critico=critico;PARAMS.corteVoz=corte;
+  PARAMS.baixo=baixo;PARAMS.critico=critico;
   localStorage.setItem('modaia_params',JSON.stringify(PARAMS));
   showToast('Parâmetros salvos!');
-  // Recarrega alertas com novos limites
   if(document.getElementById('sc-alertas').classList.contains('active')){carregarAlertas();}
 }
 
