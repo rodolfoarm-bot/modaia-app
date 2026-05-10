@@ -272,16 +272,64 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .scroll-ptr{position:relative}
 
 /* ── FILTROS DROPDOWN ── */
-.filter-row{padding:10px 16px 6px;display:flex;gap:8px;flex-shrink:0;align-items:center}
-.filter-clear{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.filter-row{padding:10px 16px 6px;display:flex;gap:6px;flex-shrink:0;align-items:center}
+.filter-clear{flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .filter-clear.active{border-color:var(--danger);color:var(--danger);background:var(--danger-l)}
-.filter-select{flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:13px;color:var(--text1);outline:none;-webkit-appearance:none;font-weight:600;cursor:pointer;transition:border-color .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237C3AED' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.filter-select{flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 8px;font-size:12px;color:var(--text1);outline:none;-webkit-appearance:none;font-weight:600;cursor:pointer;transition:border-color .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237C3AED' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:22px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
 .filter-select.has-value{border-color:var(--accent);color:var(--accent);background-color:var(--accent-l)}
 .filter-select:focus{border-color:var(--accent)}
 
 /* ── ALERTAS POR TIPO ── */
 .alerta-tipo-card{margin:0 16px 10px;background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
 .alerta-tipo-header{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border-bottom:1px solid var(--border)}
+
+/* ── ESTOQUE: SUB-ABAS ── */
+.estq-tab{flex:1;padding:8px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,.65);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:-.1px}
+.estq-tab.on{background:rgba(255,255,255,.95);color:var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+
+/* ── ESTOQUE: SAÚDE & DIST. ── */
+.saude-bar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border)}
+.saude-seg{height:100%;transition:width .5s}
+.saude-leg{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:11px;font-weight:600;color:var(--text2)}
+.saude-leg-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+.gen-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.gen-bar-row:last-child{margin-bottom:0}
+.gen-bar-name{flex-shrink:0;width:64px;font-weight:600;color:var(--text2)}
+.gen-bar-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.gen-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#A855F7);border-radius:4px;transition:width .5s}
+.gen-bar-pct{flex-shrink:0;width:42px;text-align:right;font-weight:700;color:var(--text1);font-variant-numeric:tabular-nums}
+
+/* ── ESTOQUE: DRILL-DOWN POR TIPO ── */
+.tipo-card{margin:0 16px 10px;background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow);transition:border-color .15s}
+.tipo-card.expanded{border-color:var(--accent)}
+.tipo-card-head{padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
+.tipo-card-head:active{background:var(--surface2)}
+.tipo-icon{font-size:26px;flex-shrink:0;width:42px;height:42px;border-radius:10px;background:var(--accent-l);display:flex;align-items:center;justify-content:center}
+.tipo-info{flex:1;min-width:0}
+.tipo-nome{font-size:15px;font-weight:700;color:var(--text1);text-transform:capitalize;line-height:1.2;margin-bottom:2px}
+.tipo-meta{font-size:11px;color:var(--text2);font-weight:500}
+.tipo-stats{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0}
+.tipo-pecas{font-size:18px;font-weight:800;color:var(--text1);line-height:1;font-variant-numeric:tabular-nums}
+.tipo-valor{font-size:11px;font-weight:600;color:var(--accent);margin-top:2px;font-variant-numeric:tabular-nums}
+.tipo-chev{margin-left:4px;color:var(--text3);font-size:14px;transition:transform .25s;flex-shrink:0}
+.tipo-card.expanded .tipo-chev{transform:rotate(180deg)}
+.tipo-card-body{display:none;padding:0 12px 12px;border-top:1px solid var(--border);background:var(--bg)}
+.tipo-card.expanded .tipo-card-body{display:block}
+
+.tipo-prod-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--surface);margin-top:8px;cursor:pointer;border:1px solid var(--border);transition:all .12s}
+.tipo-prod-row:active{background:var(--accent-ll);border-color:var(--accent)}
+.tipo-prod-img{width:48px;height:48px;border-radius:8px;background:var(--surface2);flex-shrink:0;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.tipo-prod-info{flex:1;min-width:0}
+.tipo-prod-nome{font-size:13px;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tipo-prod-meta{font-size:10px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tipo-prod-tam-mini{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.tipo-prod-tam-mini.zero{opacity:.4;text-decoration:line-through}
+.tipo-prod-stats{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:1px}
+.tipo-prod-qtd{font-size:14px;font-weight:800;color:var(--text1);font-variant-numeric:tabular-nums;line-height:1}
+.tipo-prod-valor{font-size:10px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* ── ALERTAS POR TIPO (header bottom border continuação) ──*/
 .alerta-tipo-icon{font-size:22px;flex-shrink:0}
 .alerta-tipo-info{flex:1;min-width:0}
 .alerta-tipo-nome{font-size:14px;font-weight:700;color:var(--text1);text-transform:capitalize}
@@ -380,16 +428,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <option value="unissex">Unissex</option>
     </select>
     <select class="filter-select" id="filter-tamanho" onchange="aplicarFiltros()">
-      <option value="">Tamanho</option>
+      <option value="">Tam.</option>
     </select>
     <select class="filter-select" id="filter-idade" onchange="aplicarFiltros()">
       <option value="">Idade</option>
-      <option value="rn">Recém-nascido (0-3m)</option>
-      <option value="bebe_pequeno">Bebê pequeno (3-12m)</option>
+      <option value="rn">RN (0-3m)</option>
+      <option value="bebe_pequeno">Bebê P. (3-12m)</option>
       <option value="bebe">Bebê (12-24m)</option>
-      <option value="infantil_pequeno">Infantil pequeno (2-5a)</option>
-      <option value="infantil_medio">Infantil médio (6-10a)</option>
-      <option value="infantil_grande">Infantil grande (11-16a)</option>
+      <option value="infantil_pequeno">Inf. P. (2-5a)</option>
+      <option value="infantil_medio">Inf. M. (6-10a)</option>
+      <option value="infantil_grande">Inf. G. (11-16a)</option>
     </select>
   </div>
   <div class="srow">
@@ -468,31 +516,75 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   </div>
 </div>
 
-<!-- TELA: ALERTAS -->
+<!-- TELA: ESTOQUE (visão completa + alertas) -->
 <div id="sc-alertas" class="screen">
   <div class="tb">
     <div class="tb-row">
-      <span class="tb-title">Alertas</span>
+      <span class="tb-title">Estoque</span>
       <div class="tb-actions"><span class="tb-badge" id="badge-alerta">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
-    <div class="tb-sub">Estoque crítico agrupado por tipo de produto</div>
-    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:8px;padding-bottom:2px" id="alerta-chips">
-      <button class="chip on" data-af="todos" onclick="filtrarAlertas('todos')" style="font-size:12px;padding:4px 12px">Todos</button>
-      <button class="chip" data-af="esgotado" onclick="filtrarAlertas('esgotado')" style="font-size:12px;padding:4px 12px">Esgotados</button>
-      <button class="chip" data-af="critico" onclick="filtrarAlertas('critico')" style="font-size:12px;padding:4px 12px">Crítico</button>
-      <button class="chip" data-af="baixo" onclick="filtrarAlertas('baixo')" style="font-size:12px;padding:4px 12px">Baixo</button>
-      <button class="chip" data-af="infantil_f" onclick="filtrarAlertas('infantil_f')" style="font-size:12px;padding:4px 12px">Menina</button>
-      <button class="chip" data-af="infantil_m" onclick="filtrarAlertas('infantil_m')" style="font-size:12px;padding:4px 12px">Menino</button>
-      <button class="chip" data-af="bebe" onclick="filtrarAlertas('bebe')" style="font-size:12px;padding:4px 12px">Bebê</button>
+    <div class="tb-sub" id="estoque-subtitle">Visão completa · valor, tipos e alertas</div>
+    <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
+      <button class="estq-tab on" data-est="geral" onclick="trocarSubAbaEstoque('geral')">Visão Geral</button>
+      <button class="estq-tab" data-est="alertas" onclick="trocarSubAbaEstoque('alertas')">Alertas <span id="estq-alert-badge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
     </div>
   </div>
-  <div class="scroll scroll-ptr" id="scroll-alertas" style="padding-top:12px">
+  <div class="scroll scroll-ptr" id="scroll-alertas">
     <div class="ptr-indicator" id="ptr-alertas">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     </div>
-    <div class="loading-row" id="alerta-loading" style="display:none"><span class="proc-dot" style="background:var(--success)"></span>Carregando...</div>
-    <div id="alertas-list"></div>
-    <div class="empty" id="alertas-empty" style="display:none"><div class="empty-ic">✅</div><div class="empty-txt">Tudo em ordem — nenhum produto crítico</div></div>
+
+    <!-- ─── SUB-ABA: VISÃO GERAL ─── -->
+    <div id="estq-geral" style="display:block">
+      <div class="loading-row" id="estq-geral-loading"><span class="proc-dot" style="background:var(--accent)"></span>Calculando estoque...</div>
+      <div id="estq-geral-body" style="display:none">
+        <!-- Card destaque: valor parado -->
+        <div style="margin:12px 16px 0;background:var(--topbar-bg);border-radius:var(--card-radius);padding:18px;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.25);position:relative;overflow:hidden">
+          <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)"></div>
+          <div style="position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
+          <div style="position:relative;z-index:1">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.85">💎 Valor parado em estoque</div>
+            <div style="font-size:32px;font-weight:800;margin-top:6px;letter-spacing:-.8px" id="estq-valor-total">R$ 0</div>
+            <div style="font-size:12px;opacity:.85;margin-top:4px" id="estq-valor-sub">— peças cadastradas</div>
+          </div>
+        </div>
+        <!-- KPIs secundárias -->
+        <div class="stats-grid" id="estq-kpis" style="margin-top:10px"></div>
+        <!-- Saúde do estoque -->
+        <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;padding-right:16px">
+          <span>Saúde do estoque</span>
+        </div>
+        <div id="estq-saude" style="margin:0 16px 4px"></div>
+        <!-- Distribuição por gênero -->
+        <div class="sec-title">Distribuição por gênero</div>
+        <div id="estq-genero" style="margin:0 16px 4px"></div>
+        <!-- Tipos de produto (drill-down) -->
+        <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;padding-right:16px">
+          <span>Tipos de produto</span>
+          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px" id="estq-tipos-count">— tipos</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3);padding:0 16px 8px;line-height:1.4">Toque em um tipo para ver os produtos · toque em um produto para ver tamanhos</div>
+        <div id="estq-tipos-list"></div>
+        <div style="height:24px"></div>
+      </div>
+      <div class="empty" id="estq-geral-empty" style="display:none"><div class="empty-ic">📦</div><div class="empty-txt">Nenhum produto cadastrado ainda</div></div>
+    </div>
+
+    <!-- ─── SUB-ABA: ALERTAS ─── -->
+    <div id="estq-alertas" style="display:none">
+      <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:12px 16px 6px" id="alerta-chips">
+        <button class="chip on" data-af="todos" onclick="filtrarAlertas('todos')" style="font-size:12px;padding:4px 12px">Todos</button>
+        <button class="chip" data-af="esgotado" onclick="filtrarAlertas('esgotado')" style="font-size:12px;padding:4px 12px">Esgotados</button>
+        <button class="chip" data-af="critico" onclick="filtrarAlertas('critico')" style="font-size:12px;padding:4px 12px">Crítico</button>
+        <button class="chip" data-af="baixo" onclick="filtrarAlertas('baixo')" style="font-size:12px;padding:4px 12px">Baixo</button>
+        <button class="chip" data-af="infantil_f" onclick="filtrarAlertas('infantil_f')" style="font-size:12px;padding:4px 12px">Menina</button>
+        <button class="chip" data-af="infantil_m" onclick="filtrarAlertas('infantil_m')" style="font-size:12px;padding:4px 12px">Menino</button>
+        <button class="chip" data-af="bebe" onclick="filtrarAlertas('bebe')" style="font-size:12px;padding:4px 12px">Bebê</button>
+      </div>
+      <div class="loading-row" id="alerta-loading" style="display:none"><span class="proc-dot" style="background:var(--success)"></span>Carregando...</div>
+      <div id="alertas-list"></div>
+      <div class="empty" id="alertas-empty" style="display:none"><div class="empty-ic">✅</div><div class="empty-txt">Tudo em ordem — nenhum produto crítico</div></div>
+    </div>
   </div>
 </div>
 
@@ -571,13 +663,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <!-- ── PARÂMETROS DA LOJA ── -->
     <div class="perfil-card">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">⚙️ Parâmetros da loja</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Configurações usadas em Alertas e Estoque</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Configurações usadas na aba Estoque</div>
 
       <div class="param-row">
         <label class="param-label">Limite de estoque baixo (por tipo)</label>
         <div class="param-input-wrap">
           <input class="param-input" id="param-baixo" type="number" min="1" max="999" value="10"/>
-          <span class="param-suffix">un. — abaixo disso, o tipo aparece em Alertas</span>
+          <span class="param-suffix">un. — abaixo disso, gera alerta na aba Estoque</span>
         </div>
         <div class="param-help">Ex: se for 10, um tipo com 8 macacões no total já gera alerta. É o estoque agregado por tipo de produto, não por SKU.</div>
       </div>
@@ -619,8 +711,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <span class="bnav-lb">Cadastrar</span>
   </button>
   <button class="bnav-item" data-sc="alertas" onclick="navTo('alertas')">
-    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-    <span class="bnav-lb">Alertas</span>
+    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    <span class="bnav-lb">Estoque</span>
   </button>
   <button class="bnav-item" data-sc="relatorios" onclick="navTo('relatorios')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -739,6 +831,7 @@ function descricaoVisivel(p){
 /* ── AUDIO BANNER ── */
 function setAudioBanner(estado,text,sub=''){
   const b=document.getElementById('audio-banner');
+  if(!b)return;
   const icon=document.getElementById('audio-banner-icon');
   const t=document.getElementById('audio-banner-text');
   const s=document.getElementById('audio-banner-sub');
@@ -747,7 +840,191 @@ function setAudioBanner(estado,text,sub=''){
   t.textContent=text;s.textContent=sub;
   b.style.display='flex';
 }
-function fecharAudioBanner(){document.getElementById('audio-banner').style.display='none';}
+function fecharAudioBanner(){const b=document.getElementById('audio-banner');if(b)b.style.display='none';}
+
+/* ═══ FULLSCREEN IMAGE VIEWER (com pinch-to-zoom + double-tap + pan) ═══ */
+function abrirFotoFullscreen(url){
+  const ov=document.createElement('div');
+  ov.className='fs-overlay';
+  ov.id='fs-overlay';
+  ov.innerHTML=`
+    <button class="fs-close" onclick="fecharFotoFullscreen()" aria-label="Fechar">×</button>
+    <img class="fs-img" id="fs-img" src="${url}" alt=""/>
+    <div class="fs-hint" id="fs-hint">Toque duplo · pinça · arrastar</div>
+  `;
+  document.body.appendChild(ov);
+
+  // Esconde o hint após 2.5s
+  setTimeout(()=>{const h=document.getElementById('fs-hint');if(h)h.style.opacity='0';},2500);
+
+  const img=document.getElementById('fs-img');
+  let scale=1, tx=0, ty=0;
+  const MIN=1, MAX=4;
+
+  // Estado de gestos
+  let pinchStartDist=0, pinchStartScale=1;
+  let pinchStartCx=0, pinchStartCy=0;     // centro inicial (no espaço da imagem)
+  let pinchStartTx=0, pinchStartTy=0;     // translation inicial
+  let panStartX=0, panStartY=0;
+  let panStartTx=0, panStartTy=0;
+  let panning=false;
+  let lastTap=0, tapTimer=null;
+
+  function applyTransform(){
+    img.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`;
+  }
+  function clampPan(){
+    // limita pan para que a imagem não saia totalmente da tela
+    const r=img.getBoundingClientRect();
+    const ow=window.innerWidth, oh=window.innerHeight;
+    // sem zoom, não pode panar
+    if(scale<=1.001){tx=0;ty=0;return;}
+    // a imagem renderizada já tem o scale aplicado em r.width/height
+    const maxX=Math.max(0,(r.width-ow)/2);
+    const maxY=Math.max(0,(r.height-oh)/2);
+    if(tx>maxX)tx=maxX;
+    if(tx<-maxX)tx=-maxX;
+    if(ty>maxY)ty=maxY;
+    if(ty<-maxY)ty=-maxY;
+  }
+  function dist(t1,t2){
+    const dx=t2.clientX-t1.clientX, dy=t2.clientY-t1.clientY;
+    return Math.hypot(dx,dy);
+  }
+  function center(t1,t2){
+    return {x:(t1.clientX+t2.clientX)/2, y:(t1.clientY+t2.clientY)/2};
+  }
+
+  img.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){
+      // Início de pinça
+      e.preventDefault();
+      panning=false;
+      pinchStartDist=dist(e.touches[0],e.touches[1]);
+      pinchStartScale=scale;
+      const c=center(e.touches[0],e.touches[1]);
+      pinchStartCx=c.x; pinchStartCy=c.y;
+      pinchStartTx=tx; pinchStartTy=ty;
+    } else if(e.touches.length===1){
+      const now=Date.now();
+      const t=e.touches[0];
+      // Double-tap: alterna entre 1x e 2.5x
+      if(now-lastTap<300){
+        e.preventDefault();
+        if(tapTimer){clearTimeout(tapTimer);tapTimer=null;}
+        if(scale>1.05){
+          scale=1; tx=0; ty=0;
+        } else {
+          scale=2.5;
+          // centro do zoom = ponto tocado
+          const rect=img.getBoundingClientRect();
+          const cx=t.clientX-rect.left-rect.width/2;
+          const cy=t.clientY-rect.top-rect.height/2;
+          tx=-cx*(scale-1);
+          ty=-cy*(scale-1);
+          clampPan();
+        }
+        img.style.transition='transform .25s ease-out';
+        applyTransform();
+        setTimeout(()=>{img.style.transition='';},260);
+        lastTap=0;
+        return;
+      }
+      lastTap=now;
+      // Pan (só funciona se estiver com zoom)
+      if(scale>1.001){
+        panning=true;
+        panStartX=t.clientX; panStartY=t.clientY;
+        panStartTx=tx; panStartTy=ty;
+      } else {
+        panning=false;
+      }
+    }
+  },{passive:false});
+
+  img.addEventListener('touchmove',e=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const d=dist(e.touches[0],e.touches[1]);
+      let ns=pinchStartScale*(d/pinchStartDist);
+      ns=Math.max(MIN,Math.min(MAX,ns));
+      // Mantém o ponto de centro do pinch fixo na tela
+      const rect=img.getBoundingClientRect();
+      // Centro inicial relativo ao centro da imagem (no transform inicial)
+      const imgCx=rect.left+rect.width/2;
+      const imgCy=rect.top+rect.height/2;
+      const offsetCx=pinchStartCx-imgCx+pinchStartTx;
+      const offsetCy=pinchStartCy-imgCy+pinchStartTy;
+      // Ajusta translation para manter o ponto sob os dedos
+      const ratio=ns/pinchStartScale;
+      tx=pinchStartTx-(offsetCx)*(ratio-1);
+      ty=pinchStartTy-(offsetCy)*(ratio-1);
+      scale=ns;
+      clampPan();
+      applyTransform();
+    } else if(e.touches.length===1 && panning && scale>1.001){
+      e.preventDefault();
+      const t=e.touches[0];
+      tx=panStartTx+(t.clientX-panStartX);
+      ty=panStartTy+(t.clientY-panStartY);
+      clampPan();
+      applyTransform();
+    }
+  },{passive:false});
+
+  img.addEventListener('touchend',e=>{
+    if(e.touches.length<2){
+      // se voltou para escala < 1, força reset
+      if(scale<MIN){scale=MIN;tx=0;ty=0;img.style.transition='transform .25s';applyTransform();setTimeout(()=>{img.style.transition='';},260);}
+    }
+    if(e.touches.length===0){panning=false;}
+  });
+
+  // Mouse: clique simples no overlay (não na imagem) fecha; clique na imagem zoom toggle
+  ov.addEventListener('click',e=>{
+    if(e.target===ov)fecharFotoFullscreen();
+  });
+  img.addEventListener('click',e=>{
+    // No desktop: alterna zoom no clique
+    if(scale>1.05){scale=1;tx=0;ty=0;}
+    else{scale=2;tx=0;ty=0;}
+    img.style.transition='transform .25s';
+    applyTransform();
+    setTimeout(()=>{img.style.transition='';},260);
+  });
+
+  // Wheel zoom (desktop)
+  ov.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const delta=-Math.sign(e.deltaY)*0.15;
+    let ns=scale*(1+delta);
+    ns=Math.max(MIN,Math.min(MAX,ns));
+    if(ns===scale)return;
+    // zoom para o ponto do cursor
+    const rect=img.getBoundingClientRect();
+    const cx=e.clientX-rect.left-rect.width/2;
+    const cy=e.clientY-rect.top-rect.height/2;
+    const ratio=ns/scale;
+    tx=tx-cx*(ratio-1);
+    ty=ty-cy*(ratio-1);
+    scale=ns;
+    if(scale<=1.001){tx=0;ty=0;}
+    clampPan();
+    applyTransform();
+  },{passive:false});
+
+  // ESC fecha
+  function escHandler(e){if(e.key==='Escape')fecharFotoFullscreen();}
+  document.addEventListener('keydown',escHandler);
+  ov._escHandler=escHandler;
+}
+function fecharFotoFullscreen(){
+  const ov=document.getElementById('fs-overlay');
+  if(!ov)return;
+  if(ov._escHandler)document.removeEventListener('keydown',ov._escHandler);
+  ov.style.opacity='0';
+  setTimeout(()=>ov.remove(),200);
+}
 
 /* ═══ NAVEGAÇÃO ═══ */
 function navTo(sc){
@@ -881,10 +1158,8 @@ function popularFiltroTamanhos(){
     if(idxB===-1)return -1;
     return idxA-idxB;
   });
-  sel.innerHTML='<option value="">Tamanho</option>'+tamanhosUsados.map(t=>{
-    const info=getTamInfo(t);
-    const label=info?`${t} · ${info.idade_label}`:t;
-    return`<option value="${t}" ${t===valorAtual?'selected':''}>${label}</option>`;
+  sel.innerHTML='<option value="">Tam.</option>'+tamanhosUsados.map(t=>{
+    return`<option value="${t}" ${t===valorAtual?'selected':''}>${t}</option>`;
   }).join('');
 }
 function aplicarFiltros(){
@@ -989,6 +1264,11 @@ function openDetalhe(key){
         <div class="var-title" style="margin-bottom:4px">TAMANHOS</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:12px">use (−) para registrar venda · use (+) para entrada em estoque</div>
         <div id="var-rows-${key}">${buildVarRows()}</div>
+        <div id="add-tam-area-${key}" style="margin-top:8px"></div>
+        <button class="add-tam-btn" id="add-tam-btn-${key}" onclick="abrirAddTamSheet('${key}')" style="color:var(--accent);margin-top:10px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar tamanho
+        </button>
         <div id="confirm-bar-${key}">${buildConfirmBar()}</div>
       </div>
       <div style="padding:0 16px 24px;display:flex;flex-direction:column;gap:10px">
@@ -1031,7 +1311,139 @@ async function salvarSheet(key){
       v.quantidade=nq;
     }
     showToast('Estoque atualizado!');fecharDetalhe();renderEstoque();
+    // Se a aba Estoque estiver ativa, atualiza também a Visão Geral
+    if(document.getElementById('sc-alertas').classList.contains('active'))renderEstoqueGeral();
   }catch(e){showToast('Erro ao salvar',true);if(btn){btn.textContent='Salvar alterações';btn.disabled=false;}}
+}
+
+/* ═══ ADICIONAR NOVO TAMANHO A PRODUTO EXISTENTE ═══
+   Reaproveita todos os campos do produto-mãe (cores, IA, embedding, etc.)
+   e só insere um novo SKU com tamanho/preço/quantidade diferentes. */
+function abrirAddTamSheet(key){
+  const area=document.getElementById('add-tam-area-'+key);
+  const btn=document.getElementById('add-tam-btn-'+key);
+  if(!area)return;
+  // Já está aberto? fecha
+  if(area.dataset.open==='1'){area.innerHTML='';area.dataset.open='0';if(btn)btn.style.display='';return;}
+  area.dataset.open='1';
+  if(btn)btn.style.display='none';
+  // Sugere tamanhos não usados ainda
+  const gr=GRUPOS.find(g=>g._key===key);if(!gr)return;
+  const tamsUsados=new Set(gr._vars.map(v=>(v.tamanho||'').toString().toLowerCase()));
+  const sugestoes=TABELA_TAMANHOS.filter(t=>!tamsUsados.has(t.tam.toLowerCase())).map(t=>t.tam);
+  // Sugestão de preço: pega mediana dos existentes
+  const precos=gr._vars.map(v=>Number(v.preco||0)).filter(p=>p>0);
+  const precoSug=precos.length?precos[Math.floor(precos.length/2)].toFixed(2):'';
+
+  area.innerHTML=`
+    <div style="background:var(--surface);border:1.5px solid var(--info);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--info);text-transform:uppercase;letter-spacing:.4px">+ Novo tamanho deste produto</div>
+      ${sugestoes.length?`<div style="display:flex;flex-wrap:wrap;gap:5px">${sugestoes.slice(0,8).map(t=>`<button type="button" class="tam-chip" style="cursor:pointer;border-color:var(--info);color:var(--info);background:var(--info-l);font-size:11px;padding:3px 9px" onclick="document.getElementById('novo-tam-${key}').value='${t}'">${t}</button>`).join('')}</div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:6px">
+        <div>
+          <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;text-align:center">Tamanho</div>
+          <input id="novo-tam-${key}" class="finput" placeholder="Ex: 4" style="padding:8px 6px;text-align:center;font-size:13px"/>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;text-align:center">Preço (R$)</div>
+          <input id="novo-pr-${key}" type="number" inputmode="decimal" step="0.01" class="finput" placeholder="0.00" value="${precoSug}" style="padding:8px 6px;text-align:center;font-size:13px"/>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;text-align:center">Qtd</div>
+          <input id="novo-qt-${key}" type="number" inputmode="numeric" class="finput" placeholder="0" style="padding:8px 6px;text-align:center;font-size:13px"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="cancelarAddTam('${key}')" style="flex:1;padding:10px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-weight:700;color:var(--text2);cursor:pointer">Cancelar</button>
+        <button id="confirmar-add-tam-${key}" onclick="confirmarNovoTamanho('${key}')" style="flex:1;padding:10px;background:var(--info);border:none;border-radius:var(--radius);font-size:13px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,.25)">Adicionar</button>
+      </div>
+    </div>
+  `;
+  // Foco automático no campo tamanho
+  setTimeout(()=>document.getElementById('novo-tam-'+key)?.focus(),50);
+}
+function cancelarAddTam(key){
+  const area=document.getElementById('add-tam-area-'+key);
+  const btn=document.getElementById('add-tam-btn-'+key);
+  if(area){area.innerHTML='';area.dataset.open='0';}
+  if(btn)btn.style.display='';
+}
+async function confirmarNovoTamanho(key){
+  const tam=(document.getElementById('novo-tam-'+key)?.value||'').trim();
+  const pr=parseFloat(document.getElementById('novo-pr-'+key)?.value);
+  const qt=parseInt(document.getElementById('novo-qt-'+key)?.value);
+  if(!tam){showToast('Informe o tamanho',true);return;}
+  if(!pr||pr<=0){showToast('Preço inválido',true);return;}
+  if(isNaN(qt)||qt<0){showToast('Quantidade inválida',true);return;}
+  const gr=GRUPOS.find(g=>g._key===key);if(!gr)return;
+  // Bloqueia duplicata: se o tamanho já existe nesse grupo, abortar
+  const jaExiste=gr._vars.some(v=>(v.tamanho||'').toString().toLowerCase()===tam.toLowerCase());
+  if(jaExiste){showToast('Este tamanho já existe — use os botões + para adicionar estoque',true);return;}
+  const btn=document.getElementById('confirmar-add-tam-'+key);
+  if(btn){btn.textContent='Salvando...';btn.disabled=true;}
+  try{
+    // Copia todos os campos relevantes do produto-mãe (primeira variação)
+    const mae=gr._vars[0];
+    // Atualiza faixa_etaria se houver mapeamento na tabela oficial para o novo tamanho
+    const tamInfo=getTamInfo(tam);
+    const novo={
+      loja_id:mae.loja_id,
+      foto_url:mae.foto_url,
+      tipo:mae.tipo,
+      subtipo:mae.subtipo,
+      genero:mae.genero,
+      faixa_etaria:tamInfo?tamInfo.faixa_etaria:mae.faixa_etaria,
+      faixa_etaria_secundaria:mae.faixa_etaria_secundaria,
+      cores:mae.cores,
+      material:mae.material,
+      ocasiao:mae.ocasiao,
+      estilo:mae.estilo,
+      estacao:mae.estacao,
+      tamanho:tam,
+      preco:pr,
+      quantidade:qt,
+      marca:mae.marca,
+      marca_licenciada:mae.marca_licenciada,
+      descricao_semantica:mae.descricao_semantica,
+      tags_adicionais:mae.tags_adicionais,
+      referencias_culturais:mae.referencias_culturais,
+      descricao_estampa:mae.descricao_estampa,
+      tem_estampa:mae.tem_estampa,
+      tipo_estampa:mae.tipo_estampa,
+      personagem:mae.personagem,
+      franquia:mae.franquia,
+      tem_manga:mae.tem_manga,
+      tipo_manga:mae.tipo_manga,
+      tipo_fechamento:mae.tipo_fechamento,
+      tem_acessorios:mae.tem_acessorios,
+      acessorios:mae.acessorios,
+      detalhes_especiais:mae.detalhes_especiais,
+      clima:mae.clima,
+      embedding:mae.embedding,
+      texto_para_embedding:mae.texto_para_embedding,
+      ativo:true
+    };
+    // Remove campos null/undefined para não sobrescrever defaults da tabela
+    Object.keys(novo).forEach(k=>{if(novo[k]===undefined||novo[k]===null)delete novo[k];});
+    const inserted=await sbPost(TABELA,novo);
+    const novoSKU=Array.isArray(inserted)?inserted[0]:inserted;
+    if(novoSKU&&novoSKU.id){
+      // Adiciona ao grupo em memória e re-renderiza
+      gr._vars.push(novoSKU);
+      PRODS.push(novoSKU);
+    }
+    showToast('Tamanho '+tam+' adicionado!');
+    // Reabre o detalhe atualizado
+    fecharDetalhe();
+    // Re-agrupa para refletir nova variação
+    GRUPOS=agrupar(filtrado());
+    renderEstoque();
+    openDetalhe(key);
+  }catch(e){
+    console.warn(e);
+    showToast('Erro ao adicionar tamanho',true);
+    if(btn){btn.textContent='Adicionar';btn.disabled=false;}
+  }
 }
 
 /* ═══ CADASTRO ═══ */
@@ -1230,6 +1642,214 @@ function buscarMultiplo(q){
   }
 }
 
+/* ═══ ESTOQUE — sub-abas (Visão Geral + Alertas) ═══ */
+let subAbaEstoque='geral';
+function trocarSubAbaEstoque(aba){
+  subAbaEstoque=aba;
+  document.querySelectorAll('.estq-tab').forEach(b=>b.classList.toggle('on',b.dataset.est===aba));
+  document.getElementById('estq-geral').style.display=aba==='geral'?'block':'none';
+  document.getElementById('estq-alertas').style.display=aba==='alertas'?'block':'none';
+  // Atualiza subtítulo
+  const sub=document.getElementById('estoque-subtitle');
+  if(sub)sub.textContent=aba==='geral'?'Visão completa · valor, tipos e alertas':'Estoque crítico agrupado por tipo';
+  // Garante que a aba ativa tenha dados frescos
+  if(aba==='geral')renderEstoqueGeral();
+  else renderAlertas();
+  // scroll volta ao topo
+  document.getElementById('scroll-alertas').scrollTop=0;
+}
+
+/* Calcula e renderiza a Visão Geral do estoque */
+function renderEstoqueGeral(){
+  const loading=document.getElementById('estq-geral-loading');
+  const body=document.getElementById('estq-geral-body');
+  const empty=document.getElementById('estq-geral-empty');
+  if(loading)loading.style.display='none';
+  if(!PRODS||!PRODS.length){
+    body.style.display='none';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+  body.style.display='block';
+
+  // ── Agregações globais ──
+  let valorTotal=0, totalPecas=0;
+  PRODS.forEach(p=>{
+    const q=Number(p.quantidade||0);
+    const pr=Number(p.preco||0);
+    valorTotal+=q*pr;
+    totalPecas+=q;
+  });
+  const grupos=agrupar(PRODS);
+  const totalSKUs=PRODS.length;
+  const totalProdutos=grupos.length;
+
+  // Saúde
+  let qtdEsgotado=0, qtdCritico=0, qtdBaixo=0, qtdSaudavel=0;
+  PRODS.forEach(p=>{
+    const q=Number(p.quantidade||0);
+    if(q===0)qtdEsgotado++;
+    else if(q<=PARAMS.critico)qtdCritico++;
+    else if(q<=PARAMS.baixo)qtdBaixo++;
+    else qtdSaudavel++;
+  });
+
+  // Distribuição por gênero
+  const generos={infantil_f:0,infantil_m:0,bebe:0,unissex:0,outro:0};
+  PRODS.forEach(p=>{
+    const q=Number(p.quantidade||0);
+    const g=p.genero||'outro';
+    if(generos[g]===undefined)generos.outro+=q;
+    else generos[g]+=q;
+  });
+
+  // ── Card destaque: valor parado ──
+  const valFmt=valorTotal>=10000?(valorTotal/1000).toFixed(1)+'k':valorTotal.toFixed(0);
+  document.getElementById('estq-valor-total').textContent='R$ '+valFmt.replace('.',',');
+  document.getElementById('estq-valor-sub').textContent=`${totalPecas} peças · ${totalProdutos} produtos · ${totalSKUs} SKUs`;
+
+  // ── KPIs ──
+  const ticketMedio=totalPecas>0?valorTotal/totalPecas:0;
+  document.getElementById('estq-kpis').innerHTML=[
+    {l:'Total de peças',v:totalPecas,cls:''},
+    {l:'Produtos únicos',v:totalProdutos,cls:'accent'},
+    {l:'Variedade SKUs',v:totalSKUs,cls:''},
+    {l:'Valor médio/peça',v:'R$ '+ticketMedio.toFixed(0),cls:''},
+  ].map(s=>`<div class="stat-card"><div class="stat-label">${s.l}</div><div class="stat-val ${s.cls}">${s.v}</div></div>`).join('');
+
+  // ── Saúde do estoque (barra empilhada) ──
+  const totalSaude=qtdEsgotado+qtdCritico+qtdBaixo+qtdSaudavel||1;
+  const segs=[
+    {n:qtdEsgotado,c:'var(--danger)',lb:'Esgotado'},
+    {n:qtdCritico,c:'#F87171',lb:'Crítico'},
+    {n:qtdBaixo,c:'var(--warning)',lb:'Baixo'},
+    {n:qtdSaudavel,c:'var(--success)',lb:'Saudável'},
+  ];
+  document.getElementById('estq-saude').innerHTML=`
+    <div class="saude-bar">
+      ${segs.map(s=>s.n>0?`<div class="saude-seg" style="width:${(s.n/totalSaude*100).toFixed(2)}%;background:${s.c}" title="${s.lb}: ${s.n}"></div>`:'').join('')}
+    </div>
+    <div class="saude-leg">
+      ${segs.map(s=>`<span><span class="saude-leg-dot" style="background:${s.c}"></span>${s.lb} <strong style="color:var(--text1)">${s.n}</strong></span>`).join('')}
+    </div>
+  `;
+
+  // ── Distribuição por gênero ──
+  const totalGen=Object.values(generos).reduce((a,b)=>a+b,0)||1;
+  const genLabels={infantil_f:'Menina',infantil_m:'Menino',bebe:'Bebê',unissex:'Unissex',outro:'Outros'};
+  const genHTML=Object.entries(generos)
+    .filter(([,v])=>v>0)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>{
+      const pct=v/totalGen*100;
+      return`<div class="gen-bar-row">
+        <span class="gen-bar-name">${genLabels[k]||k}</span>
+        <span class="gen-bar-track"><span class="gen-bar-fill" style="width:${pct.toFixed(1)}%"></span></span>
+        <span class="gen-bar-pct">${v}</span>
+      </div>`;
+    }).join('');
+  document.getElementById('estq-genero').innerHTML=genHTML||'<div style="color:var(--text3);font-size:12px">Sem dados</div>';
+
+  // ── Tipos de produto (drill-down) ──
+  // Agrupar por tipo, dentro disso por foto_url (= produto)
+  const porTipo={};
+  PRODS.forEach(p=>{
+    const tipo=(p.tipo||'outros').toLowerCase().trim();
+    if(!porTipo[tipo])porTipo[tipo]={tipo,pecas:0,valor:0,produtos:{},generos:new Set(),skus:0,minQ:Infinity,esgotados:0};
+    const q=Number(p.quantidade||0);
+    const pr=Number(p.preco||0);
+    porTipo[tipo].pecas+=q;
+    porTipo[tipo].valor+=q*pr;
+    porTipo[tipo].skus++;
+    if(q<porTipo[tipo].minQ)porTipo[tipo].minQ=q;
+    if(q===0)porTipo[tipo].esgotados++;
+    if(p.genero)porTipo[tipo].generos.add(p.genero);
+    const fotoKey=p.foto_url?p.foto_url.split('/').pop().split('.')[0]:'sem-foto';
+    if(!porTipo[tipo].produtos[fotoKey])porTipo[tipo].produtos[fotoKey]={key:fotoKey,foto:p.foto_url,vars:[],marca:p.marca,cores:p.cores,genero:p.genero};
+    porTipo[tipo].produtos[fotoKey].vars.push(p);
+  });
+
+  const tiposArr=Object.values(porTipo).sort((a,b)=>b.valor-a.valor);
+  document.getElementById('estq-tipos-count').textContent=tiposArr.length+(tiposArr.length===1?' tipo':' tipos');
+
+  document.getElementById('estq-tipos-list').innerHTML=tiposArr.map(g=>{
+    const isExp=tiposExpand[g.tipo]?'expanded':'';
+    const valFmt=g.valor>=1000?(g.valor/1000).toFixed(1)+'k':g.valor.toFixed(0);
+    // Health hint
+    const saudeBg=g.pecas===0?'var(--danger-l)':g.pecas<=PARAMS.critico*g.skus*0.3?'#FEE2E2':g.pecas<=PARAMS.baixo*g.skus*0.3?'var(--warning-l)':'var(--accent-l)';
+    const generos=[...g.generos].map(gen=>genLabels[gen]||gen).join(' · ');
+
+    // Lista de produtos dentro do tipo
+    const produtosArr=Object.values(g.produtos).sort((a,b)=>{
+      const qa=a.vars.reduce((s,v)=>s+Number(v.quantidade||0),0);
+      const qb=b.vars.reduce((s,v)=>s+Number(v.quantidade||0),0);
+      return qb-qa;
+    });
+
+    const produtosHTML=produtosArr.map(prod=>{
+      const totalQ=prod.vars.reduce((s,v)=>s+Number(v.quantidade||0),0);
+      const totalV=prod.vars.reduce((s,v)=>s+Number(v.quantidade||0)*Number(v.preco||0),0);
+      const nome=[g.tipo,prod.marca].filter(Boolean).join(' · ')||'Produto';
+      const imgH=prod.foto?`<img src="${prod.foto}" class="tipo-prod-img" onerror="this.outerHTML='<div class=\'tipo-prod-img\'>👗</div>'"/>`:`<div class="tipo-prod-img">👗</div>`;
+      // Mini chips de tamanho
+      const varsOrd=prod.vars.slice().sort((a,b)=>{
+        const ia=TABELA_TAMANHOS.findIndex(t=>t.tam.toLowerCase()===(a.tamanho||'').toLowerCase());
+        const ib=TABELA_TAMANHOS.findIndex(t=>t.tam.toLowerCase()===(b.tamanho||'').toLowerCase());
+        if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;
+      });
+      const tamMini=varsOrd.map(v=>{
+        const qv=Number(v.quantidade||0);
+        return`<span class="tipo-prod-tam-mini${qv===0?' zero':''}">${v.tamanho||'—'}<span style="opacity:.6;margin-left:3px">${qv}</span></span>`;
+      }).join('');
+      const valFmt2=totalV>=1000?(totalV/1000).toFixed(1)+'k':totalV.toFixed(0);
+      // Usa o id da primeira variação como pivô — mais robusto que fotoKey
+      const pivotId=prod.vars[0]?.id||'';
+      return`<div class="tipo-prod-row" onclick="abrirDetalheDoProduto('${pivotId}')">
+        ${imgH}
+        <div class="tipo-prod-info">
+          <div class="tipo-prod-nome">${nome}</div>
+          <div class="tipo-prod-meta">${tamMini}</div>
+        </div>
+        <div class="tipo-prod-stats">
+          <span class="tipo-prod-qtd">${totalQ}</span>
+          <span class="tipo-prod-valor">R$ ${valFmt2.replace('.',',')}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    return`<div class="tipo-card ${isExp}" id="tcd-${g.tipo}">
+      <div class="tipo-card-head" onclick="toggleTipoExpand('${g.tipo}')">
+        <div class="tipo-icon" style="background:${saudeBg}">${iconeTipo(g.tipo)}</div>
+        <div class="tipo-info">
+          <div class="tipo-nome">${g.tipo}</div>
+          <div class="tipo-meta">${produtosArr.length} produto${produtosArr.length>1?'s':''} · ${g.skus} SKU${g.skus>1?'s':''}${generos?' · '+generos:''}</div>
+        </div>
+        <div class="tipo-stats">
+          <span class="tipo-pecas">${g.pecas}</span>
+          <span class="tipo-valor">R$ ${valFmt.replace('.',',')}</span>
+        </div>
+        <span class="tipo-chev">▾</span>
+      </div>
+      <div class="tipo-card-body">${produtosHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+let tiposExpand={};
+function toggleTipoExpand(tipo){
+  tiposExpand[tipo]=!tiposExpand[tipo];
+  document.getElementById('tcd-'+tipo)?.classList.toggle('expanded',tiposExpand[tipo]);
+}
+/* Abre o detalhe do produto a partir do tipo expandido — encontra o grupo pelo id da variação */
+function abrirDetalheDoProduto(produtoId){
+  // Garante que GRUPOS esteja populado a partir de PRODS (sem filtros)
+  GRUPOS=agrupar(PRODS);
+  const gr=GRUPOS.find(g=>g._vars.some(v=>v.id===produtoId));
+  if(!gr){showToast('Produto não encontrado',true);return;}
+  openDetalhe(gr._key);
+}
+
 /* ═══ ALERTAS — AGRUPADO POR TIPO DE PRODUTO ═══ */
 let ALERTAS_ALL=[],alertaFiltro='todos',alertasExpand={};
 const TIPO_ICONS={vestido:'👗',camiseta:'👕',camisa:'👕',blusa:'👚',calça:'👖',calca:'👖',shorts:'🩳',saia:'👗',pijama:'🌙',macacão:'🦺',macacao:'🦺',body:'👶',conjunto:'🎽',jaqueta:'🧥',casaco:'🧥',moletom:'🧥'};
@@ -1336,6 +1956,13 @@ function toggleAlertaTipo(tipo){
 }
 
 async function carregarAlertas(){
+  // Garantir que PRODS está atualizado para a visão geral
+  if(!PRODS||!PRODS.length){
+    try{PRODS=await sbGet(TABELA,'ativo=neq.false&order=criado_em.desc&limit=500');}catch(e){}
+  }
+  // Renderiza visão geral imediatamente (usa PRODS)
+  renderEstoqueGeral();
+
   document.getElementById('alerta-loading').style.display='flex';document.getElementById('alertas-list').innerHTML='';document.getElementById('alertas-empty').style.display='none';
   try{
     // Buscar produtos com qtd ≤ limite de baixo definido pelo lojista
@@ -1345,7 +1972,14 @@ async function carregarAlertas(){
     ALERTAS_ALL=crit;
     // Agrupa por tipo para o badge
     const tiposUnicos=new Set(crit.map(p=>(p.tipo||'').toLowerCase().trim()));
-    document.getElementById('badge-alerta').textContent=tiposUnicos.size;
+    const badgeNum=tiposUnicos.size;
+    document.getElementById('badge-alerta').textContent=badgeNum;
+    // Badge na sub-aba Alertas
+    const subBadge=document.getElementById('estq-alert-badge');
+    if(subBadge){
+      if(badgeNum>0){subBadge.textContent=badgeNum;subBadge.style.display='inline-block';}
+      else{subBadge.style.display='none';}
+    }
     if(!crit.length){document.getElementById('alertas-empty').style.display='block';return;}
     renderAlertas();
   }catch(e){document.getElementById('alerta-loading').style.display='none';showToast('Erro ao carregar alertas',true);}
@@ -1408,7 +2042,17 @@ async function verificarSessao(){
 function mostrarLogin(){document.getElementById('sc-login').style.display='flex';document.getElementById('bnav').style.display='none';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));}
 async function esconderLogin(){
   document.getElementById('sc-login').style.display='none';document.getElementById('bnav').style.display='flex';document.getElementById('sc-estoque').classList.add('active');
-  await carregarPerfilLoja();carregarEstoque();carregarMarcas();
+  await carregarPerfilLoja();await carregarEstoque();carregarMarcas();
+  // Computa badge de alertas (sem renderizar a tela inteira)
+  try{
+    const limite=PARAMS.baixo;
+    const crit=await sbGet(TABELA,'ativo=neq.false&quantidade=lte.'+limite+'&select=tipo&limit=500');
+    const tiposUnicos=new Set(crit.map(p=>(p.tipo||'').toLowerCase().trim()));
+    const n=tiposUnicos.size;
+    document.getElementById('badge-alerta').textContent=n;
+    const subBadge=document.getElementById('estq-alert-badge');
+    if(subBadge){if(n>0){subBadge.textContent=n;subBadge.style.display='inline-block';}else subBadge.style.display='none';}
+  }catch(e){}
 }
 async function carregarPerfilLoja(){
   try{
@@ -1460,6 +2104,7 @@ function salvarParametros(){
   PARAMS.baixo=baixo;PARAMS.critico=critico;
   localStorage.setItem('modaia_params',JSON.stringify(PARAMS));
   showToast('Parâmetros salvos!');
+  // Recarrega Estoque (alertas + visão geral) se a aba estiver ativa
   if(document.getElementById('sc-alertas').classList.contains('active')){carregarAlertas();}
 }
 
