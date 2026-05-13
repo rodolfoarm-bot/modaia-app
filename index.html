@@ -1172,7 +1172,7 @@ async function carregarEstoque(){
   document.getElementById('pgrid').style.display='none';
   document.getElementById('empty-est').style.display='none';
   try{
-    PRODS=await sbGet(TABELA,'ativo=neq.false&order=criado_em.desc&limit=500');
+    PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&order=criado_em.desc&limit=500');
     popularFiltroTamanhos();
     GRUPOS=agrupar(filtrado());renderEstoque();
   }catch(e){showToast('Erro ao carregar estoque',true);}
@@ -1647,7 +1647,7 @@ async function salvarProduto(){
     // Calcula próximo código sequencial pra essa loja (todos os SKUs do mesmo lote compartilham o código)
     let proximoCodigo=null;
     try{
-      const maxQuery=await sbGet(TABELA,'select=codigo_loja&codigo_loja=not.is.null&order=codigo_loja.desc&limit=1');
+      const maxQuery=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=codigo_loja&codigo_loja=not.is.null&order=codigo_loja.desc&limit=1');
       proximoCodigo=(maxQuery&&maxQuery[0]&&maxQuery[0].codigo_loja?maxQuery[0].codigo_loja:0)+1;
     }catch(e){console.warn('Erro ao buscar próximo código:',e);}
     let s=0;
@@ -1682,7 +1682,7 @@ function resetCadastro(){
 
 /* ═══ MARCAS ═══ */
 async function carregarMarcas(){
-  try{const d=await sbGet(TABELA,'select=marca&marca=not.is.null&order=marca.asc');marcasCadastradas=[...new Set(d.map(x=>x.marca).filter(Boolean))].sort();}catch(e){marcasCadastradas=[];}
+  try{const d=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=marca&marca=not.is.null&order=marca.asc');marcasCadastradas=[...new Set(d.map(x=>x.marca).filter(Boolean))].sort();}catch(e){marcasCadastradas=[];}
 }
 function filtrarMarcas(q){
   const dd=document.getElementById('marcas-dd');
@@ -2037,7 +2037,7 @@ function toggleAlertaTipo(tipo){
 async function carregarAlertas(){
   // Garantir que PRODS está atualizado para a visão geral
   if(!PRODS||!PRODS.length){
-    try{PRODS=await sbGet(TABELA,'ativo=neq.false&order=criado_em.desc&limit=500');}catch(e){}
+    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&order=criado_em.desc&limit=500');}catch(e){}
   }
   // Renderiza visão geral imediatamente (usa PRODS)
   renderEstoqueGeral();
@@ -2046,7 +2046,7 @@ async function carregarAlertas(){
   try{
     // Buscar produtos com qtd ≤ limite de baixo definido pelo lojista
     const limite=PARAMS.baixo;
-    const crit=await sbGet(TABELA,'ativo=neq.false&quantidade=lte.'+limite+'&order=quantidade.asc');
+    const crit=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&quantidade=lte.'+limite+'&order=quantidade.asc');
     document.getElementById('alerta-loading').style.display='none';
     ALERTAS_ALL=crit;
     // Agrupa por tipo para o badge
@@ -2125,7 +2125,7 @@ async function esconderLogin(){
   // Computa badge de alertas (sem renderizar a tela inteira)
   try{
     const limite=PARAMS.baixo;
-    const crit=await sbGet(TABELA,'ativo=neq.false&quantidade=lte.'+limite+'&select=tipo&limit=500');
+    const crit=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&quantidade=lte.'+limite+'&select=tipo&limit=500');
     const tiposUnicos=new Set(crit.map(p=>(p.tipo||'').toLowerCase().trim()));
     const n=tiposUnicos.size;
     document.getElementById('badge-alerta').textContent=n;
@@ -2185,7 +2185,7 @@ async function carregarPerfil(){
     if(usuarioLogado)document.getElementById('perfil-email').textContent=usuarioLogado.email||'—';
     const ul=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
     if(ul&&ul[0]){document.getElementById('perfil-nome').textContent=ul[0].nome||'Vendedor';document.getElementById('perfil-loja').textContent=ul[0].loja_id||'—';document.getElementById('perfil-papel').textContent=ul[0].papel==='admin'?'Administrador':'Vendedor';}
-    try{const prods=await sbGet(TABELA,'select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
+    try{const prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
     try{const vendas=await sbGet('vendas','select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
     // Carrega dados da loja (lojas_wpp)
     try{
