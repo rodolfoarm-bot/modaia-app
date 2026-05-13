@@ -666,18 +666,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 
       <div class="param-row">
         <label class="param-label">Nome da loja</label>
-        <input class="finput" id="loja-nome" type="text" placeholder="Ex: Taturi baby"/>
+        <input class="finput" id="loja-nome" type="text" placeholder="Ex: Taturi baby" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Endereço</label>
-        <input class="finput" id="loja-endereco" type="text" placeholder="Rua, número, bairro, cidade/UF"/>
+        <input class="finput" id="loja-endereco" type="text" placeholder="Rua, número, bairro, cidade/UF" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Link do Google Maps</label>
-        <input class="finput" id="loja-maps" type="text" placeholder="https://maps.app.goo.gl/..."/>
+        <input class="finput" id="loja-maps" type="text" placeholder="https://maps.app.goo.gl/..." disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
 
-      <button class="fbtn" onclick="salvarDadosLoja()" style="margin-top:14px">Salvar dados da loja</button>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="fbtn fbtn-outline" id="btn-alterar-loja" onclick="habilitarDadosLoja()">✏️ Alterar dados da loja</button>
+        <button class="fbtn" id="btn-salvar-loja" onclick="salvarDadosLoja()" style="display:none">💾 Salvar</button>
+      </div>
     </div>
 
     <!-- ── REGRAS DA LOJA ── -->
@@ -687,30 +690,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 
       <div class="param-row">
         <label class="param-label">Formas de pagamento</label>
-        <input class="finput" id="reg-pagamento" type="text" placeholder="Ex: Dinheiro, Pix, Cartão débito e crédito"/>
+        <input class="finput" id="reg-pagamento" type="text" placeholder="Ex: Dinheiro, Pix, Cartão débito e crédito" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Parcelamento</label>
-        <input class="finput" id="reg-parcelamento" type="text" placeholder="Ex: Parcelamos em até 3x sem juros acima de R$ 150"/>
+        <input class="finput" id="reg-parcelamento" type="text" placeholder="Ex: Parcelamos em até 3x sem juros acima de R$ 150" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Política de desconto</label>
-        <input class="finput" id="reg-desconto" type="text" placeholder="Ex: 5% de desconto à vista no Pix ou dinheiro"/>
+        <input class="finput" id="reg-desconto" type="text" placeholder="Ex: 5% de desconto à vista no Pix ou dinheiro" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Política de troca</label>
-        <input class="finput" id="reg-troca" type="text" placeholder="Ex: Trocas em até 7 dias com etiqueta"/>
+        <input class="finput" id="reg-troca" type="text" placeholder="Ex: Trocas em até 7 dias com etiqueta" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Horário de funcionamento</label>
-        <input class="finput" id="reg-horario" type="text" placeholder="Ex: Segunda a sábado, 9h às 18h"/>
+        <input class="finput" id="reg-horario" type="text" placeholder="Ex: Segunda a sábado, 9h às 18h" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Observações (opcional)</label>
-        <input class="finput" id="reg-observacoes" type="text" placeholder="Outras informações relevantes"/>
+        <input class="finput" id="reg-observacoes" type="text" placeholder="Outras informações relevantes" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
 
-      <button class="fbtn" onclick="salvarRegrasLoja()" style="margin-top:14px">Salvar regras da loja</button>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="fbtn fbtn-outline" id="btn-alterar-regras" onclick="habilitarRegrasLoja()">✏️ Alterar regras da loja</button>
+        <button class="fbtn" id="btn-salvar-regras" onclick="salvarRegrasLoja()" style="display:none">💾 Salvar</button>
+      </div>
     </div>
 
     <!-- ── PARÂMETROS DA LOJA ── -->
@@ -1800,13 +1806,13 @@ function renderEstoqueGeral(){
   // ── Saúde do estoque (barra empilhada) ──
   const totalSaude=qtdEsgotado+qtdCritico+qtdBaixo+qtdSaudavel||1;
   const segs=[
-    {n:qtdEsgotado,c:'var(--danger)',lb:'Esgotado'},
-    {n:qtdCritico,c:'#F87171',lb:'Crítico'},
-    {n:qtdBaixo,c:'var(--warning)',lb:'Baixo'},
-    {n:qtdSaudavel,c:'var(--success)',lb:'Saudável'},
+    {n:qtdEsgotado, c:'#DC2626', lb:'Esgotado'},
+    {n:qtdCritico,  c:'#F97316', lb:'Crítico'},
+    {n:qtdBaixo,    c:'#EAB308', lb:'Baixo'},
+    {n:qtdSaudavel, c:'#16A34A', lb:'Saudável'},
   ];
   document.getElementById('estq-saude').innerHTML=`
-    <div class="saude-bar">
+    <div class="saude-bar" style="height:18px">
       ${segs.map(s=>s.n>0?`<div class="saude-seg" style="width:${(s.n/totalSaude*100).toFixed(2)}%;background:${s.c}" title="${s.lb}: ${s.n}"></div>`:'').join('')}
     </div>
     <div class="saude-leg">
@@ -2113,11 +2119,65 @@ function navPeriod(d){const navs=PD[curPeriod].navs;curOffset=Math.max(0,Math.mi
 
 /* ═══ AUTH ═══ */
 let usuarioLogado=null;
-async function verificarSessao(){
-  const token=localStorage.getItem('sb_token');if(!token){mostrarLogin();return;}
-  try{const r=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+token}});if(r.ok){const user=await r.json();if(user.id){usuarioLogado=user;await esconderLogin();return;}}}catch(e){}
-  localStorage.removeItem('sb_token');localStorage.removeItem('sb_refresh');mostrarLogin();
+
+async function renovarToken(){
+  const refresh=localStorage.getItem('sb_refresh');
+  if(!refresh)return false;
+  try{
+    const r=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:refresh})
+    });
+    if(r.ok){
+      const data=await r.json();
+      if(data.access_token){
+        localStorage.setItem('sb_token',data.access_token);
+        localStorage.setItem('sb_refresh',data.refresh_token);
+        // Salva timestamp da renovação
+        localStorage.setItem('sb_token_ts', Date.now().toString());
+        return true;
+      }
+    }
+  }catch(e){}
+  return false;
 }
+
+async function verificarSessao(){
+  const token=localStorage.getItem('sb_token');
+  if(!token){mostrarLogin();return;}
+  // Verifica se o token foi emitido hoje — se não, tenta renovar
+  const ts=parseInt(localStorage.getItem('sb_token_ts')||'0');
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const tokenDeHoje=ts>=hoje.getTime();
+  if(!tokenDeHoje){
+    const renovado=await renovarToken();
+    if(!renovado){mostrarLogin();return;}
+  }
+  try{
+    const tokenAtual=localStorage.getItem('sb_token');
+    const r=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+tokenAtual}});
+    if(r.ok){
+      const user=await r.json();
+      if(user.id){usuarioLogado=user;await esconderLogin();return;}
+    }
+    // Token inválido — tenta renovar uma vez
+    const renovado=await renovarToken();
+    if(renovado){
+      const tokenNovo=localStorage.getItem('sb_token');
+      const r2=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+tokenNovo}});
+      if(r2.ok){const user=await r2.json();if(user.id){usuarioLogado=user;await esconderLogin();return;}}
+    }
+  }catch(e){}
+  localStorage.removeItem('sb_token');localStorage.removeItem('sb_refresh');localStorage.removeItem('sb_token_ts');mostrarLogin();
+}
+
+// Renova token automaticamente a cada 50 minutos enquanto o app está aberto
+setInterval(async()=>{
+  if(usuarioLogado&&localStorage.getItem('sb_refresh')){
+    await renovarToken();
+  }
+},50*60*1000);
 function mostrarLogin(){document.getElementById('sc-login').style.display='flex';document.getElementById('bnav').style.display='none';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));}
 async function esconderLogin(){
   document.getElementById('sc-login').style.display='none';document.getElementById('bnav').style.display='flex';document.getElementById('sc-estoque').classList.add('active');
@@ -2168,11 +2228,11 @@ async function fazerLogin(){
     const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password:senha})});
     const data=await r.json();
     if(!r.ok||data.error){err.textContent=data.error_description||data.error||'E-mail ou senha incorretos.';err.style.display='block';}
-    else{localStorage.setItem('sb_token',data.access_token);localStorage.setItem('sb_refresh',data.refresh_token);usuarioLogado=data.user;esconderLogin();}
+    else{localStorage.setItem('sb_token',data.access_token);localStorage.setItem('sb_refresh',data.refresh_token);localStorage.setItem('sb_token_ts',Date.now().toString());usuarioLogado=data.user;esconderLogin();}
   }catch(e){err.textContent='Erro de conexão.';err.style.display='block';}
   btn.textContent='Entrar';btn.disabled=false;
 }
-function fazerLogout(){localStorage.removeItem('sb_token');localStorage.removeItem('sb_refresh');usuarioLogado=null;mostrarLogin();document.getElementById('login-email').value='';document.getElementById('login-senha').value='';}
+function fazerLogout(){localStorage.removeItem('sb_token');localStorage.removeItem('sb_refresh');localStorage.removeItem('sb_token_ts');usuarioLogado=null;mostrarLogin();document.getElementById('login-email').value='';document.getElementById('login-senha').value='';}
 function toggleSenha(){const inp=document.getElementById('login-senha');const btn=document.getElementById('toggle-senha-btn');if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}else{inp.type='password';btn.textContent='👁';}}
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('login-senha')?.addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
@@ -2214,24 +2274,46 @@ async function carregarPerfil(){
   }catch(e){console.warn('Erro ao carregar perfil:',e);}
 }
 
+function habilitarDadosLoja(){
+  ['loja-nome','loja-endereco','loja-maps'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.disabled=false;el.style.background='';el.style.color='';
+  });
+  document.getElementById('btn-alterar-loja').style.display='none';
+  document.getElementById('btn-salvar-loja').style.display='block';
+}
+
+function habilitarRegrasLoja(){
+  ['reg-pagamento','reg-parcelamento','reg-desconto','reg-troca','reg-horario','reg-observacoes'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.disabled=false;el.style.background='';el.style.color='';
+  });
+  document.getElementById('btn-alterar-regras').style.display='none';
+  document.getElementById('btn-salvar-regras').style.display='block';
+}
+
 async function salvarDadosLoja(){
   const nome=document.getElementById('loja-nome').value.trim();
   const endereco=document.getElementById('loja-endereco').value.trim();
   const maps=document.getElementById('loja-maps').value.trim();
   if(!nome){showToast('Nome da loja é obrigatório',true);return;}
   try{
-    // Verifica se já existe registro em lojas_wpp para essa loja
     const existe=await sbGet('lojas_wpp','select=instancia&loja_id=eq.'+LOJA_ID);
     if(existe&&existe[0]){
-      // Update via PATCH
       const r=await fetch(`${SB_URL}/rest/v1/lojas_wpp?loja_id=eq.${LOJA_ID}`,{method:'PATCH',headers:getHDR(),body:JSON.stringify({nome_loja:nome,endereco,link_maps:maps})});
       if(!r.ok)throw new Error('Falha ao atualizar');
     }else{
-      // Insert
       await sbPost('lojas_wpp',{loja_id:LOJA_ID,nome_loja:nome,endereco,link_maps:maps,instancia:LOJA_ID+'_admin'});
     }
     NOME_LOJA=nome;LOJA_ENDERECO=endereco;LOJA_MAPS=maps;
     showToast('Dados da loja salvos!');
+    // Volta ao estado desabilitado
+    ['loja-nome','loja-endereco','loja-maps'].forEach(id=>{
+      const el=document.getElementById(id);
+      el.disabled=true;el.style.background='var(--surface2)';el.style.color='var(--text2)';
+    });
+    document.getElementById('btn-alterar-loja').style.display='block';
+    document.getElementById('btn-salvar-loja').style.display='none';
     // Atualiza topbars
     const ul=await sbGet('usuarios_lojas','select=nome');
     const vendedorNome=ul&&ul[0]?ul[0].nome||'':'';
@@ -2260,6 +2342,13 @@ async function salvarRegrasLoja(){
       await sbPost('regras_loja',dados);
     }
     showToast('Regras da loja salvas!');
+    // Volta ao estado desabilitado
+    ['reg-pagamento','reg-parcelamento','reg-desconto','reg-troca','reg-horario','reg-observacoes'].forEach(id=>{
+      const el=document.getElementById(id);
+      el.disabled=true;el.style.background='var(--surface2)';el.style.color='var(--text2)';
+    });
+    document.getElementById('btn-alterar-regras').style.display='block';
+    document.getElementById('btn-salvar-regras').style.display='none';
   }catch(e){showToast('Erro ao salvar: '+e.message,true);}
 }
 
@@ -2297,14 +2386,17 @@ function bindPullToRefresh(scrollEl,indicator,onRefresh){
   let startY=0,startX=0,currentY=0,pulling=false,refreshing=false,activated=false;
   const THRESHOLD=70;
   const MAX_PULL=120;
-  const ATIVAR_MIN=15; // só começa a "puxar" depois de 15px de movimento vertical
+  const ATIVAR_MIN=15;
 
   scrollEl.addEventListener('touchstart',e=>{
     if(refreshing)return;
-    // Não ativa PTR se o toque começou em um elemento interativo
     const target=e.target;
-    if(target.closest('button, a, input, select, textarea, .pcard, .vrcard, .alerta-tipo-header, .var-row, .tam-row, .ia-edit-btn, .modal-overlay'))return;
-    if(scrollEl.scrollTop>0)return;
+    // Quando estamos no topo, só bloqueamos elementos realmente interativos (não pcard)
+    const noTopo=scrollEl.scrollTop<=0;
+    const bloqueadosNoTopo='button, a, input, select, textarea, .modal-overlay';
+    const bloqueadosGeral='button, a, input, select, textarea, .pcard, .vrcard, .alerta-tipo-header, .var-row, .tam-row, .ia-edit-btn, .modal-overlay';
+    if(target.closest(noTopo?bloqueadosNoTopo:bloqueadosGeral))return;
+    if(!noTopo)return;
     startY=e.touches[0].clientY;
     startX=e.touches[0].clientX;
     pulling=true;
