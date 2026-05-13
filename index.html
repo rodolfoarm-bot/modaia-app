@@ -1631,7 +1631,7 @@ function confirmarCrop(){
       document.getElementById('fphoto-ic').style.display='none';document.getElementById('fphoto-lb').style.display='none';
       document.getElementById('fphoto-sz').style.display='block';document.getElementById('fphoto-sz').textContent=kb+' KB · pronto';
       document.getElementById('btn-delete-foto').style.display='block';document.getElementById('salvar-btn').disabled=false;
-      const ci=document.getElementById('compress-info');ci.style.display='flex';
+      const ci=document.getElementById('compress-info');ci.style.display='none'; // ocultado intencionalmente
       document.getElementById('compress-bar').style.width='100%';document.getElementById('compress-txt').textContent='Foto recortada — '+kb+' KB';
     },'image/jpeg',0.65);
   };
