@@ -413,7 +413,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <div class="srch-wrap">
       <div class="srch" style="position:relative">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;opacity:.7"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-        <input type="text" id="srch-in" placeholder="Buscar por cor, tipo, ocasião, tag..." oninput="busca=this.value;buscarMultiplo(this.value)" style="padding-right:32px"/>
+        <input type="text" id="srch-in" placeholder="Buscar por código, cor, tipo, ocasião, tag..." oninput="busca=this.value;buscarMultiplo(this.value)" style="padding-right:32px"/>
         <button id="srch-clear" onclick="limparBusca()" style="display:flex;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:14px;cursor:pointer;align-items:center;justify-content:center;font-weight:700;line-height:1">×</button>
       </div>
     </div>
@@ -657,6 +657,60 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <span class="perfil-label">Vendas registradas</span>
         <span class="perfil-val" id="perfil-vendas">—</span>
       </div>
+    </div>
+
+    <!-- ── DADOS DA LOJA ── -->
+    <div class="perfil-card">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🏪 Dados da loja</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Informações que a assistente virtual usa no WhatsApp</div>
+
+      <div class="param-row">
+        <label class="param-label">Nome da loja</label>
+        <input class="finput" id="loja-nome" type="text" placeholder="Ex: Taturi baby"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Endereço</label>
+        <input class="finput" id="loja-endereco" type="text" placeholder="Rua, número, bairro, cidade/UF"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Link do Google Maps</label>
+        <input class="finput" id="loja-maps" type="text" placeholder="https://maps.app.goo.gl/..."/>
+      </div>
+
+      <button class="fbtn" onclick="salvarDadosLoja()" style="margin-top:14px">Salvar dados da loja</button>
+    </div>
+
+    <!-- ── REGRAS DA LOJA ── -->
+    <div class="perfil-card">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">📋 Regras da loja</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Políticas que a assistente virtual usa para responder dúvidas dos clientes</div>
+
+      <div class="param-row">
+        <label class="param-label">Formas de pagamento</label>
+        <input class="finput" id="reg-pagamento" type="text" placeholder="Ex: Dinheiro, Pix, Cartão débito e crédito"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Parcelamento</label>
+        <input class="finput" id="reg-parcelamento" type="text" placeholder="Ex: Parcelamos em até 3x sem juros acima de R$ 150"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Política de desconto</label>
+        <input class="finput" id="reg-desconto" type="text" placeholder="Ex: 5% de desconto à vista no Pix ou dinheiro"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Política de troca</label>
+        <input class="finput" id="reg-troca" type="text" placeholder="Ex: Trocas em até 7 dias com etiqueta"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Horário de funcionamento</label>
+        <input class="finput" id="reg-horario" type="text" placeholder="Ex: Segunda a sábado, 9h às 18h"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Observações (opcional)</label>
+        <input class="finput" id="reg-observacoes" type="text" placeholder="Outras informações relevantes"/>
+      </div>
+
+      <button class="fbtn" onclick="salvarRegrasLoja()" style="margin-top:14px">Salvar regras da loja</button>
     </div>
 
     <!-- ── PARÂMETROS DA LOJA ── -->
@@ -1099,8 +1153,9 @@ function renderCards(grupos,highlightSim=false){
     const simBadge=simPct?`<span class="sim-badge">${simPct}%</span>`:'';
     const nome=[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto';
     const corDisplay=p.cores||'sem cor definida';
+    const codigoLoja=p.codigo_loja?`#${String(p.codigo_loja).padStart(3,'0')}`:'';
     return`<div class="pcard" onclick="openDetalhe('${gr._key}')">
-      <div class="pcard-img" style="background:${c}18">${imgHtml}<span class="stk-badge ${stkCls}">${stkLbl}</span></div>
+      <div class="pcard-img" style="background:${c}18">${imgHtml}<span class="stk-badge ${stkCls}">${stkLbl}</span>${codigoLoja?`<span style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:.3px">${codigoLoja}</span>`:''}</div>
       <div class="pcard-body">
         <div class="pcard-nome">${nome}</div>
         <div class="pcard-sub"><span class="cdot" style="background:${c}"></span>${corDisplay}${simBadge?'&nbsp;'+simBadge:''}</div>
@@ -1124,6 +1179,11 @@ async function carregarEstoque(){
   document.getElementById('est-loading').style.display='none';
 }
 function filtrado(){
+  // Detecta busca por código: "#1", "#001", "001", "1" — quando a busca é só dígitos (com ou sem #)
+  const buscaTrim=busca.trim();
+  const matchCodigo=buscaTrim.match(/^#?(\d{1,4})$/);
+  const codigoBusca=matchCodigo?parseInt(matchCodigo[1]):null;
+
   return PRODS.filter(p=>{
     let mfg=true;
     if(filtroGen)mfg=p.genero===filtroGen;
@@ -1137,12 +1197,21 @@ function filtrado(){
       // Aceita tanto a derivação pela tabela quanto o campo do banco (compatibilidade)
       mfi=faixaDoTam===filtroIdade||p.faixa_etaria===filtroIdade;
     }
-    const mb=busca===''||[
-      p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',
-      p.descricao_semantica||'',p.tags_adicionais||'',
-      p.material||'',p.tamanho||'',p.referencias_culturais||'',
-      p.descricao_estampa||'',p.personagem||'',p.franquia||''
-    ].join(' ').toLowerCase().includes(busca.toLowerCase());
+    let mb=true;
+    if(busca!==''){
+      if(codigoBusca!==null){
+        // Busca por código
+        mb=p.codigo_loja===codigoBusca;
+      }else{
+        // Busca textual normal
+        mb=[
+          p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',
+          p.descricao_semantica||'',p.tags_adicionais||'',
+          p.material||'',p.tamanho||'',p.referencias_culturais||'',
+          p.descricao_estampa||'',p.personagem||'',p.franquia||''
+        ].join(' ').toLowerCase().includes(busca.toLowerCase());
+      }
+    }
     return mfg&&mft&&mfi&&mb;
   });
 }
@@ -1256,6 +1325,7 @@ function openDetalhe(key){
         <div class="det-title">${[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto'}</div>
         <div class="det-sub">${genLabel[p.genero]||''} · ${p.cores||''} · ${p.estilo||''}</div>
         <div class="det-tags">
+          ${p.codigo_loja?`<span class="det-tag" style="background:var(--accent);color:#fff;font-weight:700">#${String(p.codigo_loja).padStart(3,'0')}</span>`:''}
           ${p.ocasiao?`<span class="det-tag accent">${p.ocasiao}</span>`:''}
           ${(p.tags_adicionais||'').split(',').slice(0,3).filter(Boolean).map(t=>`<span class="det-tag neutral">${t.trim()}</span>`).join('')}
         </div>
@@ -1574,13 +1644,19 @@ async function salvarProduto(){
     if(up.ok)fotoUrl=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
     if(!fotoUrl){showToast('Falha no upload da foto',true);btn.textContent='Salvar produto';btn.disabled=false;return;}
     const marca=document.getElementById('f-marca').value.trim()||null;
+    // Calcula próximo código sequencial pra essa loja (todos os SKUs do mesmo lote compartilham o código)
+    let proximoCodigo=null;
+    try{
+      const maxQuery=await sbGet(TABELA,'select=codigo_loja&codigo_loja=not.is.null&order=codigo_loja.desc&limit=1');
+      proximoCodigo=(maxQuery&&maxQuery[0]&&maxQuery[0].codigo_loja?maxQuery[0].codigo_loja:0)+1;
+    }catch(e){console.warn('Erro ao buscar próximo código:',e);}
     let s=0;
     for(const r of rows){
       btn.textContent='Salvando '+(s+1)+' de '+rows.length+'...';
-      await fetch(N8N_INPUT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto_url:fotoUrl,loja_id:LOJA_ID,marca,tamanho:r.tam,preco:parseFloat(r.pr),quantidade:parseInt(r.qt)})});
+      await fetch(N8N_INPUT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto_url:fotoUrl,loja_id:LOJA_ID,marca,tamanho:r.tam,preco:parseFloat(r.pr),quantidade:parseInt(r.qt),codigo_loja:proximoCodigo})});
       s++;
     }
-    showToast('Produto salvo!');
+    showToast('Produto salvo!'+(proximoCodigo?' Código #'+String(proximoCodigo).padStart(3,'0'):''));
     resetCadastro();
     carregarEstoque();
     carregarMarcas();
@@ -2111,10 +2187,80 @@ async function carregarPerfil(){
     if(ul&&ul[0]){document.getElementById('perfil-nome').textContent=ul[0].nome||'Vendedor';document.getElementById('perfil-loja').textContent=ul[0].loja_id||'—';document.getElementById('perfil-papel').textContent=ul[0].papel==='admin'?'Administrador':'Vendedor';}
     try{const prods=await sbGet(TABELA,'select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
     try{const vendas=await sbGet('vendas','select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
+    // Carrega dados da loja (lojas_wpp)
+    try{
+      const loja=await sbGet('lojas_wpp','select=nome_loja,endereco,link_maps&loja_id=eq.'+LOJA_ID);
+      if(loja&&loja[0]){
+        document.getElementById('loja-nome').value=loja[0].nome_loja||'';
+        document.getElementById('loja-endereco').value=loja[0].endereco||'';
+        document.getElementById('loja-maps').value=loja[0].link_maps||'';
+      }
+    }catch(e){console.warn('Erro ao carregar dados da loja:',e);}
+    // Carrega regras da loja
+    try{
+      const regras=await sbGet('regras_loja','select=*&loja_id=eq.'+LOJA_ID);
+      if(regras&&regras[0]){
+        document.getElementById('reg-pagamento').value=regras[0].formas_pagamento||'';
+        document.getElementById('reg-parcelamento').value=regras[0].parcelamento||'';
+        document.getElementById('reg-desconto').value=regras[0].politica_desconto||'';
+        document.getElementById('reg-troca').value=regras[0].politica_troca||'';
+        document.getElementById('reg-horario').value=regras[0].horario_funcionamento||'';
+        document.getElementById('reg-observacoes').value=regras[0].observacoes||'';
+      }
+    }catch(e){console.warn('Erro ao carregar regras da loja:',e);}
     // Sincroniza inputs de parâmetros
     document.getElementById('param-baixo').value=PARAMS.baixo;
     document.getElementById('param-critico').value=PARAMS.critico;
   }catch(e){console.warn('Erro ao carregar perfil:',e);}
+}
+
+async function salvarDadosLoja(){
+  const nome=document.getElementById('loja-nome').value.trim();
+  const endereco=document.getElementById('loja-endereco').value.trim();
+  const maps=document.getElementById('loja-maps').value.trim();
+  if(!nome){showToast('Nome da loja é obrigatório',true);return;}
+  try{
+    // Verifica se já existe registro em lojas_wpp para essa loja
+    const existe=await sbGet('lojas_wpp','select=instancia&loja_id=eq.'+LOJA_ID);
+    if(existe&&existe[0]){
+      // Update via PATCH
+      const r=await fetch(`${SB_URL}/rest/v1/lojas_wpp?loja_id=eq.${LOJA_ID}`,{method:'PATCH',headers:getHDR(),body:JSON.stringify({nome_loja:nome,endereco,link_maps:maps})});
+      if(!r.ok)throw new Error('Falha ao atualizar');
+    }else{
+      // Insert
+      await sbPost('lojas_wpp',{loja_id:LOJA_ID,nome_loja:nome,endereco,link_maps:maps,instancia:LOJA_ID+'_admin'});
+    }
+    NOME_LOJA=nome;LOJA_ENDERECO=endereco;LOJA_MAPS=maps;
+    showToast('Dados da loja salvos!');
+    // Atualiza topbars
+    const ul=await sbGet('usuarios_lojas','select=nome');
+    const vendedorNome=ul&&ul[0]?ul[0].nome||'':'';
+    const textoTb=[nome,vendedorNome].filter(Boolean).join(' · ');
+    document.querySelectorAll('#tb-vendedor-nome, .tb-vendedor-nome').forEach(el=>{el.textContent=textoTb;});
+  }catch(e){showToast('Erro ao salvar: '+e.message,true);}
+}
+
+async function salvarRegrasLoja(){
+  const dados={
+    loja_id:LOJA_ID,
+    formas_pagamento:document.getElementById('reg-pagamento').value.trim()||null,
+    parcelamento:document.getElementById('reg-parcelamento').value.trim()||null,
+    politica_desconto:document.getElementById('reg-desconto').value.trim()||null,
+    politica_troca:document.getElementById('reg-troca').value.trim()||null,
+    horario_funcionamento:document.getElementById('reg-horario').value.trim()||null,
+    observacoes:document.getElementById('reg-observacoes').value.trim()||null,
+    atualizado_em:new Date().toISOString()
+  };
+  try{
+    const existe=await sbGet('regras_loja','select=loja_id&loja_id=eq.'+LOJA_ID);
+    if(existe&&existe[0]){
+      const r=await fetch(`${SB_URL}/rest/v1/regras_loja?loja_id=eq.${LOJA_ID}`,{method:'PATCH',headers:getHDR(),body:JSON.stringify(dados)});
+      if(!r.ok)throw new Error('Falha ao atualizar');
+    }else{
+      await sbPost('regras_loja',dados);
+    }
+    showToast('Regras da loja salvas!');
+  }catch(e){showToast('Erro ao salvar: '+e.message,true);}
 }
 
 function salvarParametros(){
