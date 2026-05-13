@@ -424,7 +424,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <option value="">Gênero</option>
       <option value="infantil_f">Menina</option>
       <option value="infantil_m">Menino</option>
-      <option value="bebe">Bebê</option>
       <option value="unissex">Unissex</option>
     </select>
     <select class="filter-select" id="filter-tamanho" onchange="aplicarFiltros()">
@@ -462,7 +461,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <!-- TELA: CADASTRO -->
 <div id="sc-cadastro" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-title">Novo produto</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+    <div class="tb-row"><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="tb-sub">Tire a foto e preencha os dados — a catalogação acontece em segundo plano</div>
   </div>
   <div class="scroll">
@@ -521,7 +520,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <div class="tb">
     <div class="tb-row">
       <span class="tb-title">Estoque</span>
-      <div class="tb-actions"><span class="tb-badge" id="badge-alerta">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-alerta">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub" id="estoque-subtitle">Visão completa · valor, tipos e alertas</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
@@ -543,7 +542,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
           <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)"></div>
           <div style="position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
           <div style="position:relative;z-index:1">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.85">💎 Valor parado em estoque</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.85">💎 Valor em estoque</div>
             <div style="font-size:32px;font-weight:800;margin-top:6px;letter-spacing:-.8px" id="estq-valor-total">R$ 0</div>
             <div style="font-size:12px;opacity:.85;margin-top:4px" id="estq-valor-sub">— peças cadastradas</div>
           </div>
@@ -591,7 +590,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <!-- TELA: RELATÓRIOS -->
 <div id="sc-relatorios" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-title">Relatórios</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+    <div class="tb-row"><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="period-tabs" id="ptabs">
       <button class="ptab on" data-p="hoje">Dia</button>
       <button class="ptab" data-p="semana">Semana</button>
@@ -632,7 +631,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <!-- TELA: PERFIL -->
 <div id="sc-perfil" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-title">Meu Perfil</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+    <div class="tb-row"><span class="tb-title">Meu Perfil</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-perfil" style="padding:20px 16px">
     <div class="ptr-indicator" id="ptr-perfil">
@@ -733,6 +732,7 @@ const TABELA = 'produtos_2';
 const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vendedor';
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 let LOJA_ID = null;
+let NOME_LOJA = '';
 function getHDR(){const t=localStorage.getItem('sb_token')||SB_KEY;return{'apikey':SB_KEY,'Authorization':'Bearer '+t,'Content-Type':'application/json','Prefer':'return=representation'};}
 
 /* ═══ SUPABASE ═══ */
@@ -1257,7 +1257,8 @@ function openDetalhe(key){
           ${p.ocasiao?`<span class="det-tag accent">${p.ocasiao}</span>`:''}
           ${(p.tags_adicionais||'').split(',').slice(0,3).filter(Boolean).map(t=>`<span class="det-tag neutral">${t.trim()}</span>`).join('')}
         </div>
-        ${(()=>{const dv=descricaoVisivel(p);return dv?`<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">${dv}</div>`:'';})()}
+        ${(()=>{const dv=descricaoVisivel(p);return dv?`<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:8px">${dv}</div>`:'';})()}
+        ${p.criado_em?`<div style="font-size:11px;color:var(--text3);margin-top:4px">📅 Cadastrado em ${new Date(p.criado_em).toLocaleDateString('pt-BR')}</div>`:''}
       </div>
       <div class="det-divider"></div>
       <div class="var-section">
@@ -2057,7 +2058,21 @@ async function esconderLogin(){
 async function carregarPerfilLoja(){
   try{
     const data=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
-    if(data&&data[0]){LOJA_ID=data[0].loja_id;const nomeEl=document.getElementById('tb-vendedor-nome');if(nomeEl)nomeEl.textContent=data[0].nome||'';}
+    if(data&&data[0]){
+      LOJA_ID=data[0].loja_id;
+      const vendedorNome=data[0].nome||'';
+      // Busca nome da loja
+      let nomeLoja='';
+      try{
+        const lojaData=await sbGet('lojas_wpp','select=nome_loja&loja_id=eq.'+LOJA_ID);
+        if(lojaData&&lojaData[0])nomeLoja=lojaData[0].nome_loja||'';
+      }catch(e){}
+      NOME_LOJA=nomeLoja;
+      // Atualiza topbars com nome da loja + vendedor
+      document.querySelectorAll('#tb-vendedor-nome, .tb-vendedor-nome').forEach(el=>{
+        el.textContent=[nomeLoja,vendedorNome].filter(Boolean).join(' · ');
+      });
+    }
     else{showToast('Usuário sem loja vinculada.',true);fazerLogout();}
   }catch(e){showToast('Erro ao carregar perfil da loja.',true);fazerLogout();}
 }
