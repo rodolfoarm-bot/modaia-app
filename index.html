@@ -733,6 +733,8 @@ const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vended
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 let LOJA_ID = null;
 let NOME_LOJA = '';
+let LOJA_ENDERECO = '';
+let LOJA_MAPS = '';
 function getHDR(){const t=localStorage.getItem('sb_token')||SB_KEY;return{'apikey':SB_KEY,'Authorization':'Bearer '+t,'Content-Type':'application/json','Prefer':'return=representation'};}
 
 /* ═══ SUPABASE ═══ */
@@ -2059,18 +2061,23 @@ async function carregarPerfilLoja(){
   try{
     const data=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
     if(data&&data[0]){
-      LOJA_ID=data[0].loja_id;
+      LOJA_ID=data[0].loja_id; // define LOJA_ID primeiro
       const vendedorNome=data[0].nome||'';
-      // Busca nome da loja
+      // Agora busca nome da loja usando LOJA_ID já definido
       let nomeLoja='';
       try{
-        const lojaData=await sbGet('lojas_wpp','select=nome_loja&loja_id=eq.'+LOJA_ID);
-        if(lojaData&&lojaData[0])nomeLoja=lojaData[0].nome_loja||'';
-      }catch(e){}
-      NOME_LOJA=nomeLoja;
+        const lojaData=await sbGet('lojas_wpp','select=nome_loja,endereco,link_maps&loja_id=eq.'+LOJA_ID);
+        if(lojaData&&lojaData[0]){
+          nomeLoja=lojaData[0].nome_loja||'';
+          NOME_LOJA=nomeLoja;
+          LOJA_ENDERECO=lojaData[0].endereco||'';
+          LOJA_MAPS=lojaData[0].link_maps||'';
+        }
+      }catch(e){console.warn('Erro ao buscar nome da loja:',e);}
       // Atualiza topbars com nome da loja + vendedor
+      const textoTb=[nomeLoja,vendedorNome].filter(Boolean).join(' · ');
       document.querySelectorAll('#tb-vendedor-nome, .tb-vendedor-nome').forEach(el=>{
-        el.textContent=[nomeLoja,vendedorNome].filter(Boolean).join(' · ');
+        el.textContent=textoTb;
       });
     }
     else{showToast('Usuário sem loja vinculada.',true);fazerLogout();}
