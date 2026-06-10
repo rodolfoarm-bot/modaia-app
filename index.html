@@ -125,6 +125,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .tam-row{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:8px}
 .tam-del{background:var(--danger-l);border:none;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--danger);font-size:18px;flex-shrink:0;font-weight:700}
 .add-tam-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:2px dashed var(--border2);border-radius:var(--radius);padding:11px;font-size:13px;font-weight:700;color:var(--info);cursor:pointer;margin-top:8px;transition:border-color .2s}
+.cad-toggle{display:flex;gap:6px;background:rgba(124,58,237,.08);padding:4px;border-radius:10px}
+.cad-toggle-btn{flex:1;padding:9px;border:none;background:none;border-radius:7px;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s}
+.cad-toggle-btn.on{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3)}
+.lote-intro{background:var(--accent-l);border:1px solid var(--accent);border-radius:var(--card-radius);padding:12px 14px}
+.lote-card{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--card-radius);overflow:hidden}
+.lote-card.saved{border-color:var(--success);opacity:.6}
+.lote-card.error{border-color:var(--danger)}
+.lote-card-head{display:flex;gap:10px;padding:10px;align-items:center}
+.lote-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.lote-card-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+.lote-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.lote-status.ok{background:var(--success-l);color:var(--success)}
+.lote-status.err{background:var(--danger-l);color:var(--danger)}
 .venda-input-area{padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
 .venda-modes{display:flex;gap:8px;margin-bottom:12px}
 .vmode{flex:1;padding:9px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;transition:all .15s}
@@ -465,7 +478,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <div class="tb-sub">Tire a foto e preencha os dados — a catalogação acontece em segundo plano</div>
   </div>
   <div class="scroll">
-    <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
+    <div style="padding:12px 16px 0">
+      <div class="cad-toggle">
+        <button class="cad-toggle-btn on" id="cadtg-ind" onclick="trocarModoCadastro('individual')">Individual</button>
+        <button class="cad-toggle-btn" id="cadtg-lote" onclick="trocarModoCadastro('lote')">Em lote</button>
+      </div>
+    </div>
+    <!-- MODO INDIVIDUAL -->
+    <div id="cad-individual" style="padding:16px;display:flex;flex-direction:column;gap:16px">
       <div>
         <label class="flabel" style="color:var(--accent)">Foto do produto</label>
         <div class="fphoto" id="fphoto" onclick="document.getElementById('file-input').click()">
@@ -511,6 +531,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       </div>
 
       <button class="fbtn" id="salvar-btn" onclick="salvarProduto()" disabled>Salvar produto</button>
+    </div>
+
+    <!-- MODO LOTE -->
+    <div id="cad-lote" style="display:none;padding:16px;flex-direction:column;gap:14px">
+      <div class="lote-intro">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px">📦 Cadastro em lote</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.5">Selecione até <b>10 fotos</b> da galeria. Para cada uma, informe marca (opcional) e os tamanhos com preço e quantidade. A catalogação por IA acontece em segundo plano.</div>
+      </div>
+
+      <button class="add-tam-btn" id="lote-pick-btn" onclick="document.getElementById('lote-file-input').click()" style="color:var(--accent);border-color:var(--accent)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Selecionar fotos da galeria
+      </button>
+      <input type="file" id="lote-file-input" accept="image/*" multiple style="display:none" onchange="processarFotosLote(this)"/>
+
+      <div id="lote-cards" style="display:flex;flex-direction:column;gap:14px"></div>
+
+      <button class="fbtn" id="lote-salvar-btn" onclick="salvarLote()" style="display:none">Salvar todos</button>
+      <div id="lote-empty" style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px">Nenhuma foto selecionada ainda</div>
     </div>
   </div>
 </div>
@@ -1552,7 +1591,176 @@ function aplicarPrecoIgual(){
   }else{tamRowsData.forEach(id=>{const el=document.getElementById('pr-'+id);if(el){el.readOnly=false;el.style.opacity='1';el.style.background='';el.oninput=null;}});}
 }
 
-let cropImgSrc=null,cropRect={x:0,y:0,w:0,h:0},cropHandle=null,cropHStartX=0,cropHStartY=0,cropHRect=null,cropImgNatW=0,cropImgNatH=0;
+/* ═══ CADASTRO EM LOTE ═══ */
+const LOTE_MAX=10;
+let loteItens=[]; // {id, blob, url, marca, tamRows:[{id,tam,pr,qt}], tamId, salvo, erro}
+let loteUid=0;
+
+function trocarModoCadastro(modo){
+  const ind=document.getElementById('cad-individual');
+  const lote=document.getElementById('cad-lote');
+  document.getElementById('cadtg-ind').classList.toggle('on',modo==='individual');
+  document.getElementById('cadtg-lote').classList.toggle('on',modo==='lote');
+  ind.style.display=modo==='individual'?'flex':'none';
+  lote.style.display=modo==='lote'?'flex':'none';
+  const tb=document.querySelector('#sc-cadastro .tb-sub');
+  if(tb)tb.textContent=modo==='lote'?'Suba várias fotos da galeria e cadastre em lote':'Tire a foto e preencha os dados — a catalogação acontece em segundo plano';
+}
+
+// Comprime imagem do arquivo (sem crop) — reduz para max 800px e ~50KB
+function comprimirArquivoLote(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=800;let w=img.naturalWidth,h=img.naturalHeight;
+        const ratio=w/h;
+        if(w>h){if(w>MAX){w=MAX;h=Math.round(MAX/ratio);}}
+        else{if(h>MAX){h=MAX;w=Math.round(MAX*ratio);}}
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>{blob?resolve(blob):reject(new Error('Falha ao comprimir'));},'image/jpeg',0.65);
+      };
+      img.onerror=()=>reject(new Error('Imagem inválida'));
+      img.src=e.target.result;
+    };
+    reader.onerror=()=>reject(new Error('Falha ao ler arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function processarFotosLote(input){
+  const files=Array.from(input.files||[]);
+  input.value='';
+  if(!files.length)return;
+  const espacoLivre=LOTE_MAX-loteItens.length;
+  if(espacoLivre<=0){showToast('Limite de '+LOTE_MAX+' fotos atingido',true);return;}
+  let aProcessar=files;
+  if(files.length>espacoLivre){
+    aProcessar=files.slice(0,espacoLivre);
+    showToast('Só cabem mais '+espacoLivre+' foto(s). As demais foram ignoradas.',true);
+  }
+  document.getElementById('lote-pick-btn').textContent='Processando fotos...';
+  for(const f of aProcessar){
+    try{
+      const blob=await comprimirArquivoLote(f);
+      const id='L'+(loteUid++);
+      loteItens.push({id,blob,url:URL.createObjectURL(blob),marca:'',tamId:0,tamRows:[],salvo:false,erro:false});
+    }catch(e){console.warn('Foto ignorada:',e);}
+  }
+  document.getElementById('lote-pick-btn').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Selecionar fotos da galeria';
+  renderLote();
+}
+
+function renderLote(){
+  const wrap=document.getElementById('lote-cards');
+  const empty=document.getElementById('lote-empty');
+  const btn=document.getElementById('lote-salvar-btn');
+  const pick=document.getElementById('lote-pick-btn');
+  if(!loteItens.length){
+    wrap.innerHTML='';empty.style.display='block';btn.style.display='none';
+    pick.style.display='flex';
+    return;
+  }
+  empty.style.display='none';
+  btn.style.display='block';
+  const pendentes=loteItens.filter(i=>!i.salvo).length;
+  btn.textContent='Salvar todos ('+pendentes+')';
+  pick.style.display=loteItens.length>=LOTE_MAX?'none':'flex';
+  wrap.innerHTML=loteItens.map(it=>{
+    if(!it.tamRows.length){const tid='t'+(it.tamId++);it.tamRows.push({id:tid,tam:'',pr:'',qt:''});}
+    const rowsHtml=it.tamRows.map(r=>`
+      <div style="display:flex;align-items:center;gap:6px" data-row="${it.id}:${r.id}">
+        <div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+          <input class="finput" placeholder="Tam" value="${r.tam}" oninput="loteSetCampo('${it.id}','${r.id}','tam',this.value)" style="padding:7px 6px;text-align:center;border-radius:6px;font-size:13px"/>
+          <input class="finput" type="number" placeholder="0.00" value="${r.pr}" oninput="loteSetCampo('${it.id}','${r.id}','pr',this.value)" style="padding:7px 6px;text-align:center;border-radius:6px;font-size:13px"/>
+          <input class="finput" type="number" placeholder="0" value="${r.qt}" oninput="loteSetCampo('${it.id}','${r.id}','qt',this.value)" style="padding:7px 6px;text-align:center;border-radius:6px;font-size:13px"/>
+        </div>
+        <button class="tam-del" onclick="loteDelTam('${it.id}','${r.id}')">×</button>
+      </div>`).join('');
+    const statusBadge=it.salvo?'<span class="lote-status ok">✓ Salvo</span>':it.erro?'<span class="lote-status err">Erro — toque em salvar de novo</span>':'';
+    return `<div class="lote-card ${it.salvo?'saved':''} ${it.erro?'error':''}" id="lcard-${it.id}">
+      <div class="lote-card-head">
+        <img class="lote-thumb" src="${it.url}"/>
+        <div style="flex:1;min-width:0">
+          <input class="finput" placeholder="Marca (opcional)" value="${it.marca}" ${it.salvo?'disabled':''} oninput="loteSetMarca('${it.id}',this.value)" style="padding:8px 10px;font-size:13px"/>
+          ${statusBadge?'<div style="margin-top:6px">'+statusBadge+'</div>':''}
+        </div>
+        <button class="tam-del" onclick="loteRemoverCard('${it.id}')" title="Remover">🗑️</button>
+      </div>
+      ${it.salvo?'':`<div class="lote-card-body">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:0 2px">
+          <div style="font-size:9px;color:var(--text2);text-align:center;font-weight:700;text-transform:uppercase">Tamanho</div>
+          <div style="font-size:9px;color:var(--text2);text-align:center;font-weight:700;text-transform:uppercase">Preço</div>
+          <div style="font-size:9px;color:var(--text2);text-align:center;font-weight:700;text-transform:uppercase">Qtd</div>
+        </div>
+        ${rowsHtml}
+        <button class="add-tam-btn" onclick="loteAddTam('${it.id}')" style="color:var(--accent);padding:8px;font-size:12px">+ Adicionar tamanho</button>
+      </div>`}
+    </div>`;
+  }).join('');
+}
+
+function loteSetMarca(itId,v){const it=loteItens.find(i=>i.id===itId);if(it)it.marca=v;}
+function loteSetCampo(itId,rowId,campo,v){const it=loteItens.find(i=>i.id===itId);if(!it)return;const r=it.tamRows.find(x=>x.id===rowId);if(r)r[campo]=v;}
+function loteAddTam(itId){const it=loteItens.find(i=>i.id===itId);if(!it)return;const tid='t'+(it.tamId++);it.tamRows.push({id:tid,tam:'',pr:'',qt:''});renderLote();}
+function loteDelTam(itId,rowId){const it=loteItens.find(i=>i.id===itId);if(!it)return;if(it.tamRows.length<=1){showToast('Cada produto precisa de ao menos um tamanho',true);return;}it.tamRows=it.tamRows.filter(x=>x.id!==rowId);renderLote();}
+function loteRemoverCard(itId){loteItens=loteItens.filter(i=>i.id!==itId);renderLote();}
+
+async function salvarLote(){
+  const pendentes=loteItens.filter(i=>!i.salvo);
+  if(!pendentes.length){showToast('Nada para salvar',true);return;}
+  // Validação prévia: todos os cards pendentes precisam de ao menos uma linha completa
+  for(const it of pendentes){
+    const linhasOk=it.tamRows.filter(r=>r.tam&&r.pr&&r.qt);
+    if(!linhasOk.length){showToast('Preencha tamanho, preço e quantidade de todas as fotos',true);return;}
+  }
+  const btn=document.getElementById('lote-salvar-btn');btn.disabled=true;
+  // Busca o próximo código sequencial uma vez e incrementa localmente por produto
+  let proximoCodigo=null;
+  try{
+    const maxQuery=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=codigo_loja&codigo_loja=not.is.null&order=codigo_loja.desc&limit=1');
+    proximoCodigo=(maxQuery&&maxQuery[0]&&maxQuery[0].codigo_loja?maxQuery[0].codigo_loja:0)+1;
+  }catch(e){console.warn('Erro ao buscar próximo código:',e);proximoCodigo=1;}
+
+  let salvos=0;const total=pendentes.length;
+  for(const it of pendentes){
+    it.erro=false;
+    btn.textContent='Salvando '+(salvos+1)+' de '+total+'...';
+    try{
+      // Upload da foto
+      const nome=LOJA_ID+'/'+Date.now()+'_'+it.id+'.jpg';
+      const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':'image/jpeg'},body:it.blob});
+      if(!up.ok)throw new Error('upload falhou');
+      const fotoUrl=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+      const marca=it.marca.trim()||null;
+      const linhas=it.tamRows.filter(r=>r.tam&&r.pr&&r.qt);
+      // Cada tamanho desse produto compartilha o mesmo código
+      for(const r of linhas){
+        await fetch(N8N_INPUT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto_url:fotoUrl,loja_id:LOJA_ID,marca,tamanho:r.tam,preco:parseFloat(r.pr),quantidade:parseInt(r.qt),codigo_loja:proximoCodigo})});
+      }
+      it.salvo=true;proximoCodigo++;salvos++;
+    }catch(e){
+      console.warn('Erro ao salvar card '+it.id+':',e);
+      it.erro=true;
+    }
+    renderLote();
+  }
+  btn.disabled=false;
+  const comErro=loteItens.filter(i=>i.erro).length;
+  if(comErro){
+    showToast(salvos+' salvos · '+comErro+' com erro. Toque em salvar para tentar de novo.',true);
+  }else{
+    showToast('Todos os '+salvos+' produtos foram salvos! 🎉');
+    // Limpa cards salvos após breve intervalo
+    setTimeout(()=>{loteItens=loteItens.filter(i=>!i.salvo);renderLote();},1500);
+  }
+  carregarEstoque();
+  carregarMarcas();
+}
+
+
 function processarFoto(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{cropImgSrc=e.target.result;abrirCrop(cropImgSrc);};reader.readAsDataURL(file);}
 function abrirCrop(src){
   const ov=document.createElement('div');ov.className='crop-overlay';ov.id='crop-overlay';
