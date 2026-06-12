@@ -4,6 +4,45 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>Giro — Gestão Inteligente</title>
+<!-- ═══ PWA: instalação em Android e iOS ═══ -->
+<meta name="theme-color" content="#7C3AED"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Giro"/>
+<link rel="apple-touch-icon" href="giro-icon-180.png"/>
+<script>
+/* Gera manifest e service worker em runtime, sem precisar de arquivos extras no host.
+   Isso permite instalar o app na tela inicial do Android (que exige manifest + SW válidos)
+   e do iOS (que usa as meta tags apple-* acima).
+   Os ícones são resolvidos para URL absoluta a partir da pasta atual do app. */
+(function(){
+  try{
+    var base=location.href.substring(0,location.href.lastIndexOf('/')+1);
+    var manifest={
+      name:"Giro — Gestão Inteligente",
+      short_name:"Giro",
+      start_url:base,
+      scope:base,
+      display:"standalone",
+      orientation:"portrait",
+      background_color:"#F8F7FF",
+      theme_color:"#7C3AED",
+      icons:[
+        {src:base+"giro-icon-180.png",sizes:"180x180",type:"image/png",purpose:"any"},
+        {src:base+"giro-icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},
+        {src:base+"giro-icon-512.png",sizes:"512x512",type:"image/png",purpose:"any"},
+        {src:base+"giro-icon-512-maskable.png",sizes:"512x512",type:"image/png",purpose:"maskable"}
+      ]
+    };
+    var blob=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
+    var url=URL.createObjectURL(blob);
+    var link=document.createElement("link");
+    link.rel="manifest";link.href=url;
+    document.head.appendChild(link);
+  }catch(e){console.warn("Manifest inline falhou:",e);}
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -387,9 +426,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 
 <!-- LOGIN -->
 <div id="sc-login">
-  <img src="data:image/jpeg;base64,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" 
-       alt="Giro"
-       style="width:110px;height:110px;border-radius:26px;margin-bottom:20px;box-shadow:0 12px 32px rgba(124,58,237,.4);object-fit:cover"/>
+  <img src="giro-login-logo.png" alt="Giro" style="width:110px;height:110px;border-radius:26px;margin-bottom:20px;box-shadow:0 12px 32px rgba(124,58,237,.4);object-fit:contain"/>
   <div class="login-title">Giro</div>
   <div class="login-sub">Gestão inteligente para sua loja</div>
   <div class="login-form">
@@ -2691,6 +2728,23 @@ function setupPullToRefresh(){
     async()=>{await carregarPerfil();showToast('Atualizado');}
   );
 }
+
+/* ═══ PWA: Service Worker inline (necessário p/ instalar no Android) ═══ */
+(function(){
+  if(!('serviceWorker' in navigator))return;
+  try{
+    // SW mínimo: passa as requisições direto pra rede (network-only).
+    // Não faz cache offline — só existe para tornar o app instalável no Android.
+    var swCode=[
+      "self.addEventListener('install',function(e){self.skipWaiting();});",
+      "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});",
+      "self.addEventListener('fetch',function(e){return;});"
+    ].join('\n');
+    var blob=new Blob([swCode],{type:'text/javascript'});
+    var swUrl=URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(function(err){console.warn('SW falhou:',err);});
+  }catch(e){console.warn('SW inline falhou:',e);}
+})();
 
 /* ═══ INIT ═══ */
 verificarSessao();
