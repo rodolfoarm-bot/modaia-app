@@ -614,7 +614,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <div class="loading-row" id="estq-geral-loading"><span class="proc-dot" style="background:var(--accent)"></span>Calculando estoque...</div>
       <div id="estq-geral-body" style="display:none">
         <!-- Card destaque: valor parado -->
-        <div style="margin:12px 16px 0;background:var(--topbar-bg);border-radius:var(--card-radius);padding:18px;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.25);position:relative;overflow:hidden">
+        <div id="estq-valor-card" style="margin:12px 16px 0;background:var(--topbar-bg);border-radius:var(--card-radius);padding:18px;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.25);position:relative;overflow:hidden">
           <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)"></div>
           <div style="position:absolute;bottom:-50px;left:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
           <div style="position:relative;z-index:1">
@@ -736,7 +736,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </div>
 
     <!-- ── DADOS DA LOJA ── -->
-    <div class="perfil-card">
+    <div class="perfil-card" id="card-dados-loja">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🏪 Dados da loja</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Informações que a assistente virtual usa no WhatsApp</div>
 
@@ -760,7 +760,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </div>
 
     <!-- ── REGRAS DA LOJA ── -->
-    <div class="perfil-card">
+    <div class="perfil-card" id="card-regras-loja">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">📋 Regras da loja</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Políticas que a assistente virtual usa para responder dúvidas dos clientes</div>
 
@@ -796,7 +796,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </div>
 
     <!-- ── PARÂMETROS DA LOJA ── -->
-    <div class="perfil-card">
+    <div class="perfil-card" id="card-parametros-loja">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">⚙️ Parâmetros da loja</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Configurações usadas na aba Estoque</div>
 
@@ -849,7 +849,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
     <span class="bnav-lb">Estoque</span>
   </button>
-  <button class="bnav-item" data-sc="relatorios" onclick="navTo('relatorios')">
+  <button class="bnav-item" id="nav-relatorios" data-sc="relatorios" onclick="navTo('relatorios')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="bnav-lb">Relatórios</span>
   </button>
@@ -871,6 +871,9 @@ let LOJA_ID = null;
 let NOME_LOJA = '';
 let LOJA_ENDERECO = '';
 let LOJA_MAPS = '';
+let PAPEL = '';          // 'admin' (proprietário) ou 'vendedor'
+let USER_ID = null;      // id do usuário logado — atribuído a cada venda
+let MODO_EQUIPE = false; // true quando a loja tem mais de uma pessoa
 function getHDR(){const t=localStorage.getItem('sb_token')||SB_KEY;return{'apikey':SB_KEY,'Authorization':'Bearer '+t,'Content-Type':'application/json','Prefer':'return=representation'};}
 
 /* ═══ SUPABASE ═══ */
@@ -1166,6 +1169,8 @@ function fecharFotoFullscreen(){
 
 /* ═══ NAVEGAÇÃO ═══ */
 function navTo(sc){
+  // Vendedor não acessa Relatórios (informações financeiras da loja)
+  if(sc==='relatorios'&&PAPEL==='vendedor')return;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('sc-'+sc).classList.add('active');
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.toggle('on',b.dataset.sc===sc));
@@ -1173,6 +1178,20 @@ function navTo(sc){
   if(sc==='alertas')carregarAlertas();
   if(sc==='relatorios')carregarRelatorios();
   if(sc==='perfil')carregarPerfil();
+}
+
+/* ═══ PERMISSÕES POR PAPEL ═══
+   Proprietário (admin) vê tudo. Vendedor não vê informações financeiras
+   da loja nem as configurações (dados, regras, parâmetros), que ficam
+   sob responsabilidade do proprietário. Trabalha sozinho? É admin, vê tudo. */
+function aplicarPermissoes(){
+  const ehVendedor=(PAPEL==='vendedor');
+  const mostrar=(id,esconder)=>{const el=document.getElementById(id);if(el)el.style.display=esconder?'none':'';};
+  mostrar('estq-valor-card',ehVendedor);   // valor em estoque (R$)
+  mostrar('nav-relatorios',ehVendedor);    // aba Relatórios
+  mostrar('card-dados-loja',ehVendedor);   // dados da loja
+  mostrar('card-regras-loja',ehVendedor);  // regras da loja
+  mostrar('card-parametros-loja',ehVendedor); // limites de alerta
 }
 
 /* ═══ AGRUPAMENTO ═══
@@ -1462,7 +1481,7 @@ async function salvarSheet(key){
       const v=gr._vars.find(x=>x.id===vid);if(!v)continue;
       const nq=Number(v.quantidade)+d;
       await sbPatch(TABELA,'id=eq.'+vid,{quantidade:nq});
-      if(d<0)await sbPost('vendas',{produto_id:vid,loja_id:LOJA_ID,quantidade_vendida:Math.abs(d),preco_unitario:v.preco,forma_pagamento:pgto});
+      if(d<0)await sbPost('vendas',{produto_id:vid,loja_id:LOJA_ID,quantidade_vendida:Math.abs(d),preco_unitario:v.preco,forma_pagamento:pgto,vendedor_id:USER_ID});
       v.quantidade=nq;
     }
     showToast('Estoque atualizado!');fecharDetalhe();renderEstoque();
@@ -2041,12 +2060,13 @@ function renderEstoqueGeral(){
 
   // ── KPIs ──
   const ticketMedio=totalPecas>0?valorTotal/totalPecas:0;
-  document.getElementById('estq-kpis').innerHTML=[
+  const kpisLista=[
     {l:'Total de peças',v:totalPecas,cls:''},
     {l:'Produtos únicos',v:totalProdutos,cls:'accent'},
     {l:'Variedade SKUs',v:totalSKUs,cls:''},
-    {l:'Valor médio/peça',v:'R$ '+ticketMedio.toFixed(0),cls:''},
-  ].map(s=>`<div class="stat-card"><div class="stat-label">${s.l}</div><div class="stat-val ${s.cls}">${s.v}</div></div>`).join('');
+  ];
+  if(PAPEL!=='vendedor')kpisLista.push({l:'Valor médio/peça',v:'R$ '+ticketMedio.toFixed(0),cls:''});
+  document.getElementById('estq-kpis').innerHTML=kpisLista.map(s=>`<div class="stat-card"><div class="stat-label">${s.l}</div><div class="stat-val ${s.cls}">${s.v}</div></div>`).join('');
 
   // ── Saúde do estoque (barra empilhada) ──
   const totalSaude=qtdEsgotado+qtdCritico+qtdBaixo+qtdSaudavel||1;
@@ -2426,7 +2446,7 @@ setInterval(async()=>{
 function mostrarLogin(){document.getElementById('sc-login').style.display='flex';document.getElementById('bnav').style.display='none';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));}
 async function esconderLogin(){
   document.getElementById('sc-login').style.display='none';document.getElementById('bnav').style.display='flex';document.getElementById('sc-estoque').classList.add('active');
-  await carregarPerfilLoja();await carregarEstoque();carregarMarcas();
+  await carregarPerfilLoja();aplicarPermissoes();await carregarEstoque();carregarMarcas();
   // Computa badge de alertas (sem renderizar a tela inteira)
   try{
     const limite=PARAMS.baixo;
@@ -2443,6 +2463,13 @@ async function carregarPerfilLoja(){
     const data=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
     if(data&&data[0]){
       LOJA_ID=data[0].loja_id; // define LOJA_ID primeiro
+      PAPEL=data[0].papel||'vendedor';
+      USER_ID=usuarioLogado?.id||null;
+      // Detecta se a loja já tem equipe (mais de uma pessoa). Solo por padrão.
+      try{
+        const equipe=await sbGet('usuarios_lojas','select=loja_id&loja_id=eq.'+LOJA_ID);
+        MODO_EQUIPE=(equipe?.length||0)>1;
+      }catch(e){MODO_EQUIPE=false;}
       const vendedorNome=data[0].nome||'';
       // Agora busca nome da loja usando LOJA_ID já definido
       let nomeLoja='';
