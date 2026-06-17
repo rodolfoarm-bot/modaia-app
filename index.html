@@ -889,6 +889,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 const SB_URL = 'https://warmbloodedmule-supabase.cloudfy.live';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc3NTkzOTM4LCJleHAiOjE4MDkxMjk5Mzh9.UFGPqBWlRb3S0N5GV4Ldpzpok-cYHEtddgjRIHCB_iU';
 const TABELA = 'produtos_2';
+// Colunas da listagem — exclui embedding (vetor 1536) e texto_para_embedding,
+// que são pesados e só usados pela busca da Sofia, não pelo app. Carrega muito mais rápido.
+const PROD_COLS='id,loja_id,foto_url,tipo,subtipo,genero,faixa_etaria,faixa_etaria_secundaria,cores,material,ocasiao,estilo,estacao,tamanho,preco,quantidade,marca,marca_licenciada,descricao_semantica,tags_adicionais,referencias_culturais,descricao_estampa,tem_estampa,tipo_estampa,personagem,franquia,tem_manga,tipo_manga,tipo_fechamento,tem_acessorios,acessorios,detalhes_especiais,clima,categoria,codigo_loja,ativo,criado_em';
 const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vendedor';
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 let LOJA_ID = null;
@@ -1365,7 +1368,7 @@ async function concluirPedido(id){
     }
     await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgto,concluido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
     showToast('Pedido concluído! Venda registrada e estoque atualizado. 🎉');
-    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&order=criado_em.desc&limit=500');}catch(e){}
+    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
     await carregarPedidos();
   }catch(e){showToast('Erro ao concluir o pedido',true);if(btn){btn.textContent='Concluir venda';btn.disabled=false;}}
 }
@@ -1449,7 +1452,7 @@ async function carregarEstoque(){
   document.getElementById('pgrid').style.display='none';
   document.getElementById('empty-est').style.display='none';
   try{
-    PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&order=criado_em.desc&limit=500');
+    PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');
     popularFiltroTamanhos();
     GRUPOS=agrupar(filtrado());renderEstoque();
   }catch(e){showToast('Erro ao carregar estoque',true);}
@@ -1734,6 +1737,12 @@ async function confirmarNovoTamanho(key){
   try{
     // Copia todos os campos relevantes do produto-mãe (primeira variação)
     const mae=gr._vars[0];
+    // embedding não vem na listagem (p/ a aba carregar rápido) — busca sob demanda p/ herdar
+    let maeEmb=null, maeTxtEmb=null;
+    try{
+      const er=await sbGet(TABELA,'id=eq.'+mae.id+'&select=embedding,texto_para_embedding&limit=1');
+      if(er&&er[0]){maeEmb=er[0].embedding;maeTxtEmb=er[0].texto_para_embedding;}
+    }catch(e){}
     // Atualiza faixa_etaria se houver mapeamento na tabela oficial para o novo tamanho
     const tamInfo=getTamInfo(tam);
     const novo={
@@ -1769,8 +1778,8 @@ async function confirmarNovoTamanho(key){
       acessorios:mae.acessorios,
       detalhes_especiais:mae.detalhes_especiais,
       clima:mae.clima,
-      embedding:mae.embedding,
-      texto_para_embedding:mae.texto_para_embedding,
+      embedding:maeEmb,
+      texto_para_embedding:maeTxtEmb,
       ativo:true
     };
     // Remove campos null/undefined para não sobrescrever defaults da tabela
@@ -2484,7 +2493,7 @@ function toggleAlertaTipo(tipo){
 async function carregarAlertas(){
   // Garantir que PRODS está atualizado para a visão geral
   if(!PRODS||!PRODS.length){
-    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&order=criado_em.desc&limit=500');}catch(e){}
+    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
   }
   // Renderiza visão geral imediatamente (usa PRODS)
   renderEstoqueGeral();
