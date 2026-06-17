@@ -663,6 +663,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   </div>
 </div>
 
+<!-- TELA: PEDIDOS (assistente / WhatsApp) -->
+<div id="sc-pedidos" class="screen">
+  <div class="tb">
+    <div class="tb-row">
+      <span class="tb-title">Pedidos</span>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-pedidos">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+    </div>
+    <div class="tb-sub">Pedidos que chegam pela assistente no WhatsApp</div>
+  </div>
+  <div class="scroll scroll-ptr" id="scroll-pedidos">
+    <div class="ptr-indicator" id="ptr-pedidos">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </div>
+    <div class="loading-row" id="pedidos-loading"><span class="proc-dot"></span>Carregando pedidos...</div>
+    <div id="pedidos-list" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px"></div>
+    <div class="empty" id="pedidos-empty" style="display:none"><div class="empty-ic">🧾</div><div class="empty-txt">Nenhum pedido aguardando no momento</div></div>
+  </div>
+</div>
+
 <!-- TELA: RELATÓRIOS -->
 <div id="sc-relatorios" class="screen">
   <div class="tb">
@@ -844,6 +863,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <button class="bnav-item" data-sc="cadastro" onclick="navTo('cadastro')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
     <span class="bnav-lb">Cadastrar</span>
+  </button>
+  <button class="bnav-item" id="nav-pedidos" data-sc="pedidos" onclick="navTo('pedidos')" style="position:relative">
+    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <span class="bnav-lb">Pedidos</span>
+    <span id="badge-pedidos-nav" style="position:absolute;top:2px;right:10px;background:var(--danger);color:#fff;border-radius:10px;min-width:15px;height:15px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;display:none">0</span>
   </button>
   <button class="bnav-item" data-sc="alertas" onclick="navTo('alertas')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -1175,6 +1199,7 @@ function navTo(sc){
   document.getElementById('sc-'+sc).classList.add('active');
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.toggle('on',b.dataset.sc===sc));
   if(sc==='estoque')carregarEstoque();
+  if(sc==='pedidos')carregarPedidos();
   if(sc==='alertas')carregarAlertas();
   if(sc==='relatorios')carregarRelatorios();
   if(sc==='perfil')carregarPerfil();
@@ -1192,6 +1217,157 @@ function aplicarPermissoes(){
   mostrar('card-dados-loja',ehVendedor);   // dados da loja
   mostrar('card-regras-loja',ehVendedor);  // regras da loja
   mostrar('card-parametros-loja',ehVendedor); // limites de alerta
+}
+
+/* ═══ PEDIDOS (assistente / WhatsApp) ═══
+   Pedidos fechados pela assistente caem em carrinhos_wpp (aguardando_pagamento),
+   sem baixar estoque nem gravar venda. Aqui o vendedor ASSUME o pedido (vira
+   em_atendimento, atribuído a ele) e depois CONCLUI: grava em vendas (com
+   vendedor_id), baixa o estoque e fecha o pedido (concluido). Disponível para
+   todos — o dono trabalhando sozinho também atende por aqui. */
+let PEDIDOS=[];
+let pedidoCancelando=null;
+const PED_PGTOS=['Pix','Dinheiro','Cartão de débito','Cartão de crédito'];
+const fmtR=(v)=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
+
+function tempoRelativo(iso){
+  if(!iso)return '';
+  const diff=(Date.now()-new Date(iso).getTime())/1000;
+  if(diff<60)return 'agora';
+  if(diff<3600)return 'há '+Math.floor(diff/60)+' min';
+  if(diff<86400)return 'há '+Math.floor(diff/3600)+'h';
+  return 'há '+Math.floor(diff/86400)+'d';
+}
+
+async function carregarPedidos(){
+  const load=document.getElementById('pedidos-loading');
+  const lista=document.getElementById('pedidos-list');
+  const vazio=document.getElementById('pedidos-empty');
+  if(load)load.style.display='flex';
+  if(vazio)vazio.style.display='none';
+  pedidoCancelando=null;
+  try{
+    const dados=await sbGet('carrinhos_wpp','loja_id=eq.'+LOJA_ID+'&estado=in.(aguardando_pagamento,em_atendimento)&order=criado_em.desc&limit=100');
+    PEDIDOS=Array.isArray(dados)?dados:[];
+  }catch(e){
+    PEDIDOS=[];
+    if(load)load.style.display='none';
+    if(lista)lista.innerHTML='';
+    if(vazio){vazio.style.display='block';vazio.querySelector('.empty-txt').textContent='Não foi possível carregar os pedidos agora';}
+    return;
+  }
+  if(load)load.style.display='none';
+  renderPedidos();
+  atualizarBadgePedidos();
+}
+
+function renderPedidos(){
+  const lista=document.getElementById('pedidos-list');
+  const vazio=document.getElementById('pedidos-empty');
+  if(!lista)return;
+  if(PEDIDOS.length===0){
+    lista.innerHTML='';
+    if(vazio){vazio.style.display='block';vazio.querySelector('.empty-txt').textContent='Nenhum pedido aguardando no momento';}
+    return;
+  }
+  if(vazio)vazio.style.display='none';
+  lista.innerHTML=PEDIDOS.map(p=>{
+    const itens=p.itens||[];
+    const total=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+    const num=p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):'#—';
+    const itensHtml=itens.map(it=>{
+      const nome=(it.caption||it.tipo||'Produto').split('\n')[0];
+      const tam=it.tamanho?' · Tam '+it.tamanho:'';
+      const sub=Number(it.preco_unitario||0)*Number(it.quantidade||0);
+      return `<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text1)">${it.quantidade}x ${nome}${tam}</span><span style="color:var(--text2);white-space:nowrap">${fmtR(sub)}</span></div>`;
+    }).join('');
+    const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
+    let statusPill,acoes;
+    if(p.estado==='aguardando_pagamento'){
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Novo</span>`;
+    }else if(assumidoPorMim){
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-l);padding:3px 9px;border-radius:20px">Você está atendendo</span>`;
+    }else{
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px">Em atendimento</span>`;
+    }
+    if(pedidoCancelando===p.id){
+      acoes=`<div style="display:flex;gap:8px"><button class="fbtn fbtn-danger" onclick="confirmarCancelamento('${p.id}')">Confirmar cancelamento</button><button class="fbtn fbtn-outline" onclick="voltarCancelamento()" style="max-width:110px">Voltar</button></div>`;
+    }else if(p.estado==='aguardando_pagamento'){
+      acoes=`<div style="display:flex;gap:8px"><button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir pedido</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>`;
+    }else if(assumidoPorMim){
+      const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
+      acoes=`<div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px">${opts}</select></div>
+        <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · ${fmtR(total)}</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
+      </div>`;
+    }else{
+      acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">Outro vendedor está atendendo este pedido.</div>`;
+    }
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:15px;font-weight:800;color:var(--text1)">Pedido ${num}</span>
+        ${statusPill}
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Cliente: ${p.telefone||'—'} · ${tempoRelativo(p.criado_em)}</div>
+      <div style="margin-bottom:10px">${itensHtml||'<span style="font-size:12px;color:var(--text3)">Sem itens</span>'}</div>
+      <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(total)}</span></div>
+      ${acoes}
+    </div>`;
+  }).join('');
+}
+
+function atualizarBadgePedidos(){
+  const n=PEDIDOS.filter(p=>p.estado==='aguardando_pagamento').length;
+  const b1=document.getElementById('badge-pedidos');
+  const b2=document.getElementById('badge-pedidos-nav');
+  if(b1)b1.textContent=n;
+  if(b2){if(n>0){b2.textContent=n;b2.style.display='flex';}else b2.style.display='none';}
+}
+
+function pedirCancelamento(id){pedidoCancelando=id;renderPedidos();}
+function voltarCancelamento(){pedidoCancelando=null;renderPedidos();}
+async function confirmarCancelamento(id){
+  pedidoCancelando=null;
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'cancelado',atualizado_em:new Date().toISOString()});
+    showToast('Pedido cancelado.');
+    await carregarPedidos();
+  }catch(e){showToast('Erro ao cancelar o pedido',true);renderPedidos();}
+}
+
+async function assumirPedido(id){
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'em_atendimento',vendedor_id:USER_ID,assumido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    await carregarPedidos();
+  }catch(e){showToast('Erro ao assumir o pedido',true);}
+}
+
+async function concluirPedido(id){
+  const pedido=PEDIDOS.find(p=>p.id===id);if(!pedido)return;
+  const pgto=document.getElementById('ped-pgto-'+id)?.value||'Pix';
+  const btn=document.getElementById('ped-concluir-'+id);
+  if(btn){btn.textContent='Concluindo...';btn.disabled=true;}
+  try{
+    const itens=pedido.itens||[];
+    for(const it of itens){
+      if(!it.produto_id)continue;
+      const qVend=Number(it.quantidade||0);
+      // Baixa de estoque
+      try{
+        const prod=await sbGet(TABELA,'id=eq.'+it.produto_id+'&select=quantidade');
+        if(prod&&prod[0]){
+          const nova=Math.max(0,Number(prod[0].quantidade||0)-qVend);
+          await sbPatch(TABELA,'id=eq.'+it.produto_id,{quantidade:nova});
+        }
+      }catch(e){}
+      // Registra a venda atribuída a quem concluiu
+      await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:qVend,preco_unitario:it.preco_unitario,forma_pagamento:pgto,vendedor_id:USER_ID});
+    }
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgto,concluido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    showToast('Pedido concluído! Venda registrada e estoque atualizado. 🎉');
+    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&order=criado_em.desc&limit=500');}catch(e){}
+    await carregarPedidos();
+  }catch(e){showToast('Erro ao concluir o pedido',true);if(btn){btn.textContent='Concluir venda';btn.disabled=false;}}
 }
 
 /* ═══ AGRUPAMENTO ═══
@@ -2456,6 +2632,15 @@ async function esconderLogin(){
     document.getElementById('badge-alerta').textContent=n;
     const subBadge=document.getElementById('estq-alert-badge');
     if(subBadge){if(n>0){subBadge.textContent=n;subBadge.style.display='inline-block';}else subBadge.style.display='none';}
+  }catch(e){}
+  // Badge de pedidos novos (não assumidos) na barra inferior
+  try{
+    const novos=await sbGet('carrinhos_wpp','loja_id=eq.'+LOJA_ID+'&estado=eq.aguardando_pagamento&select=id&limit=100');
+    const b2=document.getElementById('badge-pedidos-nav');
+    const b1=document.getElementById('badge-pedidos');
+    const qtd=(novos&&novos.length)||0;
+    if(b1)b1.textContent=qtd;
+    if(b2){if(qtd>0){b2.textContent=qtd;b2.style.display='flex';}else b2.style.display='none';}
   }catch(e){}
 }
 async function carregarPerfilLoja(){
