@@ -419,7 +419,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .fs-close:active{background:rgba(255,255,255,.35)}
 .fs-hint{position:fixed;bottom:max(env(safe-area-inset-bottom),24px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,.18);color:#fff;font-size:11px;padding:7px 16px;border-radius:20px;backdrop-filter:blur(10px);font-weight:600;z-index:10001;pointer-events:none;white-space:nowrap}
 .det-img{cursor:zoom-in}
+/* Overlay de formulário (nova venda / seletor de produtos) */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;flex-direction:column;justify-content:flex-end}
+.ov-panel{background:var(--bg);max-width:430px;margin:0 auto;width:100%;height:93%;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:ovUp .25s;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.ov-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-bottom:1px solid var(--border)}
+.ov-head h3{font-size:16px;font-weight:800;color:var(--text1)}
+.ov-body{flex:1;overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch}
+.ov-foot{padding:12px 16px;border-top:1px solid var(--border);background:var(--surface)}
+.ov-x{background:var(--surface2);border:none;border-radius:50%;width:34px;height:34px;font-size:20px;color:var(--text2);cursor:pointer;line-height:1}
+@keyframes ovUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ped-fchip{padding:7px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ped-fchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
+
 </head>
 <body>
 <div class="app" id="app">
@@ -663,26 +675,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   </div>
 </div>
 
-<!-- TELA: PEDIDOS (assistente / WhatsApp) -->
+<!-- TELA: VENDAS (presencial + assistente / WhatsApp) -->
 <div id="sc-pedidos" class="screen">
   <div class="tb">
     <div class="tb-row">
-      <span class="tb-title">Pedidos</span>
+      <span class="tb-title">Vendas</span>
       <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-pedidos">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
-    <div class="tb-sub">Pedidos que chegam pela assistente no WhatsApp</div>
+    <div class="tb-sub">Vendas na loja e pedidos da assistente no WhatsApp</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
       <button class="estq-tab on" data-ped="aberto" onclick="trocarSubAbaPedidos('aberto')">Em aberto <span id="ped-aberto-badge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
-      <button class="estq-tab" data-ped="concluido" onclick="trocarSubAbaPedidos('concluido')">Concluídos</button>
+      <button class="estq-tab" data-ped="concluido" onclick="trocarSubAbaPedidos('concluido')">Concluídas</button>
     </div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-pedidos">
     <div class="ptr-indicator" id="ptr-pedidos">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     </div>
-    <div class="loading-row" id="pedidos-loading"><span class="proc-dot"></span>Carregando pedidos...</div>
+    <div style="padding:12px 16px 0">
+      <button class="fbtn" onclick="novaVenda()" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Nova venda na loja</button>
+    </div>
+    <div id="ped-filtro-entrega" style="display:none;padding:12px 16px 0;gap:8px">
+      <button class="ped-fchip on" data-fent="todos" onclick="setFiltroEntrega('todos')">Todas</button>
+      <button class="ped-fchip" data-fent="pendentes" onclick="setFiltroEntrega('pendentes')">📦 Pendentes de entrega</button>
+    </div>
+    <div class="loading-row" id="pedidos-loading"><span class="proc-dot"></span>Carregando...</div>
     <div id="pedidos-list" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px"></div>
-    <div class="empty" id="pedidos-empty" style="display:none"><div class="empty-ic">🧾</div><div class="empty-txt">Nenhum pedido aguardando no momento</div></div>
+    <div class="empty" id="pedidos-empty" style="display:none"><div class="empty-ic">🧾</div><div class="empty-txt">Nenhuma venda no momento</div></div>
   </div>
 </div>
 
@@ -870,7 +889,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   </button>
   <button class="bnav-item" id="nav-pedidos" data-sc="pedidos" onclick="navTo('pedidos')" style="position:relative">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-    <span class="bnav-lb">Pedidos</span>
+    <span class="bnav-lb">Vendas</span>
     <span id="badge-pedidos-nav" style="position:absolute;top:2px;right:10px;background:var(--danger);color:#fff;border-radius:10px;min-width:15px;height:15px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;display:none">0</span>
   </button>
   <button class="bnav-item" data-sc="alertas" onclick="navTo('alertas')">
@@ -1239,13 +1258,33 @@ let editBuffer=null;            // {itens, nome_cliente, tipo_entrega, endereco_
 let pedidoAlerta=null;          // {id, faltas:[{nome,tem,pedido}]} aviso de estoque insuficiente
 let pedidosSubAba='aberto';     // 'aberto' | 'concluido'
 let PED_FOTOS={};               // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
+let concluidoFiltro='todos';    // 'todos' | 'pendentes' (entrega)
+let vendaItens=[]; let vendaPgto='Pix'; let vendaNome=''; // venda presencial em construção
+let PICK_CALLBACK=null, PICK_DONE=null, PICK_COUNT=0;     // seletor de produtos
 const PED_PGTOS=['Pix','Dinheiro','Cartão de débito','Cartão de crédito'];
 const fmtR=(v)=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
+const capPed=(s)=>s?s.charAt(0).toUpperCase()+s.slice(1):'';
 
 function trocarSubAbaPedidos(aba){
   pedidosSubAba=aba; pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
+  concluidoFiltro='todos';
   document.querySelectorAll('[data-ped]').forEach(b=>b.classList.toggle('on',b.dataset.ped===aba));
+  document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent==='todos'));
+  const filtroBox=document.getElementById('ped-filtro-entrega');
+  if(filtroBox)filtroBox.style.display=aba==='concluido'?'flex':'none';
   carregarPedidos();
+}
+function setFiltroEntrega(f){
+  concluidoFiltro=f;
+  document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent===f));
+  renderPedidos();
+}
+async function marcarEntregue(id){
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{entregue_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    showToast('Marcado como entregue ✅');
+    await carregarPedidos();
+  }catch(e){showToast('Erro ao atualizar a entrega',true);}
 }
 
 function tempoRelativo(iso){
@@ -1287,6 +1326,8 @@ async function carregarPedidos(){
     }catch(e){}
   }
   if(load)load.style.display='none';
+  const fb=document.getElementById('ped-filtro-entrega');
+  if(fb)fb.style.display=pedidosSubAba==='concluido'?'flex':'none';
   renderPedidos();
   atualizarBadgePedidos();
 }
@@ -1301,7 +1342,8 @@ function thumbItem(it){
 function nomeItem(it){
   const info=PED_FOTOS[it.produto_id]||{};
   const nome=(it.caption||info.tipo||it.tipo||'Produto').split('\n')[0];
-  const cod=info.codigo_loja?' #'+String(info.codigo_loja).padStart(3,'0'):'';
+  const codNum=info.codigo_loja||it.codigo_loja;
+  const cod=codNum?' #'+String(codNum).padStart(3,'0'):'';
   return nome+cod;
 }
 
@@ -1370,8 +1412,9 @@ function cartaoEdicao(p,num){
       </div>
     </div>
     ${ent==='entrega'?`<div style="margin-bottom:10px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Endereço de entrega</label><textarea id="ed-endereco" class="finput" style="margin-top:4px;min-height:64px;resize:vertical" placeholder="Rua, número, bairro, complemento, referência...">${(b.endereco_entrega||'').replace(/</g,'&lt;')}</textarea></div>`:''}
+    <button class="fbtn fbtn-outline" onclick="addProdutoNaEdicao()" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px">+ Adicionar produto</button>
     <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Itens</div>
-    <div style="margin-bottom:10px">${itensHtml||'<div style="font-size:12px;color:var(--text3);padding:8px 0">Pedido sem itens — adicione removendo o pedido ou cancele.</div>'}</div>
+    <div style="margin-bottom:10px">${itensHtml||'<div style="font-size:12px;color:var(--text3);padding:8px 0">Pedido sem itens — adicione um produto acima ou cancele o pedido.</div>'}</div>
     <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(total)}</span></div>
     <div style="display:flex;gap:8px">
       <button class="fbtn" onclick="salvarEdicao('${p.id}')">Salvar alterações</button>
@@ -1422,14 +1465,24 @@ function renderPedidos(){
   const lista=document.getElementById('pedidos-list');
   const vazio=document.getElementById('pedidos-empty');
   if(!lista)return;
-  if(PEDIDOS.length===0){
+  let fonte=PEDIDOS;
+  if(pedidosSubAba==='concluido'&&concluidoFiltro==='pendentes'){
+    fonte=PEDIDOS.filter(p=>p.tipo_entrega==='entrega'&&!p.entregue_em);
+  }
+  if(fonte.length===0){
     lista.innerHTML='';
-    if(vazio){vazio.style.display='block';vazio.querySelector('.empty-txt').textContent=pedidosSubAba==='concluido'?'Nenhum pedido concluído ainda':'Nenhum pedido aguardando no momento';}
+    if(vazio){
+      vazio.style.display='block';
+      vazio.querySelector('.empty-txt').textContent=pedidosSubAba==='concluido'
+        ?(concluidoFiltro==='pendentes'?'Nenhuma entrega pendente 🎉':'Nenhuma venda concluída ainda')
+        :'Nenhuma venda em aberto no momento';
+    }
     return;
   }
   if(vazio)vazio.style.display='none';
-  lista.innerHTML=PEDIDOS.map(p=>{
-    const num=p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):'#—';
+  lista.innerHTML=fonte.map(p=>{
+    const ehPresencial=p.origem==='presencial';
+    const num=p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):(ehPresencial?'Loja':'#—');
     if(pedidoEditando===p.id)return cartaoEdicao(p,num);
     const itens=p.itens||[];
     const total=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
@@ -1437,12 +1490,21 @@ function renderPedidos(){
     const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
     const ehConcluido=p.estado==='concluido';
     const tel=(p.telefone||'').replace(/\D/g,'');
-    const contato=`<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`;
+    const contato=tel?`<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`:'';
+    const origemBadge=`<span style="font-size:9px;font-weight:700;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:20px;margin-left:6px">${ehPresencial?'Loja':'WhatsApp'}</span>`;
     let statusPill,acoes='';
     if(ehConcluido){
-      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Concluído</span>`;
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Concluída</span>`;
       const quem=p.vendedor_id===USER_ID?' · por você':'';
-      acoes=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Concluído ${tempoRelativo(p.concluido_em||p.atualizado_em)}${p.forma_pagamento?' · '+p.forma_pagamento:''}${quem}</div>`+contato;
+      acoes=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Concluída ${tempoRelativo(p.concluido_em||p.atualizado_em)}${p.forma_pagamento?' · '+p.forma_pagamento:''}${quem}</div>`;
+      if(p.tipo_entrega==='entrega'){
+        if(p.entregue_em){
+          acoes+=`<div style="margin-bottom:10px"><span style="font-size:12px;font-weight:700;color:var(--success);background:var(--success-l);padding:6px 12px;border-radius:20px;display:inline-block">✅ Entregue ${tempoRelativo(p.entregue_em)}</span></div>`;
+        }else{
+          acoes+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:12px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:6px 12px;border-radius:20px">📦 Entrega pendente</span><button class="fbtn fbtn-success" style="width:auto;padding:6px 14px;font-size:13px" onclick="marcarEntregue('${p.id}')">Marcar entregue</button></div>`;
+        }
+      }
+      acoes+=contato;
     }else if(p.estado==='aguardando_pagamento'){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Novo</span>`;
     }else if(assumidoPorMim){
@@ -1479,12 +1541,15 @@ function renderPedidos(){
         acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">Outro vendedor está atendendo este pedido.</div>`;
       }
     }
+    const clienteLinha=(p.nome_cliente||p.telefone)
+      ?`Cliente: ${p.nome_cliente?p.nome_cliente+' · ':''}${p.telefone||'—'} · ${tempoRelativo(p.criado_em)}`
+      :`Venda na loja · ${tempoRelativo(p.criado_em)}`;
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:15px;font-weight:800;color:var(--text1)">Pedido ${num}</span>
+        <span style="font-size:15px;font-weight:800;color:var(--text1)">${ehPresencial?'Venda':'Pedido'} ${num}${origemBadge}</span>
         ${statusPill}
       </div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Cliente: ${p.nome_cliente?p.nome_cliente+' · ':''}${p.telefone||'—'} · ${tempoRelativo(p.criado_em)}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">${clienteLinha}</div>
       ${montarEntregaInfo(p)}
       <div style="margin-bottom:10px">${itensHtml||'<span style="font-size:12px;color:var(--text3)">Sem itens</span>'}</div>
       <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(total)}</span></div>
@@ -1571,6 +1636,145 @@ async function concluirPedido(id,forcar){
     await carregarPedidos();
   }catch(e){showToast('Erro ao concluir o pedido',true);if(btn){btn.textContent='Concluir venda';btn.disabled=false;}}
 }
+
+/* ═══ SELETOR DE PRODUTOS (compartilhado: nova venda + adicionar ao pedido) ═══ */
+function skuParaItem(p){return {produto_id:p.id,tipo:p.tipo,tamanho:p.tamanho,preco_unitario:Number(p.preco||0),quantidade:1,foto_url:p.foto_url,codigo_loja:p.codigo_loja};}
+function mergeItem(list,p){
+  const ex=list.find(it=>it.produto_id===p.id);
+  if(ex)ex.quantidade=Number(ex.quantidade||0)+1;
+  else list.push(skuParaItem(p));
+}
+function abrirSeletorProduto(onPick,onDone){
+  PICK_CALLBACK=onPick; PICK_DONE=onDone||null; PICK_COUNT=0;
+  const ov=document.createElement('div'); ov.className='ov'; ov.id='ov-pick';
+  ov.innerHTML=`
+    <div class="ov-panel">
+      <div class="ov-head"><h3>Adicionar produto</h3><button class="ov-x" onclick="fecharSeletor()">×</button></div>
+      <div style="padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border)">
+        <input id="pick-busca" class="finput" placeholder="Buscar por nome, cor, marca ou código (#)" oninput="pickSearch()" autocomplete="off"/>
+        <div id="pick-count" style="font-size:12px;color:var(--success);font-weight:700;margin-top:6px;display:none"></div>
+      </div>
+      <div class="ov-body" id="pick-results"></div>
+      <div class="ov-foot"><button class="fbtn" onclick="fecharSeletor()">Pronto</button></div>
+    </div>`;
+  document.body.appendChild(ov);
+  pickSearch();
+  setTimeout(()=>{const i=document.getElementById('pick-busca');if(i)i.focus();},120);
+}
+function fecharSeletor(){
+  const ov=document.getElementById('ov-pick'); if(ov)ov.remove();
+  const done=PICK_DONE; PICK_CALLBACK=null; PICK_DONE=null;
+  if(done)done();
+}
+function pickSearch(){
+  const cont=document.getElementById('pick-results'); if(!cont)return;
+  const q=(document.getElementById('pick-busca')?.value||'').trim().toLowerCase();
+  const mc=q.match(/^#?(\d{1,4})$/); const codBusca=mc?parseInt(mc[1]):null;
+  let res=PRODS.filter(p=>Number(p.quantidade||0)>0);
+  if(q){
+    if(codBusca!==null)res=res.filter(p=>p.codigo_loja===codBusca);
+    else res=res.filter(p=>[p.tipo,p.cores,p.ocasiao,p.estilo,p.genero,p.marca||'',p.descricao_semantica||'',p.tags_adicionais||'',p.material||'',p.tamanho||'',p.personagem||'',p.franquia||''].join(' ').toLowerCase().includes(q));
+  }
+  res=res.slice(0,60);
+  if(res.length===0){cont.innerHTML=`<div style="text-align:center;color:var(--text3);padding:40px 16px">Nenhum produto encontrado</div>`;return;}
+  cont.innerHTML=res.map(p=>{
+    const cod=p.codigo_loja?' #'+String(p.codigo_loja).padStart(3,'0'):'';
+    const thumb=p.foto_url?`<img src="${p.foto_url}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0"/>`:`<div style="width:46px;height:46px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0">👗</div>`;
+    return `<div onclick="pickAdd('${p.id}')" style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text1)">${capPed(p.tipo||'Produto')}${cod}</div>
+        <div style="font-size:12px;color:var(--text2)">${p.tamanho?'Tam '+p.tamanho+' · ':''}${p.cores||''} · ${p.quantidade} em estoque</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap">${fmtR(p.preco)}</div>
+    </div>`;
+  }).join('');
+}
+function pickAdd(id){
+  const p=PRODS.find(x=>x.id===id); if(!p||!PICK_CALLBACK)return;
+  PICK_CALLBACK(p); PICK_COUNT++;
+  const c=document.getElementById('pick-count');
+  if(c){c.style.display='block';c.textContent='✓ '+PICK_COUNT+(PICK_COUNT===1?' item adicionado':' itens adicionados')+' — toque em "Pronto" quando terminar';}
+}
+
+/* ═══ NOVA VENDA NA LOJA (presencial) ═══ */
+function novaVenda(){
+  vendaItens=[]; vendaPgto='Pix'; vendaNome='';
+  const ov=document.createElement('div'); ov.className='ov'; ov.id='ov-venda';
+  ov.innerHTML=`
+    <div class="ov-panel">
+      <div class="ov-head"><h3>Nova venda na loja</h3><button class="ov-x" onclick="fecharVenda()">×</button></div>
+      <div class="ov-body" id="venda-body"></div>
+      <div class="ov-foot" id="venda-foot"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  renderVendaBuilder();
+}
+function fecharVenda(){const ov=document.getElementById('ov-venda');if(ov)ov.remove();}
+function _capturarVenda(){
+  const n=document.getElementById('venda-nome'); if(n)vendaNome=n.value;
+  const s=document.getElementById('venda-pgto'); if(s)vendaPgto=s.value;
+}
+function renderVendaBuilder(){
+  const body=document.getElementById('venda-body'); const foot=document.getElementById('venda-foot');
+  if(!body)return;
+  const total=vendaItens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  const stepBtn='width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text1);font-size:17px;font-weight:700;cursor:pointer;line-height:1';
+  const itensHtml=vendaItens.map((it,idx)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      ${thumbItem(it)}
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text1)">${nomeItem(it)}</div><div style="font-size:12px;color:var(--text2)">${it.tamanho?'Tam '+it.tamanho+' · ':''}${fmtR(it.preco_unitario)}</div></div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <button onclick="vendaItemQtd(${idx},-1)" style="${stepBtn}">−</button>
+        <span style="min-width:20px;text-align:center;font-weight:700;color:var(--text1)">${it.quantidade}</span>
+        <button onclick="vendaItemQtd(${idx},1)" style="${stepBtn}">+</button>
+        <button onclick="vendaItemRemove(${idx})" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--danger-l);color:var(--danger);font-size:18px;cursor:pointer;line-height:1">×</button>
+      </div>
+    </div>`).join('');
+  const opts=PED_PGTOS.map(o=>`<option value="${o}"${o===vendaPgto?' selected':''}>${o}</option>`).join('');
+  body.innerHTML=`
+    <button class="fbtn fbtn-outline" onclick="addProdutoNaVenda()" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px">+ Adicionar produto</button>
+    ${vendaItens.length?itensHtml:'<div style="text-align:center;color:var(--text3);padding:30px 0">Adicione produtos para iniciar a venda</div>'}
+    <div style="margin-top:14px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Cliente (opcional)</label><input id="venda-nome" class="finput" style="margin-top:4px" value="${(vendaNome||'').replace(/"/g,'&quot;')}" placeholder="Nome do cliente"/></div>
+    <div style="margin-top:10px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Pagamento</label><select id="venda-pgto" class="fselect" style="margin-top:4px">${opts}</select></div>
+  `;
+  foot.innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:15px;margin-bottom:10px"><span>Total</span><span>${fmtR(total)}</span></div>
+    <button class="fbtn fbtn-success" id="venda-fechar-btn" onclick="finalizarVenda()" ${vendaItens.length?'':'disabled style="opacity:.5"'}>Fechar venda · ${fmtR(total)}</button>
+  `;
+}
+function addProdutoNaVenda(){ _capturarVenda(); abrirSeletorProduto((p)=>mergeItem(vendaItens,p), ()=>renderVendaBuilder()); }
+function vendaItemQtd(idx,d){ _capturarVenda(); const it=vendaItens[idx]; if(!it)return; it.quantidade=Math.max(1,Number(it.quantidade||1)+d); renderVendaBuilder(); }
+function vendaItemRemove(idx){ _capturarVenda(); vendaItens.splice(idx,1); renderVendaBuilder(); }
+async function finalizarVenda(forcar){
+  _capturarVenda();
+  if(!vendaItens.length)return;
+  const porProd={}; vendaItens.forEach(it=>{porProd[it.produto_id]=(porProd[it.produto_id]||0)+Number(it.quantidade||0);});
+  const ids=Object.keys(porProd);
+  let estoqueMap={};
+  try{const rows=await sbGet(TABELA,'id=in.('+ids.join(',')+')&select=id,quantidade');(rows||[]).forEach(r=>{estoqueMap[r.id]=Number(r.quantidade||0);});}catch(e){}
+  if(!forcar){
+    const faltas=ids.filter(pid=>porProd[pid]>(estoqueMap[pid]!==undefined?estoqueMap[pid]:0));
+    if(faltas.length){
+      const txt=faltas.map(pid=>{const it=vendaItens.find(x=>x.produto_id===pid);return capPed(it?it.tipo:'')+' (estoque '+(estoqueMap[pid]||0)+', venda '+porProd[pid]+')';}).join('\n');
+      if(!confirm('Estoque insuficiente:\n'+txt+'\n\nRegistrar a venda assim mesmo?'))return;
+    }
+  }
+  const btn=document.getElementById('venda-fechar-btn'); if(btn){btn.textContent='Registrando...';btn.disabled=true;}
+  const total=vendaItens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  try{
+    for(const pid of ids){const atual=estoqueMap[pid]!==undefined?estoqueMap[pid]:0;const nova=Math.max(0,atual-porProd[pid]);try{await sbPatch(TABELA,'id=eq.'+pid,{quantidade:nova});}catch(e){}}
+    for(const it of vendaItens){await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:Number(it.quantidade||0),preco_unitario:it.preco_unitario,forma_pagamento:vendaPgto,vendedor_id:USER_ID});}
+    const agora=new Date().toISOString();
+    await sbPost('carrinhos_wpp',{loja_id:LOJA_ID,origem:'presencial',estado:'concluido',itens:vendaItens,total_bruto:total,forma_pagamento:vendaPgto,vendedor_id:USER_ID,nome_cliente:vendaNome||null,tipo_entrega:'retirada',concluido_em:agora,atualizado_em:agora,criado_em:agora});
+    showToast('Venda registrada! 🎉');
+    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
+    fecharVenda();
+    await carregarPedidos();
+  }catch(e){showToast('Erro ao registrar a venda',true);if(btn){btn.textContent='Fechar venda';btn.disabled=false;}}
+}
+
+/* Adicionar produto a um pedido em edição */
+function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; abrirSeletorProduto((p)=>mergeItem(editBuffer.itens,p), ()=>renderPedidos()); }
 
 /* ═══ AGRUPAMENTO ═══
    Estratégia: produtos do MESMO LOTE (mesma foto, mesmo tipo, mesma marca,
