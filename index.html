@@ -919,6 +919,7 @@ const TABELA = 'produtos_2';
 const PROD_COLS='id,loja_id,foto_url,tipo,subtipo,genero,faixa_etaria,faixa_etaria_secundaria,cores,material,ocasiao,estilo,estacao,tamanho,preco,quantidade,marca,marca_licenciada,descricao_semantica,tags_adicionais,referencias_culturais,descricao_estampa,tem_estampa,tipo_estampa,personagem,franquia,tem_manga,tipo_manga,tipo_fechamento,tem_acessorios,acessorios,detalhes_especiais,clima,categoria,codigo_loja,ativo,criado_em';
 const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vendedor';
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
+const N8N_RELAY = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/vendedor_envia';
 let LOJA_ID = null;
 let NOME_LOJA = '';
 let LOJA_ENDERECO = '';
@@ -1560,6 +1561,7 @@ function renderPedidos(){
       }else if(assumidoPorMim){
         const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
+          ${tel?`<button class="fbtn" onclick="abrirChat('${p.telefone||''}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`:''}
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px">${opts}</select></div>
@@ -1825,6 +1827,72 @@ async function finalizarVenda(forcar){
 /* Adicionar produto a um pedido em edição */
 function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; abrirSeletorProduto((p)=>mergeItem(editBuffer.itens,p), ()=>renderPedidos()); }
 
+/* ═══ CONVERSA IN-APP (relay pelo número da loja via n8n/Evolution) ═══
+   O vendedor conversa com o cliente pelo WhatsApp da loja sem expor a chave da
+   Evolution: o envio passa pelo webhook vendedor_envia (n8n). As mensagens ficam
+   em mensagens_wpp (in = cliente, out = loja) e o app faz polling para exibir. */
+let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0;
+async function abrirChat(telefone,nome){
+  chatTelefone=(telefone||'').toString(); chatNome=nome||(PEDIDOS.find(x=>x.telefone===chatTelefone)||{}).nome_cliente||''; chatUltimoCount=-1;
+  const ov=document.createElement('div'); ov.className='ov'; ov.id='ov-chat';
+  ov.innerHTML=`
+    <div class="ov-panel">
+      <div class="ov-head">
+        <div><h3>${chatNome||'Cliente'}</h3><div style="font-size:11px;color:var(--text2)">${chatTelefone}</div></div>
+        <button class="ov-x" onclick="fecharChat()">×</button>
+      </div>
+      <div class="ov-body" id="chat-msgs" style="display:flex;flex-direction:column;gap:8px;background:var(--bg)">
+        <div class="loading-row" id="chat-loading"><span class="proc-dot"></span>Carregando conversa...</div>
+      </div>
+      <div class="ov-foot" style="display:flex;gap:8px;align-items:flex-end">
+        <textarea id="chat-input" class="finput" placeholder="Mensagem para o cliente..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
+        <button class="fbtn" style="width:auto;padding:0 18px;height:44px" onclick="enviarMensagemChat()">Enviar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  await carregarMensagens();
+  chatPollTimer=setInterval(carregarMensagens,4000);
+}
+function fecharChat(){
+  if(chatPollTimer){clearInterval(chatPollTimer);chatPollTimer=null;}
+  const ov=document.getElementById('ov-chat'); if(ov)ov.remove();
+  chatTelefone=null;
+}
+async function carregarMensagens(){
+  if(!chatTelefone)return;
+  let msgs=[];
+  try{
+    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&telefone=eq.'+chatTelefone+'&order=criado_em.asc&limit=300');
+  }catch(e){msgs=[];}
+  const cont=document.getElementById('chat-msgs'); if(!cont)return;
+  // Só re-renderiza se o número de mensagens mudou (evita piscar a cada poll)
+  if(Array.isArray(msgs)&&msgs.length===chatUltimoCount)return;
+  chatUltimoCount=Array.isArray(msgs)?msgs.length:0;
+  if(!msgs||msgs.length===0){
+    cont.innerHTML=`<div style="text-align:center;color:var(--text3);padding:30px 16px;font-size:13px">Nenhuma mensagem ainda. Envie a primeira mensagem para o cliente.</div>`;
+    return;
+  }
+  cont.innerHTML=msgs.map(m=>{
+    const out=m.direcao==='out';
+    const hora=m.criado_em?new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return `<div style="align-self:${out?'flex-end':'flex-start'};max-width:80%;background:${out?'var(--accent)':'var(--surface)'};color:${out?'#fff':'var(--text1)'};border:${out?'none':'1px solid var(--border)'};padding:8px 12px;border-radius:14px;border-bottom-${out?'right':'left'}-radius:4px">
+      <div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>
+      <div style="font-size:10px;opacity:.7;margin-top:3px;text-align:right">${hora}</div>
+    </div>`;
+  }).join('');
+  cont.scrollTop=cont.scrollHeight;
+}
+async function enviarMensagemChat(){
+  const inp=document.getElementById('chat-input'); if(!inp)return;
+  const texto=inp.value.trim(); if(!texto||!chatTelefone)return;
+  inp.value='';
+  try{
+    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto,vendedor_id:USER_ID})});
+    chatUltimoCount=-1; // força re-render
+    setTimeout(carregarMensagens,600);
+  }catch(e){showToast('Erro ao enviar a mensagem',true);inp.value=texto;}
+}
+
 /* ═══ AGRUPAMENTO ═══
    Estratégia: produtos do MESMO LOTE (mesma foto, mesmo tipo, mesma marca,
    mesmas cores) viram um único card com várias variações de tamanho.
@@ -2024,6 +2092,7 @@ function openDetalhe(key){
           <div class="var-stk" style="color:${nq==0?'var(--danger)':nq<=3?'var(--warning)':'var(--success)'}">${nq} un. ${dHtml}</div>
         </div>
         <div class="var-btns">
+          <button class="var-btn var-btn-minus" onclick="adjVar('${v.id}',-1,'${key}')" ${minusDisabled?'disabled style="opacity:.3;cursor:not-allowed"':''}>−</button>
           <button class="var-btn var-btn-plus" onclick="adjVar('${v.id}',1,'${key}')" ${plusDisabled?'disabled style="opacity:.3;cursor:not-allowed"':''}>+</button>
         </div>
       </div>`;
@@ -2032,15 +2101,14 @@ function openDetalhe(key){
 
   function buildConfirmBar(){
     const hasChange=Object.values(sheetDeltas).some(d=>d!==0);if(!hasChange)return'';
-    const temVenda=Object.entries(sheetDeltas).some(([,d])=>d<0);
+    const temBaixa=Object.entries(sheetDeltas).some(([,d])=>d<0);
     const temEntrada=Object.entries(sheetDeltas).some(([,d])=>d>0);
-    const titulo=temVenda&&temEntrada?'Confirmar Venda e Entrada':temVenda?'Confirmar Venda':'Confirmar Entrada em Estoque';
+    const titulo=temBaixa&&temEntrada?'Confirmar ajuste de estoque':temBaixa?'Confirmar baixa de estoque':'Confirmar entrada em estoque';
     return`<div class="confirm-bar" id="sheet-confirm">
       <div style="font-size:13px;font-weight:700;color:var(--text1)">${titulo}</div>
-      ${temVenda?`<div><div style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:6px">Forma de pagamento</div>
-        <select class="fselect" id="sheet-pgto"><option>Pix</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option></select></div>`:''}
+      ${temBaixa?`<div style="font-size:11px;color:var(--text3)">A baixa apenas reduz o estoque (avaria, perda). Não registra venda.</div>`:''}
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="fbtn" style="width:100%" onclick="salvarSheet('${key}')">${temVenda&&temEntrada?'✔ Confirmar Operações':temVenda?'✔ Confirmar Venda':'✔ Confirmar Entrada'}</button>
+        <button class="fbtn" style="width:100%" onclick="salvarSheet('${key}')">✔ Confirmar ajuste</button>
         <button style="width:100%;padding:12px;background:none;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;position:relative;z-index:10;touch-action:manipulation" onclick="cancelarSheet('${key}')">Cancelar</button>
       </div>
     </div>`;
@@ -2066,7 +2134,7 @@ function openDetalhe(key){
       <div class="det-divider"></div>
       <div class="var-section">
         <div class="var-title" style="margin-bottom:4px">TAMANHOS</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">use (+) para dar entrada de novas unidades · as vendas são feitas na aba Vendas</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">use (+) para entrada e (−) para baixa de estoque (avaria, perda) · vendas são feitas na aba Vendas</div>
         <div id="var-rows-${key}">${buildVarRows()}</div>
         <div id="add-tam-area-${key}" style="margin-top:8px"></div>
         <button class="add-tam-btn" id="add-tam-btn-${key}" onclick="abrirAddTamSheet('${key}')" style="color:var(--accent);margin-top:10px">
@@ -2103,20 +2171,20 @@ function fecharDetalhe(){const ov=document.getElementById('modal-overlay');if(ov
 function cancelarSheet(key){fecharDetalhe();openDetalhe(key);}
 async function salvarSheet(key){
   const btn=document.querySelector('#sheet-confirm .fbtn');if(btn){btn.textContent='Salvando...';btn.disabled=true;}
-  const pgto=document.getElementById('sheet-pgto')?.value||'Pix';
   const gr=GRUPOS.find(g=>g._key===key);if(!gr)return;
   try{
     for(const[vid,d]of Object.entries(sheetDeltas)){
       if(d===0)continue;
       const v=gr._vars.find(x=>x.id===vid);if(!v)continue;
-      const nq=Number(v.quantidade)+d;
+      const nq=Math.max(0,Number(v.quantidade)+d);
       await sbPatch(TABELA,'id=eq.'+vid,{quantidade:nq});
-      if(d<0)await sbPost('vendas',{produto_id:vid,loja_id:LOJA_ID,quantidade_vendida:Math.abs(d),preco_unitario:v.preco,forma_pagamento:pgto,vendedor_id:USER_ID});
       v.quantidade=nq;
     }
     showToast('Estoque atualizado!');fecharDetalhe();renderEstoque();
-    // Se a aba Estoque estiver ativa, atualiza também a Visão Geral
-    if(document.getElementById('sc-alertas').classList.contains('active'))renderEstoqueGeral();
+    // Se a tela Estoque estiver ativa, atualiza a sub-aba visível
+    if(document.getElementById('sc-alertas').classList.contains('active')){
+      if(subAbaEstoque==='alertas')carregarAlertas(); else renderEstoqueGeral();
+    }
   }catch(e){showToast('Erro ao salvar',true);if(btn){btn.textContent='Salvar alterações';btn.disabled=false;}}
 }
 
@@ -2907,13 +2975,14 @@ function renderAlertas(){
         const pCorBg=qn===0?'var(--danger-l)':qn<=2?'#FEE2E2':qn<=PARAMS.critico?'var(--warning-l)':'var(--success-l)';
         const pCorTxt=qn===0?'var(--danger)':qn<=2?'var(--danger)':qn<=PARAMS.critico?'var(--warning)':'var(--success)';
         const imgH=p.foto_url?`<img src="${p.foto_url}" class="alerta-sub-img" style="object-fit:cover" onerror="this.outerHTML='<div class=\'alerta-sub-img\'>👗</div>'"/>`:`<div class="alerta-sub-img">👗</div>`;
-        return`<div class="alerta-sub-row">
+        return`<div class="alerta-sub-row" onclick="abrirDetalheDoProduto('${p.id}')" style="cursor:pointer">
           ${imgH}
           <div class="alerta-sub-info">
             <div class="alerta-sub-nome">${[p.tipo,p.marca].filter(Boolean).join(' · ')||'Produto'}</div>
             <div class="alerta-sub-meta">${p.cores||'—'} · Tam ${p.tamanho||'—'}</div>
           </div>
           <div class="alerta-sub-qtd" style="background:${pCorBg};color:${pCorTxt}">${qn}</div>
+          <span style="color:var(--text3);font-size:18px;margin-left:8px;line-height:1">›</span>
         </div>`;
       }).join('');
 
