@@ -1234,14 +1234,16 @@ function aplicarPermissoes(){
    todos — o dono trabalhando sozinho também atende por aqui. */
 let PEDIDOS=[];
 let pedidoCancelando=null;
-let pedidosSubAba='aberto';   // 'aberto' | 'concluido'
-let PED_FOTOS={};             // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
+let pedidoEditando=null;        // id do pedido em edição
+let editBuffer=null;            // {itens, nome_cliente, tipo_entrega, endereco_entrega}
+let pedidoAlerta=null;          // {id, faltas:[{nome,tem,pedido}]} aviso de estoque insuficiente
+let pedidosSubAba='aberto';     // 'aberto' | 'concluido'
+let PED_FOTOS={};               // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
 const PED_PGTOS=['Pix','Dinheiro','Cartão de débito','Cartão de crédito'];
 const fmtR=(v)=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
 
 function trocarSubAbaPedidos(aba){
-  pedidosSubAba=aba;
-  pedidoCancelando=null;
+  pedidosSubAba=aba; pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
   document.querySelectorAll('[data-ped]').forEach(b=>b.classList.toggle('on',b.dataset.ped===aba));
   carregarPedidos();
 }
@@ -1261,7 +1263,7 @@ async function carregarPedidos(){
   const vazio=document.getElementById('pedidos-empty');
   if(load)load.style.display='flex';
   if(vazio)vazio.style.display='none';
-  pedidoCancelando=null;
+  pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
   const filtro=pedidosSubAba==='concluido'
     ? 'estado=eq.concluido&order=atualizado_em.desc&limit=100'
     : 'estado=in.(aguardando_pagamento,em_atendimento)&order=criado_em.desc&limit=100';
@@ -1289,24 +1291,131 @@ async function carregarPedidos(){
   atualizarBadgePedidos();
 }
 
-function itemLinha(it){
+function thumbItem(it){
   const info=PED_FOTOS[it.produto_id]||{};
   const foto=info.foto_url||(it.foto_url&&it.foto_url.startsWith('http')?it.foto_url:null);
-  const nome=(it.caption||info.tipo||it.tipo||'Produto').split('\n')[0];
-  const cod=info.codigo_loja?' #'+String(info.codigo_loja).padStart(3,'0'):'';
-  const tam=it.tamanho||info.tamanho;
-  const sub=Number(it.preco_unitario||0)*Number(it.quantidade||0);
-  const thumb=foto
+  return foto
     ? `<div onclick="abrirFotoFullscreen('${foto}')" style="width:50px;height:50px;border-radius:8px;overflow:hidden;background:var(--surface2);flex-shrink:0;cursor:pointer"><img src="${foto}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px\\'>👗</div>'"/></div>`
     : `<div style="width:50px;height:50px;border-radius:8px;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px">👗</div>`;
+}
+function nomeItem(it){
+  const info=PED_FOTOS[it.produto_id]||{};
+  const nome=(it.caption||info.tipo||it.tipo||'Produto').split('\n')[0];
+  const cod=info.codigo_loja?' #'+String(info.codigo_loja).padStart(3,'0'):'';
+  return nome+cod;
+}
+
+function itemLinha(it){
+  const tam=it.tamanho||(PED_FOTOS[it.produto_id]||{}).tamanho;
+  const sub=Number(it.preco_unitario||0)*Number(it.quantidade||0);
   return `<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-    ${thumb}
+    ${thumbItem(it)}
     <div style="flex:1;min-width:0">
-      <div style="font-size:13px;color:var(--text1);font-weight:600;line-height:1.3">${nome}${cod}</div>
+      <div style="font-size:13px;color:var(--text1);font-weight:600;line-height:1.3">${nomeItem(it)}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:1px">${it.quantidade}x${tam?' · Tam '+tam:''} · ${fmtR(it.preco_unitario)}</div>
     </div>
     <div style="font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap">${fmtR(sub)}</div>
   </div>`;
+}
+
+function montarEntregaInfo(p){
+  if(p.tipo_entrega==='entrega'){
+    return `<div style="font-size:12px;color:var(--text2);margin-bottom:10px;background:var(--accent-l);padding:8px 10px;border-radius:8px"><span style="font-weight:700;color:var(--accent)">📦 Entrega</span>${p.endereco_entrega?'<br>'+p.endereco_entrega:' · endereço não informado'}</div>`;
+  }else if(p.tipo_entrega==='retirada'){
+    return `<div style="font-size:12px;color:var(--text2);margin-bottom:10px;background:var(--surface2);padding:8px 10px;border-radius:8px"><span style="font-weight:700;color:var(--accent)">🏬 Retirada na loja</span></div>`;
+  }
+  return '';
+}
+
+/* Lê os campos de texto da edição no DOM antes de re-renderizar (preserva o que foi digitado) */
+function _capturarCamposEdicao(){
+  if(!editBuffer)return;
+  const nome=document.getElementById('ed-nome'); if(nome)editBuffer.nome_cliente=nome.value;
+  const end=document.getElementById('ed-endereco'); if(end)editBuffer.endereco_entrega=end.value;
+}
+
+function cartaoEdicao(p,num){
+  const b=editBuffer; if(!b)return '';
+  const total=b.itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  const stepBtn='width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text1);font-size:17px;font-weight:700;cursor:pointer;line-height:1';
+  const itensHtml=b.itens.map((it,idx)=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      ${thumbItem(it)}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text1);font-weight:600;line-height:1.3">${nomeItem(it)}</div>
+        <div style="font-size:12px;color:var(--text2)">${fmtR(it.preco_unitario)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <button onclick="edItemQtd(${idx},-1)" style="${stepBtn}">−</button>
+        <span style="min-width:20px;text-align:center;font-weight:700;color:var(--text1)">${it.quantidade}</span>
+        <button onclick="edItemQtd(${idx},1)" style="${stepBtn}">+</button>
+        <button onclick="edItemRemove(${idx})" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--danger-l);color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;line-height:1" aria-label="Remover">×</button>
+      </div>
+    </div>`).join('');
+  const ent=b.tipo_entrega||'retirada';
+  const tabBtn=(on)=>`flex:1;padding:9px;border-radius:8px;border:1.5px solid ${on?'var(--accent)':'var(--border2)'};background:${on?'var(--accent-l)':'var(--surface)'};color:${on?'var(--accent)':'var(--text2)'};font-size:13px;font-weight:700;cursor:pointer`;
+  return `<div style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:15px;font-weight:800;color:var(--text1)">Pedido ${num}</span>
+      <span style="font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-l);padding:3px 9px;border-radius:20px">Editando</span>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Nome do cliente</label>
+      <input id="ed-nome" class="finput" style="margin-top:4px" value="${(b.nome_cliente||'').replace(/"/g,'&quot;')}" placeholder="Opcional"/>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Tipo de entrega</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="edSetTipo('retirada')" style="${tabBtn(ent==='retirada')}">🏬 Retirada</button>
+        <button onclick="edSetTipo('entrega')" style="${tabBtn(ent==='entrega')}">📦 Entrega</button>
+      </div>
+    </div>
+    ${ent==='entrega'?`<div style="margin-bottom:10px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Endereço de entrega</label><textarea id="ed-endereco" class="finput" style="margin-top:4px;min-height:64px;resize:vertical" placeholder="Rua, número, bairro, complemento, referência...">${(b.endereco_entrega||'').replace(/</g,'&lt;')}</textarea></div>`:''}
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Itens</div>
+    <div style="margin-bottom:10px">${itensHtml||'<div style="font-size:12px;color:var(--text3);padding:8px 0">Pedido sem itens — adicione removendo o pedido ou cancele.</div>'}</div>
+    <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(total)}</span></div>
+    <div style="display:flex;gap:8px">
+      <button class="fbtn" onclick="salvarEdicao('${p.id}')">Salvar alterações</button>
+      <button class="fbtn fbtn-outline" onclick="cancelarEdicao()" style="max-width:110px">Voltar</button>
+    </div>
+  </div>`;
+}
+
+function editarPedido(id){
+  const p=PEDIDOS.find(x=>x.id===id); if(!p)return;
+  pedidoAlerta=null; pedidoCancelando=null;
+  editBuffer={
+    itens:JSON.parse(JSON.stringify(p.itens||[])),
+    nome_cliente:p.nome_cliente||'',
+    tipo_entrega:p.tipo_entrega||'retirada',
+    endereco_entrega:p.endereco_entrega||''
+  };
+  pedidoEditando=id;
+  renderPedidos();
+}
+function cancelarEdicao(){ pedidoEditando=null; editBuffer=null; renderPedidos(); }
+function edItemQtd(idx,delta){ _capturarCamposEdicao(); if(!editBuffer)return; const it=editBuffer.itens[idx]; if(!it)return; it.quantidade=Math.max(1,Number(it.quantidade||1)+delta); renderPedidos(); }
+function edItemRemove(idx){ _capturarCamposEdicao(); if(!editBuffer)return; editBuffer.itens.splice(idx,1); renderPedidos(); }
+function edSetTipo(t){ _capturarCamposEdicao(); if(!editBuffer)return; editBuffer.tipo_entrega=t; renderPedidos(); }
+
+async function salvarEdicao(id){
+  _capturarCamposEdicao();
+  if(!editBuffer)return;
+  const itens=editBuffer.itens;
+  const total=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  const body={
+    itens:itens,
+    total_bruto:total,
+    nome_cliente:editBuffer.nome_cliente||null,
+    tipo_entrega:editBuffer.tipo_entrega||null,
+    endereco_entrega:editBuffer.tipo_entrega==='entrega'?(editBuffer.endereco_entrega||null):null,
+    atualizado_em:new Date().toISOString()
+  };
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+id,body);
+    pedidoEditando=null; editBuffer=null;
+    showToast('Pedido atualizado.');
+    await carregarPedidos();
+  }catch(e){showToast('Erro ao salvar as alterações',true);}
 }
 
 function renderPedidos(){
@@ -1320,19 +1429,20 @@ function renderPedidos(){
   }
   if(vazio)vazio.style.display='none';
   lista.innerHTML=PEDIDOS.map(p=>{
+    const num=p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):'#—';
+    if(pedidoEditando===p.id)return cartaoEdicao(p,num);
     const itens=p.itens||[];
     const total=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
-    const num=p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):'#—';
     const itensHtml=itens.map(itemLinha).join('');
     const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
     const ehConcluido=p.estado==='concluido';
-    const contato=`<a href="https://wa.me/${(p.telefone||'').replace(/\D/g,'')}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`;
-    let statusPill,acoes;
+    const tel=(p.telefone||'').replace(/\D/g,'');
+    const contato=`<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`;
+    let statusPill,acoes='';
     if(ehConcluido){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Concluído</span>`;
       const quem=p.vendedor_id===USER_ID?' · por você':'';
-      const info=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Concluído ${tempoRelativo(p.concluido_em||p.atualizado_em)}${p.forma_pagamento?' · '+p.forma_pagamento:''}${quem}</div>`;
-      acoes=info+contato;
+      acoes=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Concluído ${tempoRelativo(p.concluido_em||p.atualizado_em)}${p.forma_pagamento?' · '+p.forma_pagamento:''}${quem}</div>`+contato;
     }else if(p.estado==='aguardando_pagamento'){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Novo</span>`;
     }else if(assumidoPorMim){
@@ -1343,12 +1453,22 @@ function renderPedidos(){
     if(!ehConcluido){
       if(pedidoCancelando===p.id){
         acoes=`<div style="display:flex;gap:8px"><button class="fbtn fbtn-danger" onclick="confirmarCancelamento('${p.id}')">Confirmar cancelamento</button><button class="fbtn fbtn-outline" onclick="voltarCancelamento()" style="max-width:110px">Voltar</button></div>`;
+      }else if(pedidoAlerta&&pedidoAlerta.id===p.id){
+        const linhas=pedidoAlerta.faltas.map(f=>`<div style="font-size:12px;color:var(--danger)">• ${f.nome}: em estoque ${f.tem}, pedido ${f.pedido}</div>`).join('');
+        acoes=`<div style="background:var(--danger-l);border-radius:10px;padding:10px;margin-bottom:8px">
+            <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:6px">⚠️ Estoque insuficiente</div>${linhas}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">Editar pedido</button>
+            <button class="fbtn fbtn-danger" onclick="concluirPedido('${p.id}',true)">Concluir assim mesmo</button>
+          </div>`;
       }else if(p.estado==='aguardando_pagamento'){
         acoes=`<div style="display:flex;gap:8px"><button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir pedido</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>`;
       }else if(assumidoPorMim){
         const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
           ${contato}
+          <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px">${opts}</select></div>
           <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · ${fmtR(total)}</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
         </div>`;
@@ -1361,7 +1481,8 @@ function renderPedidos(){
         <span style="font-size:15px;font-weight:800;color:var(--text1)">Pedido ${num}</span>
         ${statusPill}
       </div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Cliente: ${p.telefone||'—'} · ${tempoRelativo(p.criado_em)}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Cliente: ${p.nome_cliente?p.nome_cliente+' · ':''}${p.telefone||'—'} · ${tempoRelativo(p.criado_em)}</div>
+      ${montarEntregaInfo(p)}
       <div style="margin-bottom:10px">${itensHtml||'<span style="font-size:12px;color:var(--text3)">Sem itens</span>'}</div>
       <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(total)}</span></div>
       ${acoes}
@@ -1380,7 +1501,7 @@ function atualizarBadgePedidos(){
   if(b3){if(n>0){b3.textContent=n;b3.style.display='inline-block';}else b3.style.display='none';}
 }
 
-function pedirCancelamento(id){pedidoCancelando=id;renderPedidos();}
+function pedirCancelamento(id){pedidoCancelando=id;pedidoAlerta=null;renderPedidos();}
 function voltarCancelamento(){pedidoCancelando=null;renderPedidos();}
 async function confirmarCancelamento(id){
   pedidoCancelando=null;
@@ -1398,26 +1519,48 @@ async function assumirPedido(id){
   }catch(e){showToast('Erro ao assumir o pedido',true);}
 }
 
-async function concluirPedido(id){
+async function concluirPedido(id,forcar){
   const pedido=PEDIDOS.find(p=>p.id===id);if(!pedido)return;
   const pgto=document.getElementById('ped-pgto-'+id)?.value||'Pix';
+  const itens=(pedido.itens||[]).filter(it=>it.produto_id);
+  const idsProd=[...new Set(itens.map(it=>it.produto_id))];
+  // Soma a quantidade pedida por produto (mesmo produto pode aparecer em mais de um item)
+  const pedidoPorProd={};
+  itens.forEach(it=>{pedidoPorProd[it.produto_id]=(pedidoPorProd[it.produto_id]||0)+Number(it.quantidade||0);});
+  // Busca o estoque atual
+  let estoqueMap={};
+  if(idsProd.length){
+    try{
+      const rows=await sbGet(TABELA,'id=in.('+idsProd.join(',')+')&select=id,quantidade');
+      (rows||[]).forEach(r=>{estoqueMap[r.id]=Number(r.quantidade||0);});
+    }catch(e){}
+  }
+  // Trava de estoque: se faltar peça, avisa antes de concluir
+  if(!forcar){
+    const faltas=[];
+    Object.keys(pedidoPorProd).forEach(pid=>{
+      const tem=estoqueMap[pid]!==undefined?estoqueMap[pid]:0;
+      if(pedidoPorProd[pid]>tem){
+        const info=PED_FOTOS[pid]||{};
+        const nome=(info.tipo||'Produto')+(info.codigo_loja?' #'+String(info.codigo_loja).padStart(3,'0'):'');
+        faltas.push({nome,tem,pedido:pedidoPorProd[pid]});
+      }
+    });
+    if(faltas.length){ pedidoAlerta={id,faltas}; renderPedidos(); return; }
+  }
+  pedidoAlerta=null;
   const btn=document.getElementById('ped-concluir-'+id);
   if(btn){btn.textContent='Concluindo...';btn.disabled=true;}
   try{
-    const itens=pedido.itens||[];
+    // Baixa de estoque (agregada por produto)
+    for(const pid of Object.keys(pedidoPorProd)){
+      const atual=estoqueMap[pid]!==undefined?estoqueMap[pid]:0;
+      const nova=Math.max(0,atual-pedidoPorProd[pid]);
+      try{await sbPatch(TABELA,'id=eq.'+pid,{quantidade:nova});}catch(e){}
+    }
+    // Registra uma venda por item, atribuída a quem concluiu
     for(const it of itens){
-      if(!it.produto_id)continue;
-      const qVend=Number(it.quantidade||0);
-      // Baixa de estoque
-      try{
-        const prod=await sbGet(TABELA,'id=eq.'+it.produto_id+'&select=quantidade');
-        if(prod&&prod[0]){
-          const nova=Math.max(0,Number(prod[0].quantidade||0)-qVend);
-          await sbPatch(TABELA,'id=eq.'+it.produto_id,{quantidade:nova});
-        }
-      }catch(e){}
-      // Registra a venda atribuída a quem concluiu
-      await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:qVend,preco_unitario:it.preco_unitario,forma_pagamento:pgto,vendedor_id:USER_ID});
+      await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:Number(it.quantidade||0),preco_unitario:it.preco_unitario,forma_pagamento:pgto,vendedor_id:USER_ID});
     }
     await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgto,concluido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
     showToast('Pedido concluído! Venda registrada e estoque atualizado. 🎉');
