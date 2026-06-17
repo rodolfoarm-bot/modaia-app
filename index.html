@@ -1463,7 +1463,10 @@ function renderPedidos(){
             <button class="fbtn fbtn-danger" onclick="concluirPedido('${p.id}',true)">Concluir assim mesmo</button>
           </div>`;
       }else if(p.estado==='aguardando_pagamento'){
-        acoes=`<div style="display:flex;gap:8px"><button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir pedido</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>`;
+        acoes=`<div style="display:flex;flex-direction:column;gap:8px">
+          <button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir pedido</button>
+          <div style="display:flex;gap:8px"><button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')">Cancelar</button></div>
+        </div>`;
       }else if(assumidoPorMim){
         const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
