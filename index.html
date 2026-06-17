@@ -464,7 +464,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <div class="tb">
     <div class="tb-row">
       <div style="display:flex;align-items:baseline;gap:10px">
-        <span class="tb-title">Produtos</span>
+        <span class="tb-title">Estoque</span>
         <span style="font-size:13px;color:rgba(255,255,255,.85);font-weight:600" id="tb-total-pecas">—</span>
       </div>
       <div class="tb-actions">
@@ -478,6 +478,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <input type="text" id="srch-in" placeholder="Buscar por código, cor, tipo, ocasião, tag..." oninput="busca=this.value;buscarMultiplo(this.value)" style="padding-right:32px"/>
         <button id="srch-clear" onclick="limparBusca()" style="display:flex;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:14px;cursor:pointer;align-items:center;justify-content:center;font-weight:700;line-height:1">×</button>
       </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
+      <button class="estq-tab on" data-estqnav="produtos" onclick="irEstoque('produtos')">Produtos</button>
+      <button class="estq-tab" data-estqnav="geral" onclick="irEstoque('geral')">Visão Geral</button>
+      <button class="estq-tab" data-estqnav="alertas" onclick="irEstoque('alertas')">Alertas <span class="estq-alert-badge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
     </div>
   </div>
   <div class="filter-row">
@@ -612,8 +617,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     </div>
     <div class="tb-sub" id="estoque-subtitle">Visão completa · valor, tipos e alertas</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
-      <button class="estq-tab on" data-est="geral" onclick="trocarSubAbaEstoque('geral')">Visão Geral</button>
-      <button class="estq-tab" data-est="alertas" onclick="trocarSubAbaEstoque('alertas')">Alertas <span id="estq-alert-badge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
+      <button class="estq-tab" data-estqnav="produtos" onclick="irEstoque('produtos')">Produtos</button>
+      <button class="estq-tab on" data-estqnav="geral" onclick="irEstoque('geral')">Visão Geral</button>
+      <button class="estq-tab" data-estqnav="alertas" onclick="irEstoque('alertas')">Alertas <span class="estq-alert-badge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
     </div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-alertas">
@@ -879,20 +885,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 
 <!-- BOTTOM NAV — ordem: Produtos · Cadastrar · Alertas · Relatórios · Perfil -->
 <nav class="bnav" id="bnav">
-  <button class="bnav-item on" data-sc="estoque" onclick="navTo('estoque')">
-    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 3v18M16 3v18M2 9h20M2 15h20"/></svg>
-    <span class="bnav-lb">Produtos</span>
-  </button>
-  <button class="bnav-item" data-sc="cadastro" onclick="navTo('cadastro')">
-    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-    <span class="bnav-lb">Cadastrar</span>
-  </button>
   <button class="bnav-item" id="nav-pedidos" data-sc="pedidos" onclick="navTo('pedidos')" style="position:relative">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     <span class="bnav-lb">Vendas</span>
     <span id="badge-pedidos-nav" style="position:absolute;top:2px;right:10px;background:var(--danger);color:#fff;border-radius:10px;min-width:15px;height:15px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;display:none">0</span>
   </button>
-  <button class="bnav-item" data-sc="alertas" onclick="navTo('alertas')">
+  <button class="bnav-item" data-sc="cadastro" onclick="navTo('cadastro')">
+    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+    <span class="bnav-lb">Cadastrar</span>
+  </button>
+  <button class="bnav-item on" data-sc="alertas" onclick="irEstoque('produtos')">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
     <span class="bnav-lb">Estoque</span>
   </button>
@@ -1231,6 +1233,23 @@ function navTo(sc){
   if(sc==='perfil')carregarPerfil();
 }
 
+/* Navega na seção Estoque (Produtos = sc-estoque; Visão Geral/Alertas = sc-alertas) */
+function irEstoque(sub){
+  sub=sub||'produtos';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  if(sub==='produtos'){
+    document.getElementById('sc-estoque').classList.add('active');
+    carregarEstoque();
+  }else{
+    document.getElementById('sc-alertas').classList.add('active');
+    carregarAlertas();
+    trocarSubAbaEstoque(sub);
+  }
+  document.querySelectorAll('[data-estqnav]').forEach(b=>b.classList.toggle('on',b.dataset.estqnav===sub));
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
+  const en=document.querySelector('.bnav-item[data-sc="alertas"]'); if(en)en.classList.add('on');
+}
+
 /* ═══ PERMISSÕES POR PAPEL ═══
    Proprietário (admin) vê tudo. Vendedor não vê informações financeiras
    da loja nem as configurações (dados, regras, parâmetros), que ficam
@@ -1259,11 +1278,12 @@ let pedidoAlerta=null;          // {id, faltas:[{nome,tem,pedido}]} aviso de est
 let pedidosSubAba='aberto';     // 'aberto' | 'concluido'
 let PED_FOTOS={};               // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
 let concluidoFiltro='todos';    // 'todos' | 'pendentes' (entrega)
-let vendaItens=[]; let vendaPgto='Pix'; let vendaNome=''; // venda presencial em construção
+let vendaItens=[]; let vendaPgto='Pix'; let vendaNome=''; let vendaAviso=false; // venda presencial em construção
 let PICK_CALLBACK=null, PICK_DONE=null, PICK_COUNT=0;     // seletor de produtos
 const PED_PGTOS=['Pix','Dinheiro','Cartão de débito','Cartão de crédito'];
 const fmtR=(v)=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
 const capPed=(s)=>s?s.charAt(0).toUpperCase()+s.slice(1):'';
+function estoqueProduto(id){const p=PRODS.find(x=>x.id===id);return p?Number(p.quantidade||0):null;}
 
 function trocarSubAbaPedidos(aba){
   pedidosSubAba=aba; pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
@@ -1380,19 +1400,27 @@ function cartaoEdicao(p,num){
   const b=editBuffer; if(!b)return '';
   const total=b.itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
   const stepBtn='width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text1);font-size:17px;font-weight:700;cursor:pointer;line-height:1';
-  const itensHtml=b.itens.map((it,idx)=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-      ${thumbItem(it)}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;color:var(--text1);font-weight:600;line-height:1.3">${nomeItem(it)}</div>
-        <div style="font-size:12px;color:var(--text2)">${fmtR(it.preco_unitario)}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px">
-        <button onclick="edItemQtd(${idx},-1)" style="${stepBtn}">−</button>
-        <span style="min-width:20px;text-align:center;font-weight:700;color:var(--text1)">${it.quantidade}</span>
-        <button onclick="edItemQtd(${idx},1)" style="${stepBtn}">+</button>
-        <button onclick="edItemRemove(${idx})" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--danger-l);color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;line-height:1" aria-label="Remover">×</button>
-      </div>
-    </div>`).join('');
+  const itensHtml=b.itens.map((it,idx)=>{
+    const disp=estoqueProduto(it.produto_id);
+    const excede=(disp!==null&&Number(it.quantidade||0)>disp);
+    const wrap=excede?'border:1.5px solid var(--danger);background:var(--danger-l);border-radius:10px;padding:8px;margin-bottom:6px':'border-bottom:1px solid var(--border);padding:7px 0';
+    const aviso=excede?`<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:5px">⚠️ Apenas ${disp} em estoque — você pôs ${it.quantidade}</div>`:'';
+    return `<div style="${wrap}">
+      <div style="display:flex;gap:10px;align-items:center">
+        ${thumbItem(it)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--text1);font-weight:600;line-height:1.3">${nomeItem(it)}</div>
+          <div style="font-size:12px;color:var(--text2)">${fmtR(it.preco_unitario)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <button onclick="edItemQtd(${idx},-1)" style="${stepBtn}">−</button>
+          <span style="min-width:20px;text-align:center;font-weight:700;color:${excede?'var(--danger)':'var(--text1)'}">${it.quantidade}</span>
+          <button onclick="edItemQtd(${idx},1)" style="${stepBtn}">+</button>
+          <button onclick="edItemRemove(${idx})" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--danger-l);color:var(--danger);font-size:18px;font-weight:700;cursor:pointer;line-height:1" aria-label="Remover">×</button>
+        </div>
+      </div>${aviso}
+    </div>`;
+  }).join('');
   const ent=b.tipo_entrega||'retirada';
   const tabBtn=(on)=>`flex:1;padding:9px;border-radius:8px;border:1.5px solid ${on?'var(--accent)':'var(--border2)'};background:${on?'var(--accent-l)':'var(--surface)'};color:${on?'var(--accent)':'var(--text2)'};font-size:13px;font-weight:700;cursor:pointer`;
   return `<div style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
@@ -1699,7 +1727,7 @@ function pickAdd(id){
 
 /* ═══ NOVA VENDA NA LOJA (presencial) ═══ */
 function novaVenda(){
-  vendaItens=[]; vendaPgto='Pix'; vendaNome='';
+  vendaItens=[]; vendaPgto='Pix'; vendaNome=''; vendaAviso=false;
   const ov=document.createElement('div'); ov.className='ov'; ov.id='ov-venda';
   ov.innerHTML=`
     <div class="ov-panel">
@@ -1720,16 +1748,25 @@ function renderVendaBuilder(){
   if(!body)return;
   const total=vendaItens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
   const stepBtn='width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text1);font-size:17px;font-weight:700;cursor:pointer;line-height:1';
-  const itensHtml=vendaItens.map((it,idx)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      ${thumbItem(it)}
-      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text1)">${nomeItem(it)}</div><div style="font-size:12px;color:var(--text2)">${it.tamanho?'Tam '+it.tamanho+' · ':''}${fmtR(it.preco_unitario)}</div></div>
-      <div style="display:flex;align-items:center;gap:5px">
-        <button onclick="vendaItemQtd(${idx},-1)" style="${stepBtn}">−</button>
-        <span style="min-width:20px;text-align:center;font-weight:700;color:var(--text1)">${it.quantidade}</span>
-        <button onclick="vendaItemQtd(${idx},1)" style="${stepBtn}">+</button>
-        <button onclick="vendaItemRemove(${idx})" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--danger-l);color:var(--danger);font-size:18px;cursor:pointer;line-height:1">×</button>
-      </div>
-    </div>`).join('');
+  const excedentes=vendaItens.filter(it=>{const d=estoqueProduto(it.produto_id);return d!==null&&Number(it.quantidade||0)>d;});
+  const itensHtml=vendaItens.map((it,idx)=>{
+    const disp=estoqueProduto(it.produto_id);
+    const excede=(disp!==null&&Number(it.quantidade||0)>disp);
+    const wrap=excede?'border:1.5px solid var(--danger);background:var(--danger-l);border-radius:10px;padding:8px;margin-bottom:6px':'border-bottom:1px solid var(--border);padding:8px 0';
+    const aviso=excede?`<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:5px">⚠️ Apenas ${disp} em estoque — você adicionou ${it.quantidade}</div>`:'';
+    return `<div style="${wrap}">
+      <div style="display:flex;gap:10px;align-items:center">
+        ${thumbItem(it)}
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text1)">${nomeItem(it)}</div><div style="font-size:12px;color:var(--text2)">${it.tamanho?'Tam '+it.tamanho+' · ':''}${fmtR(it.preco_unitario)}</div></div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <button onclick="vendaItemQtd(${idx},-1)" style="${stepBtn}">−</button>
+          <span style="min-width:20px;text-align:center;font-weight:700;color:${excede?'var(--danger)':'var(--text1)'}">${it.quantidade}</span>
+          <button onclick="vendaItemQtd(${idx},1)" style="${stepBtn}">+</button>
+          <button onclick="vendaItemRemove(${idx})" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--danger-l);color:var(--danger);font-size:18px;cursor:pointer;line-height:1">×</button>
+        </div>
+      </div>${aviso}
+    </div>`;
+  }).join('');
   const opts=PED_PGTOS.map(o=>`<option value="${o}"${o===vendaPgto?' selected':''}>${o}</option>`).join('');
   body.innerHTML=`
     <button class="fbtn fbtn-outline" onclick="addProdutoNaVenda()" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px">+ Adicionar produto</button>
@@ -1737,11 +1774,16 @@ function renderVendaBuilder(){
     <div style="margin-top:14px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Cliente (opcional)</label><input id="venda-nome" class="finput" style="margin-top:4px" value="${(vendaNome||'').replace(/"/g,'&quot;')}" placeholder="Nome do cliente"/></div>
     <div style="margin-top:10px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Pagamento</label><select id="venda-pgto" class="fselect" style="margin-top:4px">${opts}</select></div>
   `;
-  foot.innerHTML=`
-    <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:15px;margin-bottom:10px"><span>Total</span><span>${fmtR(total)}</span></div>
-    <button class="fbtn fbtn-success" id="venda-fechar-btn" onclick="finalizarVenda()" ${vendaItens.length?'':'disabled style="opacity:.5"'}>Fechar venda · ${fmtR(total)}</button>
-  `;
+  let footBtns;
+  if(vendaAviso&&excedentes.length){
+    footBtns=`<div style="font-size:12px;color:var(--danger);font-weight:700;margin-bottom:8px">Há itens acima do estoque (marcados em vermelho). Registrar mesmo assim?</div>
+      <div style="display:flex;gap:8px"><button class="fbtn fbtn-outline" onclick="revisarVenda()">Revisar</button><button class="fbtn fbtn-danger" id="venda-fechar-btn" onclick="finalizarVenda(true)">Registrar assim mesmo</button></div>`;
+  }else{
+    footBtns=`<button class="fbtn fbtn-success" id="venda-fechar-btn" onclick="finalizarVenda()" ${vendaItens.length?'':'disabled style="opacity:.5"'}>Fechar venda · ${fmtR(total)}</button>`;
+  }
+  foot.innerHTML=`<div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:15px;margin-bottom:10px"><span>Total</span><span>${fmtR(total)}</span></div>${footBtns}`;
 }
+function revisarVenda(){vendaAviso=false;renderVendaBuilder();}
 function addProdutoNaVenda(){ _capturarVenda(); abrirSeletorProduto((p)=>mergeItem(vendaItens,p), ()=>renderVendaBuilder()); }
 function vendaItemQtd(idx,d){ _capturarVenda(); const it=vendaItens[idx]; if(!it)return; it.quantidade=Math.max(1,Number(it.quantidade||1)+d); renderVendaBuilder(); }
 function vendaItemRemove(idx){ _capturarVenda(); vendaItens.splice(idx,1); renderVendaBuilder(); }
@@ -1750,23 +1792,30 @@ async function finalizarVenda(forcar){
   if(!vendaItens.length)return;
   const porProd={}; vendaItens.forEach(it=>{porProd[it.produto_id]=(porProd[it.produto_id]||0)+Number(it.quantidade||0);});
   const ids=Object.keys(porProd);
-  let estoqueMap={};
-  try{const rows=await sbGet(TABELA,'id=in.('+ids.join(',')+')&select=id,quantidade');(rows||[]).forEach(r=>{estoqueMap[r.id]=Number(r.quantidade||0);});}catch(e){}
+  // Aviso de estoque: se algum item excede, marca em vermelho e pede confirmação no rodapé
   if(!forcar){
-    const faltas=ids.filter(pid=>porProd[pid]>(estoqueMap[pid]!==undefined?estoqueMap[pid]:0));
-    if(faltas.length){
-      const txt=faltas.map(pid=>{const it=vendaItens.find(x=>x.produto_id===pid);return capPed(it?it.tipo:'')+' (estoque '+(estoqueMap[pid]||0)+', venda '+porProd[pid]+')';}).join('\n');
-      if(!confirm('Estoque insuficiente:\n'+txt+'\n\nRegistrar a venda assim mesmo?'))return;
-    }
+    const excede=vendaItens.some(it=>{const d=estoqueProduto(it.produto_id);return d!==null&&Number(it.quantidade||0)>d;});
+    if(excede){ vendaAviso=true; renderVendaBuilder(); return; }
   }
+  vendaAviso=false;
   const btn=document.getElementById('venda-fechar-btn'); if(btn){btn.textContent='Registrando...';btn.disabled=true;}
   const total=vendaItens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  // Estoque atual (para a baixa) e número sequencial (mesma sequência do WhatsApp)
+  let estoqueMap={};
+  try{const rows=await sbGet(TABELA,'id=in.('+ids.join(',')+')&select=id,quantidade');(rows||[]).forEach(r=>{estoqueMap[r.id]=Number(r.quantidade||0);});}catch(e){}
+  let numeroPedido=null;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/rpc/proximo_numero_pedido`,{method:'POST',headers:getHDR(),body:JSON.stringify({p_loja_id:LOJA_ID})});
+    if(r.ok){const n=await r.json();numeroPedido=(typeof n==='number')?n:(parseInt(n)||null);}
+  }catch(e){}
   try{
     for(const pid of ids){const atual=estoqueMap[pid]!==undefined?estoqueMap[pid]:0;const nova=Math.max(0,atual-porProd[pid]);try{await sbPatch(TABELA,'id=eq.'+pid,{quantidade:nova});}catch(e){}}
     for(const it of vendaItens){await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:Number(it.quantidade||0),preco_unitario:it.preco_unitario,forma_pagamento:vendaPgto,vendedor_id:USER_ID});}
     const agora=new Date().toISOString();
-    await sbPost('carrinhos_wpp',{loja_id:LOJA_ID,origem:'presencial',estado:'concluido',itens:vendaItens,total_bruto:total,forma_pagamento:vendaPgto,vendedor_id:USER_ID,nome_cliente:vendaNome||null,tipo_entrega:'retirada',concluido_em:agora,atualizado_em:agora,criado_em:agora});
-    showToast('Venda registrada! 🎉');
+    const reg={loja_id:LOJA_ID,origem:'presencial',estado:'concluido',itens:vendaItens,total_bruto:total,forma_pagamento:vendaPgto,vendedor_id:USER_ID,nome_cliente:vendaNome||null,tipo_entrega:'retirada',concluido_em:agora,atualizado_em:agora,criado_em:agora};
+    if(numeroPedido)reg.numero_pedido=numeroPedido;
+    await sbPost('carrinhos_wpp',reg);
+    showToast(numeroPedido?('Venda #'+String(numeroPedido).padStart(3,'0')+' registrada! 🎉'):'Venda registrada! 🎉');
     try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
     fecharVenda();
     await carregarPedidos();
@@ -1975,7 +2024,6 @@ function openDetalhe(key){
           <div class="var-stk" style="color:${nq==0?'var(--danger)':nq<=3?'var(--warning)':'var(--success)'}">${nq} un. ${dHtml}</div>
         </div>
         <div class="var-btns">
-          <button class="var-btn var-btn-minus" onclick="adjVar('${v.id}',-1,'${key}')" ${minusDisabled?'disabled style="opacity:.3;cursor:not-allowed"':''}>−</button>
           <button class="var-btn var-btn-plus" onclick="adjVar('${v.id}',1,'${key}')" ${plusDisabled?'disabled style="opacity:.3;cursor:not-allowed"':''}>+</button>
         </div>
       </div>`;
@@ -2018,7 +2066,7 @@ function openDetalhe(key){
       <div class="det-divider"></div>
       <div class="var-section">
         <div class="var-title" style="margin-bottom:4px">TAMANHOS</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">use (−) para registrar venda · use (+) para entrada em estoque</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">use (+) para dar entrada de novas unidades · as vendas são feitas na aba Vendas</div>
         <div id="var-rows-${key}">${buildVarRows()}</div>
         <div id="add-tam-area-${key}" style="margin-top:8px"></div>
         <button class="add-tam-btn" id="add-tam-btn-${key}" onclick="abrirAddTamSheet('${key}')" style="color:var(--accent);margin-top:10px">
@@ -2583,7 +2631,6 @@ function buscarMultiplo(q){
 let subAbaEstoque='geral';
 function trocarSubAbaEstoque(aba){
   subAbaEstoque=aba;
-  document.querySelectorAll('.estq-tab').forEach(b=>b.classList.toggle('on',b.dataset.est===aba));
   document.getElementById('estq-geral').style.display=aba==='geral'?'block':'none';
   document.getElementById('estq-alertas').style.display=aba==='alertas'?'block':'none';
   // Atualiza subtítulo
@@ -2912,12 +2959,11 @@ async function carregarAlertas(){
     const tiposUnicos=new Set(crit.map(p=>(p.tipo||'').toLowerCase().trim()));
     const badgeNum=tiposUnicos.size;
     document.getElementById('badge-alerta').textContent=badgeNum;
-    // Badge na sub-aba Alertas
-    const subBadge=document.getElementById('estq-alert-badge');
-    if(subBadge){
+    // Badge na sub-aba Alertas (presente nas duas barras)
+    document.querySelectorAll('.estq-alert-badge').forEach(subBadge=>{
       if(badgeNum>0){subBadge.textContent=badgeNum;subBadge.style.display='inline-block';}
       else{subBadge.style.display='none';}
-    }
+    });
     if(!crit.length){document.getElementById('alertas-empty').style.display='block';return;}
     renderAlertas();
   }catch(e){document.getElementById('alerta-loading').style.display='none';showToast('Erro ao carregar alertas',true);}
@@ -3042,8 +3088,7 @@ async function esconderLogin(){
     const tiposUnicos=new Set(crit.map(p=>(p.tipo||'').toLowerCase().trim()));
     const n=tiposUnicos.size;
     document.getElementById('badge-alerta').textContent=n;
-    const subBadge=document.getElementById('estq-alert-badge');
-    if(subBadge){if(n>0){subBadge.textContent=n;subBadge.style.display='inline-block';}else subBadge.style.display='none';}
+    document.querySelectorAll('.estq-alert-badge').forEach(subBadge=>{if(n>0){subBadge.textContent=n;subBadge.style.display='inline-block';}else subBadge.style.display='none';});
   }catch(e){}
   // Badge de pedidos novos (não assumidos) na barra inferior
   try{
