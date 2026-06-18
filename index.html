@@ -1848,20 +1848,40 @@ async function abrirChat(telefone,nome){
       <div class="ov-body" id="chat-msgs" style="display:flex;flex-direction:column;gap:8px;background:var(--bg)">
         <div class="loading-row" id="chat-loading"><span class="proc-dot"></span>Carregando conversa...</div>
       </div>
-      <div class="ov-foot" style="display:flex;gap:8px;align-items:flex-end">
-        <input type="file" id="chat-file" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
-        <button class="fbtn fbtn-outline" style="width:auto;padding:0 9px;height:44px;font-size:15px" onclick="document.getElementById('chat-file').click()" title="Anexar foto ou PDF">📎</button>
-        <button id="chat-mic-btn" class="fbtn fbtn-outline" style="width:auto;padding:0 9px;height:44px;font-size:15px" onclick="toggleGravacaoAudio()" title="Gravar áudio">🎤</button>
-        <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
-        <button class="fbtn" style="width:auto;padding:0 15px;height:44px" onclick="enviarMensagemChat()">Enviar</button>
-      </div>
+      <div class="ov-foot" id="chat-foot" style="display:flex;gap:6px;align-items:flex-end"></div>
     </div>`;
   document.body.appendChild(ov);
+  renderChatFoot('normal');
   await carregarMensagens();
   chatPollTimer=setInterval(carregarMensagens,4000);
 }
+function renderChatFoot(modo){
+  const foot=document.getElementById('chat-foot'); if(!foot)return;
+  if(modo==='gravando'){
+    foot.innerHTML=`
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 13px;height:44px" onclick="cancelarGravacao()" title="Cancelar">🗑</button>
+      <div style="flex:1;display:flex;align-items:center;gap:8px;color:var(--danger);font-weight:700;font-size:14px;padding:0 6px"><span style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></span><span id="chat-rec-time">0:00</span> gravando…</div>
+      <button class="fbtn" style="width:auto;padding:0 15px;height:44px" onclick="pararGravacao()">⏹ Parar</button>`;
+  }else if(modo==='preview'){
+    const src=chatAudioPendente?URL.createObjectURL(chatAudioPendente):'';
+    foot.innerHTML=`
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 13px;height:44px" onclick="descartarAudio()" title="Excluir">🗑</button>
+      <audio controls src="${src}" style="flex:1;height:42px;min-width:0"></audio>
+      <button class="fbtn" style="width:auto;padding:0 15px;height:44px" onclick="enviarAudioPendente()">Enviar</button>`;
+  }else{
+    foot.innerHTML=`
+      <input type="file" id="chat-anexo" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 10px;height:44px;font-size:15px" onclick="document.getElementById('chat-anexo').click()" title="Anexar foto ou PDF">📎</button>
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 10px;height:44px;font-size:15px" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 10px;height:44px;font-size:15px" onclick="enviarLocalizacaoChat()" title="Enviar localização">📍</button>
+      <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
+      <button class="fbtn" style="width:auto;padding:0 14px;height:44px" onclick="enviarMensagemChat()">Enviar</button>`;
+  }
+}
 function fecharChat(){
   if(chatRec&&chatRec.state==='recording'){chatRecCancel=true;try{chatRec.stop();}catch(e){}}
+  if(chatRecTimer){clearInterval(chatRecTimer);chatRecTimer=null;}
+  chatAudioPendente=null;
   if(chatPollTimer){clearInterval(chatPollTimer);chatPollTimer=null;}
   const ov=document.getElementById('ov-chat'); if(ov)ov.remove();
   chatTelefone=null;
@@ -1950,35 +1970,70 @@ async function enviarAnexoChat(input){
   if((file.type||'')==='application/pdf') return enviarArquivoChat(input);
   return enviarFotoChat(input);
 }
-// Gravação de áudio (🎤) — toque para iniciar, toque em ⏹ para enviar
-let chatRec=null, chatChunks=[], chatStream=null, chatRecCancel=false;
-async function toggleGravacaoAudio(){
-  const btn=document.getElementById('chat-mic-btn');
-  if(chatRec&&chatRec.state==='recording'){ chatRec.stop(); return; }
+// Gravação de áudio com prévia antes de enviar (estilo WhatsApp)
+let chatRec=null, chatChunks=[], chatStream=null, chatRecCancel=false, chatAudioPendente=null, chatRecTimer=null, chatRecIni=0;
+function pickAudioMime(){
+  const cands=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+  for(const c of cands){ if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(c)) return c; }
+  return '';
+}
+// Reencoda qualquer gravação para WAV (cabeçalho com duração correta — corrige o "0 segundos")
+function _encodeWAV(audioBuffer){
+  const sr=audioBuffer.sampleRate;
+  const data=audioBuffer.getChannelData(0); // mono (canal 0)
+  const buf=new ArrayBuffer(44+data.length*2);
+  const v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF'); v.setUint32(4,36+data.length*2,true); ws(8,'WAVE'); ws(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  ws(36,'data'); v.setUint32(40,data.length*2,true);
+  let off=44; for(let i=0;i<data.length;i++){let s=Math.max(-1,Math.min(1,data[i]));v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}
+  return new Blob([v],{type:'audio/wav'});
+}
+async function blobParaWav(blob){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const ac=new AC();
+  const arr=await blob.arrayBuffer();
+  const audioBuf=await ac.decodeAudioData(arr);
+  try{ac.close();}catch(e){}
+  return _encodeWAV(audioBuf);
+}
+async function iniciarGravacao(){
   if(!navigator.mediaDevices||!window.MediaRecorder){showToast('Gravação de áudio não suportada neste navegador',true);return;}
   try{
     chatStream=await navigator.mediaDevices.getUserMedia({audio:true});
-    chatChunks=[]; chatRecCancel=false;
-    chatRec=new MediaRecorder(chatStream);
+    chatChunks=[]; chatRecCancel=false; chatAudioPendente=null;
+    const mime=pickAudioMime();
+    chatRec=mime?new MediaRecorder(chatStream,{mimeType:mime}):new MediaRecorder(chatStream);
     chatRec.ondataavailable=e=>{if(e.data&&e.data.size>0)chatChunks.push(e.data);};
     chatRec.onstop=async()=>{
       try{chatStream.getTracks().forEach(t=>t.stop());}catch(e){}
-      if(btn){btn.textContent='🎤';btn.style.background='';btn.style.color='';}
-      if(chatRecCancel){chatRecCancel=false;return;}
-      const blob=new Blob(chatChunks,{type:(chatRec&&chatRec.mimeType)||'audio/webm'});
-      if(blob.size<600){return;}
-      await subirEnviarAudioChat(blob);
+      if(chatRecTimer){clearInterval(chatRecTimer);chatRecTimer=null;}
+      if(chatRecCancel){chatRecCancel=false;renderChatFoot('normal');return;}
+      const raw=new Blob(chatChunks,{type:(chatRec&&chatRec.mimeType)||'audio/webm'});
+      if(raw.size<800){showToast('Áudio muito curto',true);renderChatFoot('normal');return;}
+      // Reencoda para WAV (corrige a duração lida como 0s pelo WhatsApp)
+      let fin=raw; try{ fin=await blobParaWav(raw); }catch(e){ fin=raw; }
+      chatAudioPendente=fin;
+      renderChatFoot('preview');
     };
-    chatRec.start();
-    if(btn){btn.textContent='⏹';btn.style.background='var(--danger)';btn.style.color='#fff';}
-    showToast('Gravando… toque em ⏹ para enviar');
+    chatRec.start(200); // emite chunks a cada 200ms (captura completa e confiável)
+    chatRecIni=Date.now();
+    renderChatFoot('gravando');
+    chatRecTimer=setInterval(()=>{const s=Math.floor((Date.now()-chatRecIni)/1000);const el=document.getElementById('chat-rec-time');if(el)el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');},300);
   }catch(e){showToast('Não foi possível acessar o microfone',true);}
 }
-async function subirEnviarAudioChat(blob){
+function pararGravacao(){ if(chatRec&&chatRec.state!=='inactive')chatRec.stop(); }
+function cancelarGravacao(){ chatRecCancel=true; if(chatRec&&chatRec.state!=='inactive')chatRec.stop(); else renderChatFoot('normal'); }
+function descartarAudio(){ chatAudioPendente=null; renderChatFoot('normal'); }
+async function enviarAudioPendente(){
+  if(!chatAudioPendente||!chatTelefone){renderChatFoot('normal');return;}
+  const blob=chatAudioPendente; chatAudioPendente=null; renderChatFoot('normal');
   try{
     showToast('Enviando áudio...');
     const mt=blob.type||'audio/webm';
-    const ext=(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac'))?'m4a':(mt.includes('ogg')?'ogg':'webm');
+    const ext=mt.includes('wav')?'wav':(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac'))?'m4a':(mt.includes('ogg')?'ogg':'webm');
     const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
     const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':mt},body:blob});
     if(!up.ok)throw new Error('upload');
@@ -1986,6 +2041,18 @@ async function subirEnviarAudioChat(blob){
     await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'audio',media_url:url,vendedor_id:USER_ID})});
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar o áudio',true);}
+}
+// Enviar localização atual do dispositivo
+function enviarLocalizacaoChat(){
+  if(!navigator.geolocation){showToast('Localização não suportada neste navegador',true);return;}
+  showToast('Obtendo localização...');
+  navigator.geolocation.getCurrentPosition(async(pos)=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    try{
+      await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'localizacao',latitude:lat,longitude:lng,vendedor_id:USER_ID})});
+      chatUltimoCount=-1; setTimeout(carregarMensagens,800);
+    }catch(e){showToast('Erro ao enviar a localização',true);}
+  },()=>{showToast('Não foi possível obter a localização. Verifique a permissão.',true);},{enableHighAccuracy:true,timeout:10000});
 }
 
 /* ═══ AGRUPAMENTO ═══
