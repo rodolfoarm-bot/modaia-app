@@ -1849,12 +1849,11 @@ async function abrirChat(telefone,nome){
         <div class="loading-row" id="chat-loading"><span class="proc-dot"></span>Carregando conversa...</div>
       </div>
       <div class="ov-foot" style="display:flex;gap:8px;align-items:flex-end">
-        <input type="file" id="chat-file" accept="image/*" style="display:none" onchange="enviarFotoChat(this)"/>
-        <input type="file" id="chat-doc" accept="application/pdf" style="display:none" onchange="enviarArquivoChat(this)"/>
-        <button class="fbtn fbtn-outline" style="width:auto;padding:0 12px;height:44px;font-size:17px" onclick="document.getElementById('chat-file').click()" title="Enviar foto">📷</button>
-        <button class="fbtn fbtn-outline" style="width:auto;padding:0 12px;height:44px;font-size:16px" onclick="document.getElementById('chat-doc').click()" title="Enviar PDF">📎</button>
-        <textarea id="chat-input" class="finput" placeholder="Mensagem para o cliente..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
-        <button class="fbtn" style="width:auto;padding:0 18px;height:44px" onclick="enviarMensagemChat()">Enviar</button>
+        <input type="file" id="chat-file" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
+        <button class="fbtn fbtn-outline" style="width:auto;padding:0 9px;height:44px;font-size:15px" onclick="document.getElementById('chat-file').click()" title="Anexar foto ou PDF">📎</button>
+        <button id="chat-mic-btn" class="fbtn fbtn-outline" style="width:auto;padding:0 9px;height:44px;font-size:15px" onclick="toggleGravacaoAudio()" title="Gravar áudio">🎤</button>
+        <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
+        <button class="fbtn" style="width:auto;padding:0 15px;height:44px" onclick="enviarMensagemChat()">Enviar</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -1862,6 +1861,7 @@ async function abrirChat(telefone,nome){
   chatPollTimer=setInterval(carregarMensagens,4000);
 }
 function fecharChat(){
+  if(chatRec&&chatRec.state==='recording'){chatRecCancel=true;try{chatRec.stop();}catch(e){}}
   if(chatPollTimer){clearInterval(chatPollTimer);chatPollTimer=null;}
   const ov=document.getElementById('ov-chat'); if(ov)ov.remove();
   chatTelefone=null;
@@ -1942,6 +1942,50 @@ async function enviarArquivoChat(input){
     await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'documento',media_url:url,nome_arquivo:fname,vendedor_id:USER_ID})});
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar o arquivo',true);}
+}
+// Roteia o anexo (📎) conforme o tipo: imagem ou PDF
+async function enviarAnexoChat(input){
+  const file=input.files&&input.files[0];
+  if(!file){input.value='';return;}
+  if((file.type||'')==='application/pdf') return enviarArquivoChat(input);
+  return enviarFotoChat(input);
+}
+// Gravação de áudio (🎤) — toque para iniciar, toque em ⏹ para enviar
+let chatRec=null, chatChunks=[], chatStream=null, chatRecCancel=false;
+async function toggleGravacaoAudio(){
+  const btn=document.getElementById('chat-mic-btn');
+  if(chatRec&&chatRec.state==='recording'){ chatRec.stop(); return; }
+  if(!navigator.mediaDevices||!window.MediaRecorder){showToast('Gravação de áudio não suportada neste navegador',true);return;}
+  try{
+    chatStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    chatChunks=[]; chatRecCancel=false;
+    chatRec=new MediaRecorder(chatStream);
+    chatRec.ondataavailable=e=>{if(e.data&&e.data.size>0)chatChunks.push(e.data);};
+    chatRec.onstop=async()=>{
+      try{chatStream.getTracks().forEach(t=>t.stop());}catch(e){}
+      if(btn){btn.textContent='🎤';btn.style.background='';btn.style.color='';}
+      if(chatRecCancel){chatRecCancel=false;return;}
+      const blob=new Blob(chatChunks,{type:(chatRec&&chatRec.mimeType)||'audio/webm'});
+      if(blob.size<600){return;}
+      await subirEnviarAudioChat(blob);
+    };
+    chatRec.start();
+    if(btn){btn.textContent='⏹';btn.style.background='var(--danger)';btn.style.color='#fff';}
+    showToast('Gravando… toque em ⏹ para enviar');
+  }catch(e){showToast('Não foi possível acessar o microfone',true);}
+}
+async function subirEnviarAudioChat(blob){
+  try{
+    showToast('Enviando áudio...');
+    const mt=blob.type||'audio/webm';
+    const ext=(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac'))?'m4a':(mt.includes('ogg')?'ogg':'webm');
+    const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+    const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':mt},body:blob});
+    if(!up.ok)throw new Error('upload');
+    const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'audio',media_url:url,vendedor_id:USER_ID})});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,900);
+  }catch(e){showToast('Erro ao enviar o áudio',true);}
 }
 
 /* ═══ AGRUPAMENTO ═══
