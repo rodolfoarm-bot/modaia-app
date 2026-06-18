@@ -3174,16 +3174,20 @@ async function esconderLogin(){
 }
 async function carregarPerfilLoja(){
   try{
-    const data=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
+    const uid=usuarioLogado?.id||null;
+    // Filtra pela própria linha (robusto mesmo quando a RLS permite ler outros membros da loja)
+    const data=await sbGet('usuarios_lojas','user_id=eq.'+uid+'&select=loja_id,nome,papel');
     if(data&&data[0]){
       LOJA_ID=data[0].loja_id; // define LOJA_ID primeiro
       PAPEL=data[0].papel||'vendedor';
-      USER_ID=usuarioLogado?.id||null;
+      USER_ID=uid;
       // Detecta se a loja já tem equipe (mais de uma pessoa). Solo por padrão.
       try{
         const equipe=await sbGet('usuarios_lojas','select=loja_id&loja_id=eq.'+LOJA_ID);
         MODO_EQUIPE=(equipe?.length||0)>1;
       }catch(e){MODO_EQUIPE=false;}
+      // Chave de teste: força o modo equipe (ex.: para testar o chat in-app antes de ter vendedor)
+      if(localStorage.getItem('giro_forcar_equipe')==='1')MODO_EQUIPE=true;
       const vendedorNome=data[0].nome||'';
       // Agora busca nome da loja usando LOJA_ID já definido
       let nomeLoja='';
