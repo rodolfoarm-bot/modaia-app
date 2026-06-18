@@ -1835,7 +1835,7 @@ function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; a
    O vendedor conversa com o cliente pelo WhatsApp da loja sem expor a chave da
    Evolution: o envio passa pelo webhook vendedor_envia (n8n). As mensagens ficam
    em mensagens_wpp (in = cliente, out = loja) e o app faz polling para exibir. */
-let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0;
+let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0, chatMsgs=[];
 async function abrirChat(telefone,nome){
   chatTelefone=(telefone||'').toString(); chatUltimoCount=-1;
   let nomeContato='';
@@ -1929,22 +1929,23 @@ async function carregarMensagens(){
     cont.innerHTML=`<div style="text-align:center;color:var(--text3);padding:30px 16px;font-size:13px">Nenhuma mensagem ainda. Envie a primeira mensagem para o cliente.</div>`;
     return;
   }
-  cont.innerHTML=msgs.map(m=>{
+  chatMsgs=msgs;
+  cont.innerHTML=msgs.map((m,i)=>{
     const out=m.direcao==='out';
     const hora=m.criado_em?new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     let conteudo;
     if(m.tipo==='imagem'&&m.media_url){
-      conteudo=`<img src="${m.media_url}" onclick="abrirFotoFullscreen('${m.media_url}')" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
+      conteudo=`<img src="${m.media_url}" onclick="ampliarMsg(${i})" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
       if(m.texto&&m.texto!=='[imagem]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
     }else if(m.tipo==='audio'&&m.media_url){
       conteudo=`<audio controls preload="metadata" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
       if(m.texto&&!['[áudio]','[audio]'].includes(m.texto))conteudo+=`<div style="font-size:12px;opacity:.85;margin-top:5px;font-style:italic">“${(m.texto||'').replace(/</g,'&lt;')}”</div>`;
     }else if(m.tipo==='documento'&&m.media_url){
       const fn=(m.meta&&m.meta.nome_arquivo)||'Documento';
-      conteudo=`<a href="${m.media_url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit"><span style="font-size:24px">📄</span><span style="font-size:13px;font-weight:600;word-break:break-all">${(fn+'').replace(/</g,'&lt;')}</span></a>`;
+      conteudo=`<div onclick="abrirPdfMsg(${i})" style="display:flex;align-items:center;gap:9px;cursor:pointer;color:inherit"><span style="font-size:24px">📄</span><span style="font-size:13px;font-weight:600;word-break:break-all;text-decoration:underline">${(fn+'').replace(/</g,'&lt;')}</span></div>`;
     }else if(m.tipo==='localizacao'){
       const lat=m.meta&&m.meta.latitude, lng=m.meta&&m.meta.longitude;
-      const maps=m.media_url||((lat&&lng)?`https://www.google.com/maps?q=${lat},${lng}`:'#');
+      const maps=(m.media_url&&m.media_url.startsWith('http'))?m.media_url:((lat&&lng)?`https://www.google.com/maps?q=${lat},${lng}`:'#');
       conteudo=`<a href="${maps}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit"><span style="font-size:24px">📍</span><span style="font-size:13px;font-weight:600">Ver localização no mapa</span></a>`;
     }else{
       conteudo=`<div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
@@ -1955,6 +1956,15 @@ async function carregarMensagens(){
     </div>`;
   }).join('');
   cont.scrollTop=cont.scrollHeight;
+}
+function ampliarMsg(i){ const m=chatMsgs[i]; if(m&&m.media_url)abrirFotoFullscreen(m.media_url); }
+async function abrirPdfMsg(i){
+  const m=chatMsgs[i]; if(!m||!m.media_url)return;
+  let url=m.media_url;
+  try{
+    if(url.startsWith('data:')){ const blob=await (await fetch(url)).blob(); url=URL.createObjectURL(blob); }
+    window.open(url,'_blank');
+  }catch(e){ try{window.open(m.media_url,'_blank');}catch(_){} }
 }
 async function enviarMensagemChat(){
   const inp=document.getElementById('chat-input'); if(!inp)return;
