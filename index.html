@@ -1519,7 +1519,9 @@ function renderPedidos(){
     const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
     const ehConcluido=p.estado==='concluido';
     const tel=(p.telefone||'').replace(/\D/g,'');
-    const contato=tel?`<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`:'';
+    const contato=!tel?'':(MODO_EQUIPE
+      ? `<button class="fbtn" onclick="abrirChat('${p.telefone||''}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`
+      : `<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`);
     const origemBadge=`<span style="font-size:9px;font-weight:700;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:20px;margin-left:6px">${ehPresencial?'Loja':'WhatsApp'}</span>`;
     let statusPill,acoes='';
     if(ehConcluido){
@@ -1561,7 +1563,6 @@ function renderPedidos(){
       }else if(assumidoPorMim){
         const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
-          ${tel?`<button class="fbtn" onclick="abrirChat('${p.telefone||''}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`:''}
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px">${opts}</select></div>
