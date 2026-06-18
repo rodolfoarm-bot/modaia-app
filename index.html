@@ -927,6 +927,7 @@ let LOJA_MAPS = '';
 let PAPEL = '';          // 'admin' (proprietário) ou 'vendedor'
 let USER_ID = null;      // id do usuário logado — atribuído a cada venda
 let MODO_EQUIPE = false; // true quando a loja tem mais de uma pessoa
+let VENDEDORES = {};     // user_id -> nome (membros da loja, para rastrear quem vendeu
 function getHDR(){const t=localStorage.getItem('sb_token')||SB_KEY;return{'apikey':SB_KEY,'Authorization':'Bearer '+t,'Content-Type':'application/json','Prefer':'return=representation'};}
 
 /* ═══ SUPABASE ═══ */
@@ -1519,14 +1520,16 @@ function renderPedidos(){
     const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
     const ehConcluido=p.estado==='concluido';
     const tel=(p.telefone||'').replace(/\D/g,'');
-    const contato=!tel?'':(MODO_EQUIPE
-      ? `<button class="fbtn" onclick="abrirChat('${p.telefone||''}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`
-      : `<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">💬 Falar com o cliente</a>`);
+    const waIcon='<svg viewBox="0 0 24 24" width="16" height="16" fill="#25D366" style="flex-shrink:0"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.004c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.13h-.003a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.39c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42-.14 0-.31-.02-.47-.02s-.43.06-.66.31c-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/></svg>';
+    const waBtn=tel?`<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:7px">${waIcon} Conversar pelo WhatsApp</a>`:'';
+    const appBtn=tel?`<button class="fbtn" onclick="abrirChat('${p.telefone||''}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`:'';
+    // Proprietário (no celular com o WhatsApp da loja) sempre tem o WhatsApp; e o app quando há equipe. Vendedor usa o app.
+    const contato = PAPEL==='admin' ? (waBtn+(MODO_EQUIPE?appBtn:'')) : appBtn;
     const origemBadge=`<span style="font-size:9px;font-weight:700;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:20px;margin-left:6px">${ehPresencial?'Loja':'WhatsApp'}</span>`;
     let statusPill,acoes='';
     if(ehConcluido){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Concluída</span>`;
-      const quem=p.vendedor_id===USER_ID?' · por você':'';
+      const quem=p.vendedor_id?(' · por '+(p.vendedor_id===USER_ID?'você':(VENDEDORES[p.vendedor_id]||'vendedor'))):'';
       acoes=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Concluída ${tempoRelativo(p.concluido_em||p.atualizado_em)}${p.forma_pagamento?' · '+p.forma_pagamento:''}${quem}</div>`;
       if(p.tipo_entrega==='entrega'){
         if(p.entregue_em){
@@ -1846,6 +1849,8 @@ async function abrirChat(telefone,nome){
         <div class="loading-row" id="chat-loading"><span class="proc-dot"></span>Carregando conversa...</div>
       </div>
       <div class="ov-foot" style="display:flex;gap:8px;align-items:flex-end">
+        <input type="file" id="chat-file" accept="image/*" style="display:none" onchange="enviarFotoChat(this)"/>
+        <button class="fbtn fbtn-outline" style="width:auto;padding:0 13px;height:44px;font-size:18px" onclick="document.getElementById('chat-file').click()" title="Enviar foto">📷</button>
         <textarea id="chat-input" class="finput" placeholder="Mensagem para o cliente..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
         <button class="fbtn" style="width:auto;padding:0 18px;height:44px" onclick="enviarMensagemChat()">Enviar</button>
       </div>
@@ -1866,8 +1871,7 @@ async function carregarMensagens(){
     msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&telefone=eq.'+chatTelefone+'&order=criado_em.asc&limit=300');
   }catch(e){msgs=[];}
   const cont=document.getElementById('chat-msgs'); if(!cont)return;
-  // Só re-renderiza se o número de mensagens mudou (evita piscar a cada poll)
-  if(Array.isArray(msgs)&&msgs.length===chatUltimoCount)return;
+  if(Array.isArray(msgs)&&msgs.length===chatUltimoCount)return; // evita piscar
   chatUltimoCount=Array.isArray(msgs)?msgs.length:0;
   if(!msgs||msgs.length===0){
     cont.innerHTML=`<div style="text-align:center;color:var(--text3);padding:30px 16px;font-size:13px">Nenhuma mensagem ainda. Envie a primeira mensagem para o cliente.</div>`;
@@ -1876,8 +1880,18 @@ async function carregarMensagens(){
   cont.innerHTML=msgs.map(m=>{
     const out=m.direcao==='out';
     const hora=m.criado_em?new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    let conteudo;
+    if(m.tipo==='imagem'&&m.media_url){
+      conteudo=`<img src="${m.media_url}" onclick="abrirFotoFullscreen('${m.media_url}')" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
+      if(m.texto&&m.texto!=='[imagem]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
+    }else if(m.tipo==='audio'&&m.media_url){
+      conteudo=`<audio controls preload="none" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
+      if(m.texto&&!['[áudio]','[audio]'].includes(m.texto))conteudo+=`<div style="font-size:12px;opacity:.85;margin-top:5px;font-style:italic">“${(m.texto||'').replace(/</g,'&lt;')}”</div>`;
+    }else{
+      conteudo=`<div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
+    }
     return `<div style="align-self:${out?'flex-end':'flex-start'};max-width:80%;background:${out?'var(--accent)':'var(--surface)'};color:${out?'#fff':'var(--text1)'};border:${out?'none':'1px solid var(--border)'};padding:8px 12px;border-radius:14px;border-bottom-${out?'right':'left'}-radius:4px">
-      <div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>
+      ${conteudo}
       <div style="font-size:10px;opacity:.7;margin-top:3px;text-align:right">${hora}</div>
     </div>`;
   }).join('');
@@ -1888,10 +1902,23 @@ async function enviarMensagemChat(){
   const texto=inp.value.trim(); if(!texto||!chatTelefone)return;
   inp.value='';
   try{
-    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto,vendedor_id:USER_ID})});
-    chatUltimoCount=-1; // força re-render
-    setTimeout(carregarMensagens,600);
+    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID})});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,600);
   }catch(e){showToast('Erro ao enviar a mensagem',true);inp.value=texto;}
+}
+async function enviarFotoChat(input){
+  const file=input.files&&input.files[0]; if(!file||!chatTelefone){input.value='';return;}
+  input.value='';
+  try{
+    showToast('Enviando foto...');
+    const blob=await comprimirArquivoLote(file);
+    const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+    const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':'image/jpeg'},body:blob});
+    if(!up.ok)throw new Error('upload');
+    const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'imagem',media_url:url,vendedor_id:USER_ID})});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,900);
+  }catch(e){showToast('Erro ao enviar a foto',true);}
 }
 
 /* ═══ AGRUPAMENTO ═══
@@ -3188,6 +3215,11 @@ async function carregarPerfilLoja(){
       }catch(e){MODO_EQUIPE=false;}
       // Chave de teste: força o modo equipe (ex.: para testar o chat in-app antes de ter vendedor)
       if(localStorage.getItem('giro_forcar_equipe')==='1')MODO_EQUIPE=true;
+      // Mapa de membros da loja (user_id -> nome) para rastrear quem fez cada venda
+      try{
+        const membros=await sbGet('usuarios_lojas','loja_id=eq.'+LOJA_ID+'&select=user_id,nome');
+        VENDEDORES={}; (membros||[]).forEach(m=>{if(m.user_id)VENDEDORES[m.user_id]=m.nome||'Vendedor';});
+      }catch(e){VENDEDORES={};}
       const vendedorNome=data[0].nome||'';
       // Agora busca nome da loja usando LOJA_ID já definido
       let nomeLoja='';
@@ -3233,10 +3265,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function carregarPerfil(){
   try{
     if(usuarioLogado)document.getElementById('perfil-email').textContent=usuarioLogado.email||'—';
-    const ul=await sbGet('usuarios_lojas','select=loja_id,nome,papel');
+    const ul=await sbGet('usuarios_lojas','user_id=eq.'+USER_ID+'&select=loja_id,nome,papel');
     if(ul&&ul[0]){document.getElementById('perfil-nome').textContent=ul[0].nome||'Vendedor';document.getElementById('perfil-loja').textContent=ul[0].loja_id||'—';document.getElementById('perfil-papel').textContent=ul[0].papel==='admin'?'Administrador':'Vendedor';}
     try{const prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
-    try{const vendas=await sbGet('vendas','select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
+    try{const vendas=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
     // Carrega dados da loja (lojas_wpp)
     try{
       const loja=await sbGet('lojas_wpp','select=nome_loja,endereco,link_maps&loja_id=eq.'+LOJA_ID);
