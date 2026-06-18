@@ -1837,12 +1837,18 @@ function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; a
    em mensagens_wpp (in = cliente, out = loja) e o app faz polling para exibir. */
 let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0;
 async function abrirChat(telefone,nome){
-  chatTelefone=(telefone||'').toString(); chatNome=nome||(PEDIDOS.find(x=>x.telefone===chatTelefone)||{}).nome_cliente||''; chatUltimoCount=-1;
+  chatTelefone=(telefone||'').toString(); chatUltimoCount=-1;
+  let nomeContato='';
+  try{ const c=await sbGet('contatos_wpp','loja_id=eq.'+LOJA_ID+'&telefone=eq.'+chatTelefone+'&select=nome&limit=1'); if(c&&c[0]&&c[0].nome)nomeContato=c[0].nome; }catch(e){}
+  chatNome=nomeContato||nome||(PEDIDOS.find(x=>x.telefone===chatTelefone)||{}).nome_cliente||'';
   const ov=document.createElement('div'); ov.className='ov'; ov.id='ov-chat';
   ov.innerHTML=`
     <div class="ov-panel">
       <div class="ov-head">
-        <div><h3>${chatNome||'Cliente'}</h3><div style="font-size:11px;color:var(--text2)">${chatTelefone}</div></div>
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          <div style="min-width:0"><h3 id="chat-nome" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(chatNome||'Cliente').replace(/</g,'&lt;')}</h3><div style="font-size:11px;color:var(--text2)">${chatTelefone}</div></div>
+          <button onclick="editarNomeContato()" title="Editar nome do cliente" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:4px;flex-shrink:0">✏️</button>
+        </div>
         <button class="ov-x" onclick="fecharChat()">×</button>
       </div>
       <div class="ov-body" id="chat-msgs" style="display:flex;flex-direction:column;gap:8px;background:var(--bg)">
@@ -1854,6 +1860,17 @@ async function abrirChat(telefone,nome){
   renderChatFoot('normal');
   await carregarMensagens();
   chatPollTimer=setInterval(carregarMensagens,4000);
+}
+async function editarNomeContato(){
+  const novo=prompt('Nome do cliente:', chatNome||'');
+  if(novo===null)return;
+  const nome=novo.trim();
+  chatNome=nome;
+  const el=document.getElementById('chat-nome'); if(el)el.textContent=nome||'Cliente';
+  try{
+    await fetch(SB_URL+'/rest/v1/contatos_wpp?on_conflict=loja_id,telefone',{method:'POST',headers:{...getHDR(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,nome,atualizado_em:new Date().toISOString()})});
+    showToast('Nome salvo!');
+  }catch(e){showToast('Erro ao salvar o nome',true);}
 }
 function renderChatFoot(modo){
   const foot=document.getElementById('chat-foot'); if(!foot)return;
@@ -1871,12 +1888,25 @@ function renderChatFoot(modo){
   }else{
     foot.innerHTML=`
       <input type="file" id="chat-anexo" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 10px;height:44px;font-size:15px" onclick="document.getElementById('chat-anexo').click()" title="Anexar foto ou PDF">📎</button>
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 10px;height:44px;font-size:15px" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 10px;height:44px;font-size:15px" onclick="enviarLocalizacaoChat()" title="Enviar localização">📍</button>
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 11px;height:44px;font-size:16px" onclick="abrirMenuAnexo()" title="Anexar">📎</button>
+      <button class="fbtn fbtn-outline" style="width:auto;padding:0 11px;height:44px;font-size:16px" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
       <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
-      <button class="fbtn" style="width:auto;padding:0 14px;height:44px" onclick="enviarMensagemChat()">Enviar</button>`;
+      <button class="fbtn" style="width:46px;padding:0;height:44px;display:flex;align-items:center;justify-content:center" onclick="enviarMensagemChat()" title="Enviar">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
+      </button>`;
   }
+}
+function abrirMenuAnexo(){
+  const m=document.createElement('div'); m.id='menu-anexo';
+  m.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.4);display:flex;align-items:flex-end';
+  m.onclick=(e)=>{if(e.target===m)m.remove();};
+  m.innerHTML=`<div style="background:var(--surface);width:100%;border-radius:16px 16px 0 0;padding:10px 12px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px">
+    <div style="text-align:center;width:36px;height:4px;background:var(--border2);border-radius:2px;margin:2px auto 8px"></div>
+    <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove();document.getElementById('chat-anexo').click()">📷 Foto ou 📄 PDF</button>
+    <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove();enviarLocalizacaoChat()">📍 Enviar localização</button>
+    <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove()">Cancelar</button>
+  </div>`;
+  document.body.appendChild(m);
 }
 function fecharChat(){
   if(chatRec&&chatRec.state==='recording'){chatRecCancel=true;try{chatRec.stop();}catch(e){}}
@@ -1907,7 +1937,7 @@ async function carregarMensagens(){
       conteudo=`<img src="${m.media_url}" onclick="abrirFotoFullscreen('${m.media_url}')" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
       if(m.texto&&m.texto!=='[imagem]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
     }else if(m.tipo==='audio'&&m.media_url){
-      conteudo=`<audio controls preload="none" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
+      conteudo=`<audio controls preload="metadata" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
       if(m.texto&&!['[áudio]','[audio]'].includes(m.texto))conteudo+=`<div style="font-size:12px;opacity:.85;margin-top:5px;font-style:italic">“${(m.texto||'').replace(/</g,'&lt;')}”</div>`;
     }else if(m.tipo==='documento'&&m.media_url){
       const fn=(m.meta&&m.meta.nome_arquivo)||'Documento';
@@ -2049,10 +2079,15 @@ function enviarLocalizacaoChat(){
   navigator.geolocation.getCurrentPosition(async(pos)=>{
     const lat=pos.coords.latitude, lng=pos.coords.longitude;
     try{
-      await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'localizacao',latitude:lat,longitude:lng,vendedor_id:USER_ID})});
+      const r=await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'localizacao',latitude:lat,longitude:lng,vendedor_id:USER_ID})});
+      if(!r.ok)throw new Error('relay');
+      showToast('Localização enviada!');
       chatUltimoCount=-1; setTimeout(carregarMensagens,800);
     }catch(e){showToast('Erro ao enviar a localização',true);}
-  },()=>{showToast('Não foi possível obter a localização. Verifique a permissão.',true);},{enableHighAccuracy:true,timeout:10000});
+  },(err)=>{
+    const msg=err&&err.code===1?'Permissão de localização negada':'Não foi possível obter a localização';
+    showToast(msg,true);
+  },{enableHighAccuracy:false,timeout:15000,maximumAge:60000});
 }
 
 /* ═══ AGRUPAMENTO ═══
