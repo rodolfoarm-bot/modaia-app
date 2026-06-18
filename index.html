@@ -1850,7 +1850,9 @@ async function abrirChat(telefone,nome){
       </div>
       <div class="ov-foot" style="display:flex;gap:8px;align-items:flex-end">
         <input type="file" id="chat-file" accept="image/*" style="display:none" onchange="enviarFotoChat(this)"/>
-        <button class="fbtn fbtn-outline" style="width:auto;padding:0 13px;height:44px;font-size:18px" onclick="document.getElementById('chat-file').click()" title="Enviar foto">📷</button>
+        <input type="file" id="chat-doc" accept="application/pdf" style="display:none" onchange="enviarArquivoChat(this)"/>
+        <button class="fbtn fbtn-outline" style="width:auto;padding:0 12px;height:44px;font-size:17px" onclick="document.getElementById('chat-file').click()" title="Enviar foto">📷</button>
+        <button class="fbtn fbtn-outline" style="width:auto;padding:0 12px;height:44px;font-size:16px" onclick="document.getElementById('chat-doc').click()" title="Enviar PDF">📎</button>
         <textarea id="chat-input" class="finput" placeholder="Mensagem para o cliente..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
         <button class="fbtn" style="width:auto;padding:0 18px;height:44px" onclick="enviarMensagemChat()">Enviar</button>
       </div>
@@ -1887,6 +1889,13 @@ async function carregarMensagens(){
     }else if(m.tipo==='audio'&&m.media_url){
       conteudo=`<audio controls preload="none" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
       if(m.texto&&!['[áudio]','[audio]'].includes(m.texto))conteudo+=`<div style="font-size:12px;opacity:.85;margin-top:5px;font-style:italic">“${(m.texto||'').replace(/</g,'&lt;')}”</div>`;
+    }else if(m.tipo==='documento'&&m.media_url){
+      const fn=(m.meta&&m.meta.nome_arquivo)||'Documento';
+      conteudo=`<a href="${m.media_url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit"><span style="font-size:24px">📄</span><span style="font-size:13px;font-weight:600;word-break:break-all">${(fn+'').replace(/</g,'&lt;')}</span></a>`;
+    }else if(m.tipo==='localizacao'){
+      const lat=m.meta&&m.meta.latitude, lng=m.meta&&m.meta.longitude;
+      const maps=m.media_url||((lat&&lng)?`https://www.google.com/maps?q=${lat},${lng}`:'#');
+      conteudo=`<a href="${maps}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit"><span style="font-size:24px">📍</span><span style="font-size:13px;font-weight:600">Ver localização no mapa</span></a>`;
     }else{
       conteudo=`<div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
     }
@@ -1919,6 +1928,20 @@ async function enviarFotoChat(input){
     await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'imagem',media_url:url,vendedor_id:USER_ID})});
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar a foto',true);}
+}
+async function enviarArquivoChat(input){
+  const file=input.files&&input.files[0]; if(!file||!chatTelefone){input.value='';return;}
+  const fname=file.name||'documento.pdf';
+  input.value='';
+  try{
+    showToast('Enviando arquivo...');
+    const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.pdf';
+    const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':'application/pdf'},body:file});
+    if(!up.ok)throw new Error('upload');
+    const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'documento',media_url:url,nome_arquivo:fname,vendedor_id:USER_ID})});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,900);
+  }catch(e){showToast('Erro ao enviar o arquivo',true);}
 }
 
 /* ═══ AGRUPAMENTO ═══
