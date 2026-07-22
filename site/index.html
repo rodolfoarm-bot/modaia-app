@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giro — Sistema de gestão para lojas de moda infantil</title>
+<meta name="description" content="Giro é um sistema de gestão para lojas físicas de moda infantil no Brasil, com catalogação por inteligência artificial, controle de estoque e atendimento automatizado via WhatsApp.">
+<style>
+:root{
+  --accent:#7C3AED;--accent2:#5B21B6;--bg:#F8F7FF;--surface:#FFFFFF;
+  --text1:#1E1B4B;--text2:#6B6894;--border:#E5E3F0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text1);line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 24px}
+
+header{background-image:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%);color:#fff;padding:64px 0 56px}
+.logo{width:64px;height:64px;border-radius:18px;background:#fff;color:#7C3AED;font-size:38px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+header h1{font-size:36px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px}
+header p{font-size:18px;font-weight:500;color:rgba(255,255,255,.9);max-width:520px}
+
+main{padding:56px 0}
+section{margin-bottom:48px}
+h2{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:14px}
+p{font-size:16px;color:var(--text2);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px}
+.card .ic{font-size:26px;margin-bottom:8px;display:block}
+.card h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;margin:0}
+
+.info{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px 28px}
+.info dl{display:grid;grid-template-columns:140px 1fr;gap:10px 16px;font-size:15px}
+.info dt{font-weight:700;color:var(--text1)}
+.info dd{color:var(--text2)}
+
+footer{border-top:1px solid var(--border);padding:32px 0;text-align:center}
+footer p{font-size:13px;color:var(--text2);margin:0}
+
+@media (max-width:600px){
+  header{padding:48px 0 40px}
+  header h1{font-size:28px}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo">G</div>
+    <h1>Giro</h1>
+    <p>Sistema de gestão para lojas físicas de moda infantil, com catalogação por inteligência artificial, controle de estoque e atendimento automatizado via WhatsApp.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>O que é o Giro</h2>
+    <p>O Giro é uma plataforma desenvolvida para pequenas lojas de roupa infantil no Brasil. Reunimos, em um único aplicativo, o cadastro de produtos por foto (com reconhecimento automático por inteligência artificial), o controle de estoque, o registro de vendas e um atendimento inteligente ao cliente final via WhatsApp.</p>
+    <p>Nosso objetivo é permitir que lojistas de pequeno porte administrem sua operação inteira — do estoque à venda — sem depender de planilhas, cadernos ou processos manuais.</p>
+  </section>
+
+  <section>
+    <h2>O que oferecemos</h2>
+    <div class="grid">
+      <div class="card">
+        <span class="ic">📸</span>
+        <h3>Catalogação por IA</h3>
+        <p>O lojista fotografa a peça e o sistema identifica tipo, cor, tamanho e demais características automaticamente.</p>
+      </div>
+      <div class="card">
+        <span class="ic">📦</span>
+        <h3>Controle de estoque</h3>
+        <p>Visão em tempo real de quantidades, valor em estoque e alertas de reposição.</p>
+      </div>
+      <div class="card">
+        <span class="ic">💬</span>
+        <h3>Atendimento via WhatsApp</h3>
+        <p>Assistente virtual que responde clientes, apresenta produtos e auxilia no fechamento de pedidos.</p>
+      </div>
+      <div class="card">
+        <span class="ic">📊</span>
+        <h3>Relatórios de vendas</h3>
+        <p>Faturamento, ticket médio e produtos mais vendidos, organizados por período.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dados da empresa</h2>
+    <div class="info">
+      <dl>
+        <dt>Segmento</dt><dd>Tecnologia — software de gestão (SaaS) para varejo de moda infantil</dd>
+        <dt>País</dt><dd>Brasil</dd>
+        <dt>Contato</dt><dd>girosolucoesdigitais@gmail.com</dd>
+      </dl>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 Giro. Todos os direitos reservados.</p>
+  </div>
+</footer>
+
+</body>
+</html>
