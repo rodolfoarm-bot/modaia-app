@@ -224,6 +224,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .stat-delta{font-size:11px;margin-top:4px;font-weight:600}
 .delta-up{color:var(--success)}.delta-dn{color:var(--danger)}
 .sec-title{padding:16px 16px 8px;font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.caixa-chart{display:flex;align-items:flex-end;gap:3px;height:120px;padding:8px 0}
+.caixa-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.caixa-bar{width:100%;max-width:26px;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:4px 4px 0 0;min-height:2px;transition:height .3s}
+.caixa-lbl{font-size:8.5px;color:var(--text3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cli-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.cli-rank{width:22px;height:22px;border-radius:50%;background:var(--accent-l);color:var(--accent2);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cli-nome{font-size:13px;font-weight:700;color:var(--text1)}
+.cli-sub{font-size:11px;color:var(--text3)}
 .mais-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
 .mais-rank{width:24px;height:24px;border-radius:50%;background:var(--accent-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--accent);flex-shrink:0}
 .mais-img{width:36px;height:36px;border-radius:8px;object-fit:cover;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}
@@ -760,8 +768,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
         <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px">Unitário · Total</span>
       </div>
       <div id="rel-mais"></div>
+      <div class="sec-title" id="canal-title">Onde você vendeu</div>
+      <div class="pgto-grid" id="rel-canal" style="padding:0 16px 4px"></div>
+      <div class="sec-title" id="caixa-title">Faturamento por dia</div>
+      <div style="padding:0 16px 16px" id="rel-caixa"></div>
+      <div class="sec-title" id="vendedor-title" style="display:none">Vendas por vendedor</div>
+      <div id="rel-vendedor" style="display:none;padding:0 16px 4px"></div>
       <div class="sec-title">Formas de pagamento</div>
       <div class="pgto-grid" id="rel-pgto"></div>
+      <div class="sec-title" id="cliente-title">Melhores clientes</div>
+      <div id="rel-clientes" style="padding:0 16px 8px"></div>
       <div class="sec-title" id="hora-title">Horários de pico</div>
       <div style="padding:0 16px 16px" id="rel-hora"></div>
     </div>
@@ -884,14 +900,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
           </label>
         </div>
       </div>
-      <!-- Horário: estruturado -->
+      <!-- Horário: semana e fim de semana -->
       <div class="param-row">
-        <label class="param-label">Horário de funcionamento</label>
+        <label class="param-label">Horário — dias de semana</label>
         <div id="reg-dias-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin:5px 0 7px"></div>
         <div style="display:flex;gap:6px;align-items:center">
           <input class="finput" id="reg-hora-ini" type="time" disabled style="flex:1;background:var(--surface2);color:var(--text2)"/>
           <span style="font-size:12px;color:var(--text2)">às</span>
           <input class="finput" id="reg-hora-fim" type="time" disabled style="flex:1;background:var(--surface2);color:var(--text2)"/>
+        </div>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Horário — fim de semana <span style="font-weight:500;color:var(--text3)">(opcional)</span></label>
+        <div id="reg-diasfds-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin:5px 0 7px"></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="finput" id="reg-horafds-ini" type="time" disabled style="flex:1;background:var(--surface2);color:var(--text2)"/>
+          <span style="font-size:12px;color:var(--text2)">às</span>
+          <input class="finput" id="reg-horafds-fim" type="time" disabled style="flex:1;background:var(--surface2);color:var(--text2)"/>
         </div>
       </div>
       <div class="param-row">
@@ -1666,11 +1691,22 @@ function renderPedidos(){
         </div>`;
       }else if(assumidoPorMim){
         const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
+        const parcOpts=[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}">${n===1?'À vista':n+'x'}</option>`).join('');
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
-          <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px">${opts}</select></div>
-          <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · ${fmtR(total)}</button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
+          <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px" onchange="onPedPgto('${p.id}')">${opts}</select></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:12px;color:var(--text2);white-space:nowrap">Desconto:</span>
+            <select class="fselect" id="ped-desc-tipo-${p.id}" style="max-width:70px;padding:9px 6px" onchange="onPedTotais('${p.id}')"><option value="reais">R$</option><option value="pct">%</option></select>
+            <input class="finput" id="ped-desc-valor-${p.id}" inputmode="decimal" placeholder="0" style="flex:1;padding:9px 10px" oninput="onPedTotais('${p.id}')"/>
+          </div>
+          <div id="ped-parc-wrap-${p.id}" style="display:none;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text2);white-space:nowrap">Parcelas:</span>
+            <select class="fselect" id="ped-parc-${p.id}" style="flex:1;padding:9px 10px" onchange="onPedTotais('${p.id}')">${parcOpts}</select>
+          </div>
+          <div id="ped-totais-${p.id}" style="font-size:12px;color:var(--text2)"></div>
+          <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · <span id="ped-btn-total-${p.id}">${fmtR(total)}</span></button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
         </div>`;
       }else{
         acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">Outro vendedor está atendendo este pedido.</div>`;
@@ -1722,6 +1758,41 @@ async function assumirPedido(id){
   }catch(e){showToast('Erro ao assumir o pedido',true);}
 }
 
+
+/* ── Desconto e parcelamento na conclusão do pedido do WhatsApp (Opção A) ── */
+function pedPermiteParcelar(pgto){ return /cr[ée]dito|cart/i.test(pgto||''); }
+function calcPedido(p){
+  const bruto=(p.itens||[]).reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  const tipo=document.getElementById('ped-desc-tipo-'+p.id)?.value||'reais';
+  const valor=Math.max(0,parseFloat((document.getElementById('ped-desc-valor-'+p.id)?.value||'0').replace(',','.'))||0);
+  let desc=0;
+  if(valor>0)desc = tipo==='pct' ? bruto*(Math.min(valor,100)/100) : Math.min(valor,bruto);
+  const liquido=Math.max(0,bruto-desc);
+  return {bruto,desc,liquido};
+}
+function onPedPgto(id){
+  const p=PEDIDOS.find(x=>x.id===id); if(!p)return;
+  const pgto=document.getElementById('ped-pgto-'+id)?.value||'';
+  const wrap=document.getElementById('ped-parc-wrap-'+id);
+  if(wrap)wrap.style.display=pedPermiteParcelar(pgto)?'flex':'none';
+  onPedTotais(id);
+}
+function onPedTotais(id){
+  const p=PEDIDOS.find(x=>x.id===id); if(!p)return;
+  const c=calcPedido(p);
+  const pgto=document.getElementById('ped-pgto-'+id)?.value||'';
+  const parc=parseInt(document.getElementById('ped-parc-'+id)?.value||'1')||1;
+  const box=document.getElementById('ped-totais-'+id);
+  if(box){
+    let html='';
+    if(c.desc>0)html+=`<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>${fmtR(c.bruto)}</span></div><div style="display:flex;justify-content:space-between;color:var(--danger)"><span>Desconto</span><span>− ${fmtR(c.desc)}</span></div>`;
+    if(pedPermiteParcelar(pgto)&&parc>1&&c.liquido>0)html+=`<div style="text-align:right;color:var(--text3);margin-top:2px">${parc}x de ${fmtR(c.liquido/parc)}</div>`;
+    box.innerHTML=html;
+  }
+  const bt=document.getElementById('ped-btn-total-'+id);
+  if(bt)bt.textContent=fmtR(c.liquido);
+}
+
 async function concluirPedido(id,forcar){
   const pedido=PEDIDOS.find(p=>p.id===id);if(!pedido)return;
   const pgto=document.getElementById('ped-pgto-'+id)?.value||'Pix';
@@ -1752,6 +1823,10 @@ async function concluirPedido(id,forcar){
     if(faltas.length){ pedidoAlerta={id,faltas}; renderPedidos(); return; }
   }
   pedidoAlerta=null;
+  const calc=calcPedido(pedido);
+  const fator=calc.bruto>0?(calc.liquido/calc.bruto):1;
+  const parc=parseInt(document.getElementById('ped-parc-'+id)?.value||'1')||1;
+  const pgtoFinal=(pedPermiteParcelar(pgto)&&parc>1)?(pgto+' '+parc+'x'):pgto;
   const btn=document.getElementById('ped-concluir-'+id);
   if(btn){btn.textContent='Concluindo...';btn.disabled=true;}
   try{
@@ -1761,11 +1836,12 @@ async function concluirPedido(id,forcar){
       const nova=Math.max(0,atual-pedidoPorProd[pid]);
       try{await sbPatch(TABELA,'id=eq.'+pid,{quantidade:nova});}catch(e){}
     }
-    // Registra uma venda por item, atribuída a quem concluiu
+    // Registra uma venda por item (com desconto rateado), atribuída a quem concluiu
     for(const it of itens){
-      await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:Number(it.quantidade||0),preco_unitario:it.preco_unitario,forma_pagamento:pgto,vendedor_id:USER_ID});
+      const precoLiq=Math.round(Number(it.preco_unitario||0)*fator*100)/100;
+      await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:Number(it.quantidade||0),preco_unitario:precoLiq,forma_pagamento:pgtoFinal,vendedor_id:USER_ID});
     }
-    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgto,concluido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgtoFinal,total_liquido:calc.liquido,concluido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
     showToast('Pedido concluído! Venda registrada e estoque atualizado. 🎉');
     try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
     await carregarPedidos();
@@ -3531,6 +3607,76 @@ async function carregarRelatorios(){
     }).join('');
     const pgto={};vendas.forEach(v=>{pgto[v.forma_pagamento]=(pgto[v.forma_pagamento]||0)+Number(v.preco_unitario)*Number(v.quantidade_vendida);});
     document.getElementById('rel-pgto').innerHTML=Object.entries(pgto).sort((a,b)=>b[1]-a[1]).map(([f,v])=>`<div class="pgto-card"><div class="pgto-lbl">${f}</div><div class="pgto-val">R$ ${v.toFixed(0)}</div><div class="pgto-pct">${Math.round(v/fat*100)}%</div></div>`).join('');
+
+    // ── Pedidos concluídos do período (para canal, clientes e fluxo por dia) ──
+    let pedidosPer=[];
+    try{
+      pedidosPer=await sbGet('carrinhos_wpp','loja_id=eq.'+LOJA_ID+'&estado=eq.concluido&concluido_em=gte.'+ini.toISOString()+'&concluido_em=lte.'+fim.toISOString()+'&order=concluido_em.desc&limit=1000')||[];
+    }catch(e){pedidosPer=[];}
+    const valorPedido=p=>Number(p.total_liquido!=null?p.total_liquido:(p.total_bruto!=null?p.total_bruto:(p.itens||[]).reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0)));
+
+    // ── ITEM 5: Onde você vendeu (loja x WhatsApp) ──
+    const canalBox=document.getElementById('rel-canal');
+    if(pedidosPer.length){
+      let vLoja=0,nLoja=0,vWpp=0,nWpp=0;
+      pedidosPer.forEach(p=>{const val=valorPedido(p);if(p.origem==='presencial'){vLoja+=val;nLoja++;}else{vWpp+=val;nWpp++;}});
+      const totCanal=vLoja+vWpp||1;
+      const card=(lbl,val,n,pct,ic)=>`<div class="pgto-card"><div class="pgto-lbl">${ic} ${lbl}</div><div class="pgto-val">R$ ${val.toFixed(0)}</div><div class="pgto-pct">${Math.round(pct)}% · ${n} venda${n===1?'':'s'}</div></div>`;
+      canalBox.innerHTML=card('Na loja',vLoja,nLoja,vLoja/totCanal*100,'🏬')+card('WhatsApp',vWpp,nWpp,vWpp/totCanal*100,'💬');
+      document.getElementById('canal-title').style.display='block';canalBox.style.display='grid';
+    }else{document.getElementById('canal-title').style.display='none';canalBox.style.display='none';}
+
+    // ── Fluxo de caixa: faturamento por dia (usa 'vendas' para granularidade) ──
+    const caixaBox=document.getElementById('rel-caixa');
+    const nDias=d.dias;
+    if(nDias<=1){
+      document.getElementById('caixa-title').style.display='none';caixaBox.style.display='none';
+    }else{
+      const passo=nDias<=31?1:(nDias<=92?7:30); // dia | semana | mês
+      const nBar=Math.ceil(nDias/passo);
+      const baldes=Array(nBar).fill(0);
+      vendas.forEach(v=>{
+        const t=new Date(v.vendido_em).getTime();
+        const idx=Math.floor((fim.getTime()-t)/86400000/passo);
+        const b=nBar-1-idx;
+        if(b>=0&&b<nBar)baldes[b]+=Number(v.preco_unitario)*Number(v.quantidade_vendida);
+      });
+      const maxB=Math.max(1,...baldes);
+      const fmtDia=(offsetBaldes)=>{const dt=new Date(fim.getTime()-((nBar-1-offsetBaldes)*passo)*86400000);return passo===1?dt.getDate()+'/'+(dt.getMonth()+1):(passo===7?'S'+(offsetBaldes+1):(dt.getMonth()+1)+'/'+String(dt.getFullYear()).slice(2));};
+      caixaBox.innerHTML=`<div class="caixa-chart">${baldes.map((v,i)=>`<div class="caixa-bar-wrap"><div class="caixa-bar" style="height:${Math.round(v/maxB*100)}%" title="R$ ${v.toFixed(0)}"></div><div class="caixa-lbl">${fmtDia(i)}</div></div>`).join('')}</div>`;
+      document.getElementById('caixa-title').style.display='block';caixaBox.style.display='block';
+    }
+
+    // ── Vendas por vendedor (só quando há equipe) ──
+    const vendBox=document.getElementById('rel-vendedor');
+    if(MODO_EQUIPE&&Object.keys(VENDEDORES||{}).length>=2&&pedidosPer.length){
+      const porVend={};
+      pedidosPer.forEach(p=>{const uid=p.vendedor_id||'—';porVend[uid]=porVend[uid]||{val:0,n:0};porVend[uid].val+=valorPedido(p);porVend[uid].n++;});
+      const linhas=Object.entries(porVend).sort((a,b)=>b[1].val-a[1].val).map(([uid,o])=>{
+        const nome=uid===USER_ID?'Você':(VENDEDORES[uid]||'Vendedor');
+        return `<div class="cli-row"><div class="cli-rank">${nome[0]||'?'}</div><div style="flex:1;min-width:0"><div class="cli-nome">${nome}</div><div class="cli-sub">${o.n} venda${o.n===1?'':'s'}</div></div><div class="mais-val">R$ ${o.val.toFixed(0)}</div></div>`;
+      }).join('');
+      vendBox.innerHTML=linhas;
+      document.getElementById('vendedor-title').style.display='block';vendBox.style.display='block';
+    }else{document.getElementById('vendedor-title').style.display='none';vendBox.style.display='none';}
+
+    // ── ITEM 6: Melhores clientes (por telefone) ──
+    const cliBox=document.getElementById('rel-clientes');
+    const comTel=pedidosPer.filter(p=>p.telefone);
+    if(comTel.length){
+      const porCli={};
+      comTel.forEach(p=>{const t=p.telefone;porCli[t]=porCli[t]||{val:0,n:0,nome:p.nome_cliente||''};porCli[t].val+=valorPedido(p);porCli[t].n++;if(p.nome_cliente&&!porCli[t].nome)porCli[t].nome=p.nome_cliente;});
+      const fmtTel=t=>{const d=(t||'').replace(/\D/g,'');if(d.length>=12){const x=d.slice(2);return '('+x.slice(0,2)+') '+x.slice(2,7)+'-'+x.slice(7);}return t;};
+      const linhas=Object.entries(porCli).sort((a,b)=>b[1].val-a[1].val).slice(0,8).map(([tel,o],i)=>{
+        const nome=o.nome||fmtTel(tel);
+        return `<div class="cli-row"><div class="cli-rank">${i+1}</div><div style="flex:1;min-width:0"><div class="cli-nome">${nome}</div><div class="cli-sub">${fmtTel(tel)} · ${o.n} compra${o.n===1?'':'s'}</div></div><div class="mais-val">R$ ${o.val.toFixed(0)}</div></div>`;
+      }).join('');
+      cliBox.innerHTML=linhas;
+      document.getElementById('cliente-title').style.display='block';cliBox.style.display='block';
+    }else{
+      cliBox.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma venda com celular do cliente neste período. Preencha o celular ao registrar a venda para acompanhar as compras por cliente.</div>';
+      document.getElementById('cliente-title').style.display='block';cliBox.style.display='block';
+    }
     const sh=curPeriod==='hoje'||curPeriod==='semana';
     document.getElementById('hora-title').style.display=sh?'block':'none';document.getElementById('rel-hora').style.display=sh?'block':'none';
     if(sh){
@@ -3734,7 +3880,7 @@ function habilitarDadosLoja(){
 }
 
 function habilitarRegrasLoja(){
-  ['reg-pix','reg-parc-max','reg-parc-min','reg-desc-pct','reg-desc-forma','reg-troca-dias','reg-troca-etiqueta','reg-hora-ini','reg-hora-fim','reg-observacoes'].forEach(id=>{
+  ['reg-pix','reg-parc-max','reg-parc-min','reg-desc-pct','reg-desc-forma','reg-troca-dias','reg-troca-etiqueta','reg-hora-ini','reg-hora-fim','reg-horafds-ini','reg-horafds-fim','reg-observacoes'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     el.disabled=false;el.style.background='';el.style.color='';
@@ -3779,8 +3925,9 @@ async function salvarDadosLoja(){
    Os campos viram um texto padronizado salvo nas mesmas colunas de regras_loja,
    que é o que a Sofia lê. Assim a UI fica objetiva sem mudar o banco nem o n8n. */
 const REG_FORMAS=['Dinheiro','Pix','Cartão de débito','Cartão de crédito','Boleto'];
-const REG_DIAS=[['seg','Seg'],['ter','Ter'],['qua','Qua'],['qui','Qui'],['sex','Sex'],['sab','Sáb'],['dom','Dom']];
-let regFormasSel=[], regDiasSel=[], regEditando=false;
+const REG_DIAS=[['seg','Seg'],['ter','Ter'],['qua','Qua'],['qui','Qui'],['sex','Sex']];
+const REG_DIAS_FDS=[['sab','Sáb'],['dom','Dom']];
+let regFormasSel=[], regDiasSel=[], regDiasFdsSel=[], regEditando=false;
 
 function renderRegChips(){
   const box=document.getElementById('reg-pgto-chips');
@@ -3790,13 +3937,17 @@ function renderRegChips(){
       return `<button type="button" onclick="toggleRegForma('${f}')" ${regEditando?'':'disabled'} style="border:1.5px solid ${on?'var(--accent)':'var(--border2)'};background:${on?'var(--accent-l)':'var(--surface2)'};color:${on?'var(--accent2)':'var(--text3)'};border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:${regEditando?'pointer':'default'}">${on?'✓ ':''}${f}</button>`;
     }).join('');
   }
+  const chipDia=(k,lbl,arr,fn)=>{const on=arr.includes(k);return `<button type="button" onclick="${fn}('${k}')" ${regEditando?'':'disabled'} style="border:1.5px solid ${on?'var(--accent)':'var(--border2)'};background:${on?'var(--accent-l)':'var(--surface2)'};color:${on?'var(--accent2)':'var(--text3)'};border-radius:8px;width:38px;padding:6px 0;font-size:11.5px;font-weight:700;cursor:${regEditando?'pointer':'default'}">${lbl}</button>`;};
   const bd=document.getElementById('reg-dias-chips');
-  if(bd){
-    bd.innerHTML=REG_DIAS.map(([k,lbl])=>{
-      const on=regDiasSel.includes(k);
-      return `<button type="button" onclick="toggleRegDia('${k}')" ${regEditando?'':'disabled'} style="border:1.5px solid ${on?'var(--accent)':'var(--border2)'};background:${on?'var(--accent-l)':'var(--surface2)'};color:${on?'var(--accent2)':'var(--text3)'};border-radius:8px;width:38px;padding:6px 0;font-size:11.5px;font-weight:700;cursor:${regEditando?'pointer':'default'}">${lbl}</button>`;
-    }).join('');
-  }
+  if(bd)bd.innerHTML=REG_DIAS.map(([k,lbl])=>chipDia(k,lbl,regDiasSel,'toggleRegDia')).join('');
+  const bf=document.getElementById('reg-diasfds-chips');
+  if(bf)bf.innerHTML=REG_DIAS_FDS.map(([k,lbl])=>chipDia(k,lbl,regDiasFdsSel,'toggleRegDiaFds')).join('');
+}
+function toggleRegDiaFds(d){
+  if(!regEditando)return;
+  const i=regDiasFdsSel.indexOf(d);
+  if(i>=0)regDiasFdsSel.splice(i,1); else regDiasFdsSel.push(d);
+  renderRegChips();
 }
 function toggleRegForma(f){
   if(!regEditando)return;
@@ -3831,19 +3982,22 @@ function montarTextosRegras(){
   const tetq=g('reg-troca-etiqueta')?.checked;
   const troca = tdias>0 ? ('Trocas em até '+tdias+' dias'+(tetq?' mediante apresentação da etiqueta':'')+'.') : 'Não realizamos trocas.';
 
-  const hi=g('reg-hora-ini')?.value||'', hf=g('reg-hora-fim')?.value||'';
-  let horario=null;
-  if(regDiasSel.length&&hi&&hf){
-    const ordem=REG_DIAS.map(d=>d[0]);
-    const sel=ordem.filter(d=>regDiasSel.includes(d));
-    const nomes={seg:'Segunda',ter:'Terça',qua:'Quarta',qui:'Quinta',sex:'Sexta',sab:'Sábado',dom:'Domingo'};
-    // detecta faixa contínua (ex.: Segunda a sábado)
-    const idxs=sel.map(d=>ordem.indexOf(d));
-    const continuo = idxs.length>2 && idxs.every((v,i,a)=>i===0||v===a[i-1]+1);
-    const diasTxt = continuo ? (nomes[sel[0]]+' a '+nomes[sel[sel.length-1]].toLowerCase())
-                             : sel.map(d=>nomes[d]).join(', ').replace(/, ([^,]*)$/,' e $1');
-    horario = diasTxt+', das '+hi.replace(':','h')+' às '+hf.replace(':','h')+'.';
+  const nomes={seg:'Segunda',ter:'Terça',qua:'Quarta',qui:'Quinta',sex:'Sexta',sab:'Sábado',dom:'Domingo'};
+  const ordemFull=['seg','ter','qua','qui','sex','sab','dom'];
+  function faixaTxt(sel){
+    const s=ordemFull.filter(d=>sel.includes(d));
+    if(!s.length)return '';
+    const idxs=s.map(d=>ordemFull.indexOf(d));
+    const cont=idxs.length>2&&idxs.every((v,i,a)=>i===0||v===a[i-1]+1);
+    return cont?(nomes[s[0]]+' a '+nomes[s[s.length-1]].toLowerCase())
+               :s.map(d=>nomes[d]).join(', ').replace(/, ([^,]*)$/,' e $1');
   }
+  const hi=g('reg-hora-ini')?.value||'', hf=g('reg-hora-fim')?.value||'';
+  const hfi=g('reg-horafds-ini')?.value||'', hff=g('reg-horafds-fim')?.value||'';
+  const partes=[];
+  if(regDiasSel.length&&hi&&hf)partes.push(faixaTxt(regDiasSel)+', das '+hi.replace(':','h')+' às '+hf.replace(':','h'));
+  if(regDiasFdsSel.length&&hfi&&hff)partes.push(faixaTxt(regDiasFdsSel)+', das '+hfi.replace(':','h')+' às '+hff.replace(':','h'));
+  const horario = partes.length ? partes.join('; ')+'.' : null;
   return {formas,parcelamento,desconto,troca,horario};
 }
 /* lê o texto salvo e tenta preencher os campos estruturados */
@@ -3871,24 +4025,40 @@ function preencherRegrasEstruturado(r){
   const mt=(r.politica_troca||'').match(/(\d+)\s*dias/i);
   if(g('reg-troca-dias'))g('reg-troca-dias').value=mt?mt[1]:'0';
   if(g('reg-troca-etiqueta'))g('reg-troca-etiqueta').checked=/etiqueta/i.test(r.politica_troca||'');
-  // horário
-  regDiasSel=[];
-  const h=(r.horario_funcionamento||'').toLowerCase();
+  // horário — separa por ';' em semana / fim de semana (formato que geramos ao salvar)
+  regDiasSel=[]; regDiasFdsSel=[];
+  const ordemFull=['seg','ter','qua','qui','sex','sab','dom'];
   const mapa={seg:['segunda','seg'],ter:['terça','terca','ter'],qua:['quarta','qua'],qui:['quinta','qui'],sex:['sexta','sex'],sab:['sábado','sabado','sáb','sab'],dom:['domingo','dom']};
-  const faixa=h.match(/(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)\s+a\s+(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)/);
-  const ordem=REG_DIAS.map(d=>d[0]);
-  if(faixa){
-    const acha=t=>ordem.find(k=>mapa[k].some(n=>t.startsWith(n.slice(0,3))));
-    const a=acha(faixa[1]), b=acha(faixa[2]);
-    if(a&&b){const ia=ordem.indexOf(a),ib=ordem.indexOf(b);for(let i=ia;i<=ib;i++)regDiasSel.push(ordem[i]);}
-  }else{
-    ordem.forEach(k=>{ if(mapa[k].some(n=>h.includes(n)))regDiasSel.push(k); });
+  function parseTrecho(txt){
+    const t=txt.toLowerCase(); const dias=[];
+    const faixa=t.match(/(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)\s+a\s+(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)/);
+    if(faixa){
+      const acha=x=>ordemFull.find(k=>mapa[k].some(n=>x.startsWith(n.slice(0,3))));
+      const a=acha(faixa[1]),b=acha(faixa[2]);
+      if(a&&b){const ia=ordemFull.indexOf(a),ib=ordemFull.indexOf(b);for(let i=ia;i<=ib;i++)dias.push(ordemFull[i]);}
+    }else{ ordemFull.forEach(k=>{if(mapa[k].some(n=>t.includes(n)))dias.push(k);}); }
+    const mh=txt.match(/(\d{1,2})h(\d{2})?\s*(?:às|as|-)\s*(\d{1,2})h(\d{2})?/i);
+    const hi=mh?String(mh[1]).padStart(2,'0')+':'+(mh[2]||'00'):'';
+    const hf=mh?String(mh[3]).padStart(2,'0')+':'+(mh[4]||'00'):'';
+    return {dias,hi,hf};
   }
-  const mh=(r.horario_funcionamento||'').match(/(\d{1,2})h(\d{2})?\s*(?:às|as|-)\s*(\d{1,2})h(\d{2})?/i);
-  if(mh){
-    if(g('reg-hora-ini'))g('reg-hora-ini').value=String(mh[1]).padStart(2,'0')+':'+(mh[2]||'00');
-    if(g('reg-hora-fim'))g('reg-hora-fim').value=String(mh[3]).padStart(2,'0')+':'+(mh[4]||'00');
-  }
+  const trechos=(r.horario_funcionamento||'').split(';');
+  trechos.forEach(tr=>{
+    const pr=parseTrecho(tr);
+    const temFds=pr.dias.some(d=>d==='sab'||d==='dom');
+    const temSemana=pr.dias.some(d=>['seg','ter','qua','qui','sex'].includes(d));
+    if(temFds&&!temSemana){
+      regDiasFdsSel=pr.dias.filter(d=>d==='sab'||d==='dom');
+      if(g('reg-horafds-ini'))g('reg-horafds-ini').value=pr.hi;
+      if(g('reg-horafds-fim'))g('reg-horafds-fim').value=pr.hf;
+    }else{
+      regDiasSel=pr.dias.filter(d=>['seg','ter','qua','qui','sex'].includes(d));
+      // se a faixa incluía sábado (ex.: "segunda a sábado"), joga o sábado no bloco de semana também
+      pr.dias.filter(d=>d==='sab'||d==='dom').forEach(d=>{ if(!regDiasFdsSel.length)regDiasSel.push(d); });
+      if(g('reg-hora-ini'))g('reg-hora-ini').value=pr.hi;
+      if(g('reg-hora-fim'))g('reg-hora-fim').value=pr.hf;
+    }
+  });
   renderRegChips();
 }
 
@@ -3916,7 +4086,7 @@ async function salvarRegrasLoja(){
     }
     showToast('Regras da loja salvas!');
     // Volta ao estado desabilitado
-    ['reg-pix','reg-parc-max','reg-parc-min','reg-desc-pct','reg-desc-forma','reg-troca-dias','reg-troca-etiqueta','reg-hora-ini','reg-hora-fim','reg-observacoes'].forEach(id=>{
+    ['reg-pix','reg-parc-max','reg-parc-min','reg-desc-pct','reg-desc-forma','reg-troca-dias','reg-troca-etiqueta','reg-hora-ini','reg-hora-fim','reg-horafds-ini','reg-horafds-fim','reg-observacoes'].forEach(id=>{
       const el=document.getElementById(id);
       if(!el)return;
       el.disabled=true;el.style.background='var(--surface2)';el.style.color='var(--text2)';
