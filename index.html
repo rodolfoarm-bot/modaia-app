@@ -2051,11 +2051,12 @@ async function iniciarGravacao(){
       try{chatStream.getTracks().forEach(t=>t.stop());}catch(e){}
       if(chatRecTimer){clearInterval(chatRecTimer);chatRecTimer=null;}
       if(chatRecCancel){chatRecCancel=false;renderChatFoot('normal');return;}
-      const raw=new Blob(chatChunks,{type:(chatRec&&chatRec.mimeType)||'audio/webm'});
+      const raw=new Blob(chatChunks,{type:(chatRec&&chatRec.mimeType)||'audio/mp4'});
       if(raw.size<800){showToast('Áudio muito curto',true);renderChatFoot('normal');return;}
-      // Reencoda para WAV (corrige a duração lida como 0s pelo WhatsApp)
-      let fin=raw; try{ fin=await blobParaWav(raw); }catch(e){ fin=raw; }
-      chatAudioPendente=fin;
+      // Envia no formato nativo do gravador (mp4/aac ou ogg/opus), que a API oficial
+      // do WhatsApp aceita e entrega como mensagem de voz. (Não converter para WAV:
+      // a Meta aceita o WAV na requisição mas NÃO o entrega ao destinatário.)
+      chatAudioPendente=raw;
       renderChatFoot('preview');
     };
     chatRec.start(200); // emite chunks a cada 200ms (captura completa e confiável)
@@ -2072,8 +2073,15 @@ async function enviarAudioPendente(){
   const blob=chatAudioPendente; chatAudioPendente=null; renderChatFoot('normal');
   try{
     showToast('Enviando áudio...');
-    const mt=blob.type||'audio/webm';
-    const ext=mt.includes('wav')?'wav':(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac'))?'m4a':(mt.includes('ogg')?'ogg':'webm');
+    let mt=blob.type||'audio/mp4';
+    // A API oficial do WhatsApp aceita audio/aac, audio/mp4, audio/mpeg, audio/amr, audio/ogg(opus).
+    // Normaliza o mime para um valor aceito e define a extensão coerente.
+    let ext;
+    if(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac')){ mt='audio/mp4'; ext='m4a'; }
+    else if(mt.includes('ogg')){ mt='audio/ogg'; ext='ogg'; }
+    else if(mt.includes('mpeg')||mt.includes('mp3')){ mt='audio/mpeg'; ext='mp3'; }
+    else if(mt.includes('webm')){ mt='audio/ogg'; ext='ogg'; } // webm/opus → rotula como ogg (opus) p/ Meta
+    else { mt='audio/mp4'; ext='m4a'; }
     const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
     const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':mt},body:blob});
     if(!up.ok)throw new Error('upload');
