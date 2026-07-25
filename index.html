@@ -69,6 +69,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .tb{background:var(--topbar-bg);padding:max(env(safe-area-inset-top),16px) 16px 14px;flex-shrink:0}
 .tb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .tb-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.4px}
+.tb-logo{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:#fff;color:var(--accent);font-size:15px;font-weight:800;line-height:1;margin-right:7px;vertical-align:-4px;box-shadow:0 1px 3px rgba(0,0,0,.18);font-family:inherit}
 .tb-actions{display:flex;align-items:center;gap:8px}
 .tb-badge{background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;backdrop-filter:blur(4px)}
 .theme-btn{background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:14px;backdrop-filter:blur(4px);transition:background .2s}
@@ -139,6 +140,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .fbtn-danger{background:var(--danger);box-shadow:0 4px 12px rgba(220,38,38,.3)}
 .fbtn-success{background:var(--success);box-shadow:0 4px 12px rgba(5,150,105,.3)}
 .fbtn-outline{background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);box-shadow:none}
+.fbtn-danger-outline{background:var(--surface);color:var(--danger);border:1.5px solid var(--danger);box-shadow:none}
+/* Botões do chat: redondos e mais suaves */
+.chat-ic{width:42px;height:42px;flex:0 0 42px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface2);color:var(--accent);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s,background .12s;padding:0}
+.chat-ic:active{transform:scale(.92);background:var(--accent-l)}
+.chat-send{width:44px;height:44px;flex:0 0 44px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.35);transition:transform .12s}
+.chat-send:active{transform:scale(.92)}
+.chat-stop{border-radius:22px;padding:0 16px;height:42px;border:none;background:var(--danger);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.chat-ok{border-radius:22px;padding:0 18px;height:42px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.3)}
+#chat-input{border-radius:22px!important;padding:11px 16px!important}
 .fphoto{width:100%;aspect-ratio:16/9;background:var(--surface);border:2px dashed var(--border2);border-radius:var(--card-radius);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:8px;transition:all .2s;overflow:hidden;position:relative}
 .fphoto.done{border-style:solid;border-color:var(--info);background:var(--info-l)}
 .fphoto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -442,6 +452,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <img src="giro-login-logo.png" alt="Giro" style="width:110px;height:110px;border-radius:26px;margin-bottom:20px;box-shadow:0 12px 32px rgba(124,58,237,.4);object-fit:contain"/>
   <div class="login-title">Giro</div>
   <div class="login-sub">Gestão inteligente para sua loja</div>
+  <div id="install-box" style="display:none;width:100%;max-width:340px;background:var(--accent-l);border:1px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:8px">📲 Instale o Giro no seu celular</div>
+    <div id="install-txt" style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px">Fica igual a um aplicativo, abre direto pelo ícone e sem a barra do navegador.</div>
+    <button class="fbtn" id="install-btn" onclick="instalarApp()" style="padding:10px;font-size:13px">Adicionar à tela de início</button>
+  </div>
   <div class="login-form">
     <div>
       <label class="login-label">E-mail</label>
@@ -465,7 +480,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
   <div class="tb">
     <div class="tb-row">
       <div style="display:flex;align-items:baseline;gap:10px">
-        <span class="tb-title">Estoque</span>
+        <span class="tb-logo">G</span><span class="tb-title">Estoque</span>
         <span style="font-size:13px;color:rgba(255,255,255,.85);font-weight:600" id="tb-total-pecas">—</span>
       </div>
       <div class="tb-actions">
@@ -529,7 +544,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <!-- TELA: CADASTRO -->
 <div id="sc-cadastro" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="tb-sub">Tire a foto e preencha os dados — a catalogação acontece em segundo plano</div>
   </div>
   <div class="scroll">
@@ -613,7 +628,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <div id="sc-alertas" class="screen">
   <div class="tb">
     <div class="tb-row">
-      <span class="tb-title">Estoque</span>
+      <span class="tb-logo">G</span><span class="tb-title">Estoque</span>
       <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-alerta">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub" id="estoque-subtitle">Visão completa · valor, tipos e alertas</div>
@@ -686,7 +701,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <div id="sc-pedidos" class="screen">
   <div class="tb">
     <div class="tb-row">
-      <span class="tb-title">Vendas</span>
+      <span class="tb-logo">G</span><span class="tb-title">Vendas</span>
       <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-pedidos">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub">Vendas na loja e pedidos da assistente no WhatsApp</div>
@@ -702,6 +717,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
     <div style="padding:12px 16px 0">
       <button class="fbtn" onclick="novaVenda()" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Nova venda na loja</button>
     </div>
+    <div id="ped-filtro-vendedor" style="display:none;padding:12px 16px 0;gap:8px;flex-wrap:wrap"></div>
     <div id="ped-filtro-entrega" style="display:none;padding:12px 16px 0;gap:8px">
       <button class="ped-fchip on" data-fent="todos" onclick="setFiltroEntrega('todos')">Todas</button>
       <button class="ped-fchip" data-fent="pendentes" onclick="setFiltroEntrega('pendentes')">📦 Pendentes de entrega</button>
@@ -715,7 +731,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <!-- TELA: RELATÓRIOS -->
 <div id="sc-relatorios" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="period-tabs" id="ptabs">
       <button class="ptab on" data-p="hoje">Dia</button>
       <button class="ptab" data-p="semana">Semana</button>
@@ -756,7 +772,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 <!-- TELA: PERFIL -->
 <div id="sc-perfil" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-title">Meu Perfil</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Meu Perfil</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-perfil" style="padding:20px 16px">
     <div class="ptr-indicator" id="ptr-perfil">
@@ -816,6 +832,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <div class="param-row">
         <label class="param-label">Formas de pagamento</label>
         <input class="finput" id="reg-pagamento" type="text" placeholder="Ex: Dinheiro, Pix, Cartão débito e crédito" disabled style="background:var(--surface2);color:var(--text2)"/>
+      </div>
+      <div class="param-row">
+        <label class="param-label">Chave Pix <span style="font-weight:500;color:var(--text3)">(usada no botão do chat)</span></label>
+        <input class="finput" id="reg-pix" type="text" placeholder="Ex: 31999998888, CNPJ ou chave aleatória" disabled style="background:var(--surface2);color:var(--text2)"/>
       </div>
       <div class="param-row">
         <label class="param-label">Parcelamento</label>
@@ -1281,6 +1301,8 @@ let pedidoAlerta=null;          // {id, faltas:[{nome,tem,pedido}]} aviso de est
 let pedidosSubAba='aberto';     // 'aberto' | 'concluido'
 let PED_FOTOS={};               // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
 let concluidoFiltro='todos';    // 'todos' | 'pendentes' (entrega)
+let filtroVendedor='todos';     // 'todos' | 'mim' | <user_id>
+let CHAVE_PIX='';               // chave Pix da loja (regras_loja.chave_pix)
 let vendaItens=[]; let vendaPgto='Pix'; let vendaNome=''; let vendaAviso=false; // venda presencial em construção
 let PICK_CALLBACK=null, PICK_DONE=null, PICK_COUNT=0;     // seletor de produtos
 const PED_PGTOS=['Pix','Dinheiro','Cartão de débito','Cartão de crédito'];
@@ -1290,17 +1312,44 @@ function estoqueProduto(id){const p=PRODS.find(x=>x.id===id);return p?Number(p.q
 
 function trocarSubAbaPedidos(aba){
   pedidosSubAba=aba; pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
-  concluidoFiltro='todos';
+  concluidoFiltro='todos'; filtroVendedor='todos';
   document.querySelectorAll('[data-ped]').forEach(b=>b.classList.toggle('on',b.dataset.ped===aba));
   document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent==='todos'));
   const filtroBox=document.getElementById('ped-filtro-entrega');
   if(filtroBox)filtroBox.style.display=aba==='concluido'?'flex':'none';
+  renderFiltroVendedor();
   carregarPedidos();
 }
 function setFiltroEntrega(f){
   concluidoFiltro=f;
   document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent===f));
   renderPedidos();
+}
+/* ── Filtro por vendedor (Em aberto = quem está atendendo | Concluídas = quem concluiu) ── */
+function renderFiltroVendedor(){
+  const box=document.getElementById('ped-filtro-vendedor');
+  if(!box)return;
+  // só faz sentido quando a loja tem equipe
+  if(!MODO_EQUIPE){ box.style.display='none'; box.innerHTML=''; return; }
+  const nomes=Object.keys(VENDEDORES||{});
+  if(nomes.length<2){ box.style.display='none'; box.innerHTML=''; return; }
+  const chip=(val,txt)=>`<button class="ped-fchip${filtroVendedor===val?' on':''}" onclick="setFiltroVendedor('${val}')">${txt}</button>`;
+  let html=chip('todos','Todos')+chip('mim','Só os meus');
+  nomes.forEach(uid=>{
+    if(uid===USER_ID)return;
+    html+=chip(uid,(VENDEDORES[uid]||'vendedor'));
+  });
+  box.innerHTML=html;
+  box.style.display='flex';
+}
+function setFiltroVendedor(v){
+  filtroVendedor=v;
+  renderFiltroVendedor();
+  renderPedidos();
+}
+/* devolve o vendedor "dono" do pedido conforme a aba */
+function vendedorDoPedido(p){
+  return p.vendedor_id||null; // atendendo (em aberto) ou quem concluiu (concluídas)
 }
 async function marcarEntregue(id){
   try{
@@ -1326,6 +1375,7 @@ async function carregarPedidos(){
   if(load)load.style.display='flex';
   if(vazio)vazio.style.display='none';
   pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
+  renderFiltroVendedor();
   const filtro=pedidosSubAba==='concluido'
     ? 'estado=eq.concluido&order=atualizado_em.desc&limit=100'
     : 'estado=in.(aguardando_pagamento,em_atendimento)&order=criado_em.desc&limit=100';
@@ -1500,13 +1550,21 @@ function renderPedidos(){
   if(pedidosSubAba==='concluido'&&concluidoFiltro==='pendentes'){
     fonte=PEDIDOS.filter(p=>p.tipo_entrega==='entrega'&&!p.entregue_em);
   }
+  // filtro por vendedor (atendendo, na aba Em aberto; quem concluiu, na aba Concluídas)
+  if(filtroVendedor&&filtroVendedor!=='todos'){
+    const alvo = filtroVendedor==='mim' ? USER_ID : filtroVendedor;
+    fonte=fonte.filter(p=>vendedorDoPedido(p)===alvo);
+  }
   if(fonte.length===0){
     lista.innerHTML='';
     if(vazio){
       vazio.style.display='block';
-      vazio.querySelector('.empty-txt').textContent=pedidosSubAba==='concluido'
-        ?(concluidoFiltro==='pendentes'?'Nenhuma entrega pendente 🎉':'Nenhuma venda concluída ainda')
-        :'Nenhuma venda em aberto no momento';
+      const temFiltroVend = filtroVendedor && filtroVendedor!=='todos';
+      vazio.querySelector('.empty-txt').textContent = temFiltroVend
+        ? 'Nenhuma venda para esse vendedor'
+        : (pedidosSubAba==='concluido'
+            ?(concluidoFiltro==='pendentes'?'Nenhuma entrega pendente 🎉':'Nenhuma venda concluída ainda')
+            :'Nenhuma venda em aberto no momento');
     }
     return;
   }
@@ -1562,7 +1620,7 @@ function renderPedidos(){
       }else if(p.estado==='aguardando_pagamento'){
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
           <button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir pedido</button>
-          <div style="display:flex;gap:8px"><button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')">Cancelar</button></div>
+          <div style="display:flex;gap:8px"><button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar</button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')">Cancelar</button></div>
         </div>`;
       }else if(assumidoPorMim){
         const opts=PED_PGTOS.map(o=>`<option value="${o}">${o}</option>`).join('');
@@ -1570,7 +1628,7 @@ function renderPedidos(){
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px">${opts}</select></div>
-          <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · ${fmtR(total)}</button><button class="fbtn fbtn-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
+          <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · ${fmtR(total)}</button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
         </div>`;
       }else{
         acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">Outro vendedor está atendendo este pedido.</div>`;
@@ -1877,22 +1935,22 @@ function renderChatFoot(modo){
   const foot=document.getElementById('chat-foot'); if(!foot)return;
   if(modo==='gravando'){
     foot.innerHTML=`
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 13px;height:44px" onclick="cancelarGravacao()" title="Cancelar">🗑</button>
+      <button class="chat-ic" onclick="cancelarGravacao()" title="Cancelar">🗑</button>
       <div style="flex:1;display:flex;align-items:center;gap:8px;color:var(--danger);font-weight:700;font-size:14px;padding:0 6px"><span style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></span><span id="chat-rec-time">0:00</span> gravando…</div>
-      <button class="fbtn" style="width:auto;padding:0 15px;height:44px" onclick="pararGravacao()">⏹ Parar</button>`;
+      <button class="chat-stop" onclick="pararGravacao()">⏹ Parar</button>`;
   }else if(modo==='preview'){
     const src=chatAudioPendente?URL.createObjectURL(chatAudioPendente):'';
     foot.innerHTML=`
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 13px;height:44px" onclick="descartarAudio()" title="Excluir">🗑</button>
+      <button class="chat-ic" onclick="descartarAudio()" title="Excluir">🗑</button>
       <audio controls src="${src}" style="flex:1;height:42px;min-width:0"></audio>
-      <button class="fbtn" style="width:auto;padding:0 15px;height:44px" onclick="enviarAudioPendente()">Enviar</button>`;
+      <button class="chat-ok" onclick="enviarAudioPendente()">Enviar</button>`;
   }else{
     foot.innerHTML=`
       <input type="file" id="chat-anexo" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 11px;height:44px;font-size:16px" onclick="abrirMenuAnexo()" title="Anexar">📎</button>
-      <button class="fbtn fbtn-outline" style="width:auto;padding:0 11px;height:44px;font-size:16px" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
+      <button class="chat-ic" onclick="abrirMenuAnexo()" title="Anexar">📎</button>
+      <button class="chat-ic" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
       <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
-      <button class="fbtn" style="width:46px;padding:0;height:44px;display:flex;align-items:center;justify-content:center" onclick="enviarMensagemChat()" title="Enviar">
+      <button class="chat-send" onclick="enviarMensagemChat()" title="Enviar">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
       </button>`;
   }
@@ -1905,6 +1963,7 @@ function abrirMenuAnexo(){
     <div style="text-align:center;width:36px;height:4px;background:var(--border2);border-radius:2px;margin:2px auto 8px"></div>
     <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove();document.getElementById('chat-anexo').click()">📷 Foto ou 📄 PDF</button>
     <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove();enviarLocalizacaoChat()">📍 Enviar localização</button>
+    <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove();enviarChavePix()">🔑 Enviar chave Pix</button>
     <button class="fbtn fbtn-outline" onclick="document.getElementById('menu-anexo').remove()">Cancelar</button>
   </div>`;
   document.body.appendChild(m);
@@ -1966,6 +2025,22 @@ async function abrirPdfMsg(i){
     if(url.startsWith('data:')){ const blob=await (await fetch(url)).blob(); url=URL.createObjectURL(blob); }
     window.open(url,'_blank');
   }catch(e){ try{window.open(m.media_url,'_blank');}catch(_){} }
+}
+/* Envia a chave Pix da loja no chat (configurada no Perfil › Regras da loja) */
+async function enviarChavePix(){
+  if(!chatTelefone)return;
+  const chave=(CHAVE_PIX||'').trim();
+  if(!chave){
+    showToast('Cadastre a chave Pix no Perfil › Regras da loja',true);
+    return;
+  }
+  const nome=NOME_LOJA?(' ('+NOME_LOJA+')'):'';
+  const texto='🔑 Chave Pix'+nome+':\n'+chave;
+  try{
+    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID})});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,600);
+    showToast('Chave Pix enviada');
+  }catch(e){showToast('Erro ao enviar a chave Pix',true);}
 }
 async function enviarMensagemChat(){
   const inp=document.getElementById('chat-input'); if(!inp)return;
@@ -3495,6 +3570,8 @@ async function carregarPerfil(){
       const regras=await sbGet('regras_loja','select=*&loja_id=eq.'+LOJA_ID);
       if(regras&&regras[0]){
         document.getElementById('reg-pagamento').value=regras[0].formas_pagamento||'';
+        document.getElementById('reg-pix').value=regras[0].chave_pix||'';
+        CHAVE_PIX=regras[0].chave_pix||'';
         document.getElementById('reg-parcelamento').value=regras[0].parcelamento||'';
         document.getElementById('reg-desconto').value=regras[0].politica_desconto||'';
         document.getElementById('reg-troca').value=regras[0].politica_troca||'';
@@ -3518,7 +3595,7 @@ function habilitarDadosLoja(){
 }
 
 function habilitarRegrasLoja(){
-  ['reg-pagamento','reg-parcelamento','reg-desconto','reg-troca','reg-horario','reg-observacoes'].forEach(id=>{
+  ['reg-pagamento','reg-pix','reg-parcelamento','reg-desconto','reg-troca','reg-horario','reg-observacoes'].forEach(id=>{
     const el=document.getElementById(id);
     el.disabled=false;el.style.background='';el.style.color='';
   });
@@ -3560,6 +3637,7 @@ async function salvarRegrasLoja(){
   const dados={
     loja_id:LOJA_ID,
     formas_pagamento:document.getElementById('reg-pagamento').value.trim()||null,
+    chave_pix:document.getElementById('reg-pix').value.trim()||null,
     parcelamento:document.getElementById('reg-parcelamento').value.trim()||null,
     politica_desconto:document.getElementById('reg-desconto').value.trim()||null,
     politica_troca:document.getElementById('reg-troca').value.trim()||null,
@@ -3567,6 +3645,7 @@ async function salvarRegrasLoja(){
     observacoes:document.getElementById('reg-observacoes').value.trim()||null,
     atualizado_em:new Date().toISOString()
   };
+  CHAVE_PIX=dados.chave_pix||'';
   try{
     const existe=await sbGet('regras_loja','select=loja_id&loja_id=eq.'+LOJA_ID);
     if(existe&&existe[0]){
@@ -3707,6 +3786,11 @@ function setupPullToRefresh(){
     async()=>{await carregarAlertas();showToast('Atualizado');}
   );
   bindPullToRefresh(
+    document.getElementById('scroll-pedidos'),
+    document.getElementById('ptr-pedidos'),
+    async()=>{await carregarPedidos();showToast('Atualizado');}
+  );
+  bindPullToRefresh(
     document.getElementById('scroll-relatorios'),
     document.getElementById('ptr-relatorios'),
     async()=>{await carregarRelatorios();showToast('Atualizado');}
@@ -3717,6 +3801,61 @@ function setupPullToRefresh(){
     async()=>{await carregarPerfil();showToast('Atualizado');}
   );
 }
+
+/* ═══ PWA: botão "Adicionar à tela de início" ═══ */
+let deferredInstall=null;
+function ehStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+function ehIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstall=e;
+  mostrarCaixaInstalar();
+});
+function mostrarCaixaInstalar(){
+  const box=document.getElementById('install-box');
+  if(!box)return;
+  // já instalado → não mostra
+  if(ehStandalone()){ box.style.display='none'; return; }
+  // dispensado antes → não insiste
+  if(localStorage.getItem('giro_install_dispensado')==='1'){ box.style.display='none'; return; }
+  const txt=document.getElementById('install-txt');
+  const btn=document.getElementById('install-btn');
+  if(ehIOS()){
+    // iOS não tem prompt programático: mostra o passo a passo
+    if(txt)txt.innerHTML='No iPhone: toque em <b>Compartilhar</b> <span style="font-size:14px">⬆️</span> na barra do Safari e escolha <b>“Adicionar à Tela de Início”</b>. Depois abra o Giro pelo ícone novo.';
+    if(btn)btn.style.display='none';
+    box.style.display='block';
+  }else if(deferredInstall){
+    if(btn)btn.style.display='block';
+    box.style.display='block';
+  }
+}
+async function instalarApp(){
+  if(!deferredInstall){
+    showToast('Use o menu do navegador › “Instalar app”');
+    return;
+  }
+  deferredInstall.prompt();
+  try{
+    const r=await deferredInstall.userChoice;
+    if(r&&r.outcome==='accepted'){
+      localStorage.setItem('giro_install_dispensado','1');
+      const box=document.getElementById('install-box');
+      if(box)box.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--success);text-align:center;padding:6px">✅ Instalado! Pode fechar esta aba e abrir pelo ícone do Giro.</div>';
+    }
+  }catch(e){}
+  deferredInstall=null;
+}
+window.addEventListener('appinstalled',()=>{
+  localStorage.setItem('giro_install_dispensado','1');
+  const box=document.getElementById('install-box');
+  if(box)box.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--success);text-align:center;padding:6px">✅ Instalado! Pode fechar esta aba e abrir pelo ícone do Giro.</div>';
+});
+document.addEventListener('DOMContentLoaded',()=>{ setTimeout(mostrarCaixaInstalar,800); });
 
 /* ═══ PWA: Service Worker inline (necessário p/ instalar no Android) ═══ */
 (function(){
