@@ -432,6 +432,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .ped-fchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
 </head>
 <body>
 <div class="app" id="app">
@@ -2039,6 +2040,32 @@ async function blobParaWav(blob){
   try{ac.close();}catch(e){}
   return _encodeWAV(audioBuf);
 }
+// Converte a gravação para MP3 (a API oficial do WhatsApp entrega MP3 como mensagem de voz).
+// Usa lamejs (carregado no <head>). Reamostra para mono e codifica em 128kbps.
+async function blobParaMp3(blob){
+  if(typeof lamejs==='undefined') throw new Error('lamejs indisponível');
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const ac=new AC();
+  const arr=await blob.arrayBuffer();
+  const audioBuf=await ac.decodeAudioData(arr);
+  try{ac.close();}catch(e){}
+  const sr=audioBuf.sampleRate;
+  const ch=audioBuf.getChannelData(0); // mono
+  // Float [-1,1] -> Int16
+  const samples=new Int16Array(ch.length);
+  for(let i=0;i<ch.length;i++){ let s=Math.max(-1,Math.min(1,ch[i])); samples[i]=s<0?s*0x8000:s*0x7FFF; }
+  const enc=new lamejs.Mp3Encoder(1, sr, 128);
+  const blockSize=1152;
+  const out=[];
+  for(let i=0;i<samples.length;i+=blockSize){
+    const chunk=samples.subarray(i,i+blockSize);
+    const mp3=enc.encodeBuffer(chunk);
+    if(mp3.length>0) out.push(new Uint8Array(mp3));
+  }
+  const end=enc.flush();
+  if(end.length>0) out.push(new Uint8Array(end));
+  return new Blob(out,{type:'audio/mpeg'});
+}
 async function iniciarGravacao(){
   if(!navigator.mediaDevices||!window.MediaRecorder){showToast('Gravação de áudio não suportada neste navegador',true);return;}
   try{
@@ -2053,10 +2080,10 @@ async function iniciarGravacao(){
       if(chatRecCancel){chatRecCancel=false;renderChatFoot('normal');return;}
       const raw=new Blob(chatChunks,{type:(chatRec&&chatRec.mimeType)||'audio/mp4'});
       if(raw.size<800){showToast('Áudio muito curto',true);renderChatFoot('normal');return;}
-      // Envia no formato nativo do gravador (mp4/aac ou ogg/opus), que a API oficial
-      // do WhatsApp aceita e entrega como mensagem de voz. (Não converter para WAV:
-      // a Meta aceita o WAV na requisição mas NÃO o entrega ao destinatário.)
-      chatAudioPendente=raw;
+      // Converte para MP3 (a API oficial do WhatsApp entrega MP3 como mensagem de voz;
+      // o formato nativo do gravador do iPhone não é entregue de forma confiável).
+      let fin=raw; try{ fin=await blobParaMp3(raw); }catch(e){ fin=raw; }
+      chatAudioPendente=fin;
       renderChatFoot('preview');
     };
     chatRec.start(200); // emite chunks a cada 200ms (captura completa e confiável)
@@ -2073,15 +2100,13 @@ async function enviarAudioPendente(){
   const blob=chatAudioPendente; chatAudioPendente=null; renderChatFoot('normal');
   try{
     showToast('Enviando áudio...');
-    let mt=blob.type||'audio/mp4';
-    // A API oficial do WhatsApp aceita audio/aac, audio/mp4, audio/mpeg, audio/amr, audio/ogg(opus).
-    // Normaliza o mime para um valor aceito e define a extensão coerente.
+    let mt=blob.type||'audio/mpeg';
+    // A API oficial do WhatsApp entrega bem MP3 (audio/mpeg). Mapeia a extensão.
     let ext;
-    if(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac')){ mt='audio/mp4'; ext='m4a'; }
+    if(mt.includes('mpeg')||mt.includes('mp3')){ mt='audio/mpeg'; ext='mp3'; }
+    else if(mt.includes('mp4')||mt.includes('m4a')||mt.includes('aac')){ mt='audio/mp4'; ext='m4a'; }
     else if(mt.includes('ogg')){ mt='audio/ogg'; ext='ogg'; }
-    else if(mt.includes('mpeg')||mt.includes('mp3')){ mt='audio/mpeg'; ext='mp3'; }
-    else if(mt.includes('webm')){ mt='audio/ogg'; ext='ogg'; } // webm/opus → rotula como ogg (opus) p/ Meta
-    else { mt='audio/mp4'; ext='m4a'; }
+    else { mt='audio/mpeg'; ext='mp3'; }
     const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
     const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':mt},body:blob});
     if(!up.ok)throw new Error('upload');
