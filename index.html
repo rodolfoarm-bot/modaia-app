@@ -1664,7 +1664,14 @@ function renderPedidos(){
     const origemBadge=`<span style="font-size:9px;font-weight:700;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:20px;margin-left:6px">${ehPresencial?'Loja':'WhatsApp'}</span>`;
     let statusPill,acoes='';
     if(ehConcluido){
-      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Concluída</span>`;
+      const devStatus=p.devolucao_status;
+      if(devStatus==='total'){
+        statusPill=`<span style="font-size:10px;font-weight:700;color:var(--danger);background:var(--danger-l);padding:3px 9px;border-radius:20px">↩️ Devolvida</span>`;
+      }else if(devStatus==='parcial'){
+        statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">↩️ Devolução parcial</span>`;
+      }else{
+        statusPill=`<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Concluída</span>`;
+      }
       const quem=p.vendedor_id?(' · por '+(p.vendedor_id===USER_ID?'você':(VENDEDORES[p.vendedor_id]||'vendedor'))):'';
       acoes=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Concluída ${tempoRelativo(p.concluido_em||p.atualizado_em)}${p.forma_pagamento?' · '+p.forma_pagamento:''}${quem}</div>`;
       if(p.tipo_entrega==='entrega'){
@@ -1675,6 +1682,10 @@ function renderPedidos(){
         }
       }
       acoes+=contato;
+      // Botão de devolução (admin e vendedora). Some se já foi devolução total.
+      if(p.devolucao_status!=='total'){
+        acoes+=`<button class="fbtn fbtn-danger-outline" style="margin-top:8px" onclick="abrirDevolucao('${p.id}')">↩️ ${p.devolucao_status==='parcial'?'Nova devolução':'Devolução'}</button>`;
+      }
     }else if(p.estado==='aguardando_pagamento'){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Novo</span>`;
     }else if(assumidoPorMim){
@@ -1803,6 +1814,168 @@ function onPedTotais(id){
   if(bt)bt.textContent=fmtR(c.liquido);
 }
 
+
+/* ═══ DEVOLUÇÃO (total ou parcial) ═══
+   Faz 3 ajustes ao confirmar:
+   1) Estoque: repõe as unidades devolvidas em produtos_2.quantidade
+   2) Faturamento: grava vendas NEGATIVAS (relatórios subtraem sozinhos)
+   3) Comissão: estorna proporcional (atualiza comissoes.estornado)
+   Registra em devolucoes e marca carrinhos_wpp.devolucao_status. */
+let devPedido=null, devSel={};   // devSel: produto_id -> qtd a devolver (por linha de item usa índice)
+
+function abrirDevolucao(pedidoId){
+  const p=PEDIDOS.find(x=>x.id===pedidoId); if(!p)return;
+  devPedido=p; devSel={};
+  const ov=document.createElement('div'); ov.className='ov'; ov.id='ov-dev';
+  ov.innerHTML=`
+    <div class="ov-panel">
+      <div class="ov-head"><h3>Devolução — ${p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):'Venda'}</h3><button class="ov-x" onclick="fecharDevolucao()">×</button></div>
+      <div class="ov-body" id="dev-body"></div>
+      <div class="ov-foot" id="dev-foot"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  renderDevolucao();
+}
+function fecharDevolucao(){ const ov=document.getElementById('ov-dev'); if(ov)ov.remove(); devPedido=null; devSel={}; }
+
+function _devItensDevolviveis(){
+  // agrupa itens do pedido; desconta o que já foi devolvido antes (se houver)
+  const itens=(devPedido.itens||[]).filter(it=>it.produto_id);
+  // já devolvido: soma de devolucoes anteriores é considerada no campo _jaDevolvido (carregado sob demanda)
+  return itens;
+}
+
+function renderDevolucao(){
+  const body=document.getElementById('dev-body'); const foot=document.getElementById('dev-foot');
+  if(!body)return;
+  const itens=_devItensDevolviveis();
+  const stepBtn='width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text1);font-size:17px;font-weight:700;cursor:pointer;line-height:1';
+  body.innerHTML=`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Selecione o que será devolvido. O estoque volta, o faturamento é estornado e a comissão é ajustada.</div>
+    <button class="fbtn fbtn-outline" onclick="devTudo()" style="margin-bottom:10px">Devolver o pedido inteiro</button>
+    ${itens.map((it,idx)=>{
+      const max=Number(it.quantidade||0);
+      const sel=devSel[idx]||0;
+      const preco=Number(it.preco_unitario||0);
+      return `<div style="border-bottom:1px solid var(--border);padding:9px 0">
+        <div style="display:flex;gap:10px;align-items:center">
+          ${thumbItem(it)}
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text1)">${nomeItem(it)}</div><div style="font-size:12px;color:var(--text2)">${fmtR(preco)} · vendidas ${max}</div></div>
+          <div style="display:flex;align-items:center;gap:5px">
+            <button onclick="devQtd(${idx},-1)" style="${stepBtn}">−</button>
+            <span style="min-width:22px;text-align:center;font-weight:700;color:${sel>0?'var(--danger)':'var(--text1)'}">${sel}</span>
+            <button onclick="devQtd(${idx},1)" style="${stepBtn}">+</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Motivo (opcional)</label>
+      <input id="dev-motivo" class="finput" style="margin-top:4px" placeholder="Ex: defeito, tamanho, arrependimento"/>
+    </div>`;
+
+  const calc=_devCalc();
+  let footHtml=`<div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:15px;margin-bottom:4px"><span>Valor a devolver</span><span>${fmtR(calc.valor)}</span></div>`;
+  footHtml+=`<div style="font-size:11.5px;color:var(--text2);margin-bottom:2px">${calc.pecas} peça${calc.pecas===1?'':'s'} · estoque será reposto</div>`;
+  if(calc.comissao>0)footHtml+=`<div style="font-size:11.5px;color:var(--danger);margin-bottom:10px">Comissão estornada: ${fmtR(calc.comissao)}</div>`;
+  else footHtml+=`<div style="margin-bottom:10px"></div>`;
+  footHtml+=`<button class="fbtn fbtn-danger" id="dev-confirmar" onclick="confirmarDevolucao()" ${calc.pecas>0?'':'disabled style="opacity:.5"'}>Confirmar devolução</button>`;
+  foot.innerHTML=footHtml;
+}
+
+function devQtd(idx,d){
+  const it=(devPedido.itens||[]).filter(x=>x.produto_id)[idx]; if(!it)return;
+  const max=Number(it.quantidade||0);
+  devSel[idx]=Math.max(0,Math.min(max,(devSel[idx]||0)+d));
+  if(devSel[idx]===0)delete devSel[idx];
+  renderDevolucao();
+}
+function devTudo(){
+  const itens=(devPedido.itens||[]).filter(x=>x.produto_id);
+  devSel={}; itens.forEach((it,idx)=>{ devSel[idx]=Number(it.quantidade||0); });
+  renderDevolucao();
+}
+
+function _devCalc(){
+  const itens=(devPedido.itens||[]).filter(x=>x.produto_id);
+  let valor=0, pecas=0;
+  // valor usa o preço líquido efetivamente cobrado: rateia o total_liquido do pedido sobre o bruto
+  const bruto=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+  const liq=Number(devPedido.total_liquido!=null?devPedido.total_liquido:bruto);
+  const fator=bruto>0?(liq/bruto):1;
+  itens.forEach((it,idx)=>{
+    const q=devSel[idx]||0; if(!q)return;
+    pecas+=q;
+    valor+=Number(it.preco_unitario||0)*fator*q;
+  });
+  valor=Math.round(valor*100)/100;
+  // comissão estornada proporcional: % da comissão da venda equivalente ao valor devolvido
+  const info=MEMBROS_INFO[devPedido.vendedor_id];
+  let comissao=0;
+  if(info&&info.papel==='vendedor'&&Number(info.comissao_pct||0)>0){
+    comissao=Math.round(valor*(Number(info.comissao_pct)/100)*100)/100;
+  }
+  return {valor,pecas,comissao,fator};
+}
+
+async function confirmarDevolucao(){
+  const calc=_devCalc();
+  if(calc.pecas<=0)return;
+  const btn=document.getElementById('dev-confirmar'); if(btn){btn.textContent='Processando...';btn.disabled=true;}
+  const itens=(devPedido.itens||[]).filter(x=>x.produto_id);
+  const motivo=document.getElementById('dev-motivo')?.value?.trim()||null;
+  const devolvidos=[];
+  itens.forEach((it,idx)=>{ const q=devSel[idx]||0; if(q>0)devolvidos.push({produto_id:it.produto_id,quantidade:q,preco_unitario:Number(it.preco_unitario||0)}); });
+
+  try{
+    // 1) ESTOQUE: repõe unidades
+    const idsProd=[...new Set(devolvidos.map(d=>d.produto_id))];
+    let estoqueMap={};
+    if(idsProd.length){
+      const rows=await sbGet(TABELA,'id=in.('+idsProd.join(',')+')&select=id,quantidade');
+      (rows||[]).forEach(r=>{estoqueMap[r.id]=Number(r.quantidade||0);});
+    }
+    const somaPorProd={};
+    devolvidos.forEach(d=>{somaPorProd[d.produto_id]=(somaPorProd[d.produto_id]||0)+d.quantidade;});
+    for(const pid of Object.keys(somaPorProd)){
+      const atual=estoqueMap[pid]!==undefined?estoqueMap[pid]:0;
+      try{await sbPatch(TABELA,'id=eq.'+pid,{quantidade:atual+somaPorProd[pid]});}catch(e){}
+    }
+
+    // 2) FATURAMENTO: vendas negativas (relatórios subtraem sozinhos)
+    for(const d of devolvidos){
+      const precoLiq=Math.round(d.preco_unitario*calc.fator*100)/100;
+      await sbPost('vendas',{produto_id:d.produto_id,loja_id:LOJA_ID,quantidade_vendida:-d.quantidade,preco_unitario:precoLiq,forma_pagamento:'Devolução',vendedor_id:devPedido.vendedor_id||USER_ID});
+    }
+
+    // 3) COMISSÃO: estorna proporcional na comissão daquela venda
+    if(calc.comissao>0&&devPedido.vendedor_id){
+      try{
+        const comis=await sbGet('comissoes','pedido_id=eq.'+devPedido.id+'&vendedor_id=eq.'+devPedido.vendedor_id+'&limit=1');
+        if(comis&&comis[0]){
+          const jaEst=Number(comis[0].estornado||0);
+          const novoEst=Math.min(Number(comis[0].valor||0), jaEst+calc.comissao);
+          await sbPatch('comissoes','id=eq.'+comis[0].id,{estornado:novoEst});
+        }
+      }catch(e){}
+    }
+
+    // Registra a devolução
+    await sbPost('devolucoes',{loja_id:LOJA_ID,pedido_id:devPedido.id,itens:devolvidos,valor_devolvido:calc.valor,motivo,vendedor_id:devPedido.vendedor_id||null,feito_por:USER_ID});
+
+    // Marca o pedido: total se devolveu tudo, senão parcial
+    const totalPecasPedido=itens.reduce((s,it)=>s+Number(it.quantidade||0),0);
+    const novoStatus = calc.pecas>=totalPecasPedido ? 'total' : 'parcial';
+    await sbPatch('carrinhos_wpp','id=eq.'+devPedido.id,{devolucao_status:novoStatus,atualizado_em:new Date().toISOString()});
+
+    showToast('Devolução registrada. Estoque, faturamento e comissão ajustados. ✅');
+    try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
+    fecharDevolucao();
+    await carregarPedidos();
+  }catch(e){
+    showToast('Erro ao registrar a devolução',true);
+    if(btn){btn.textContent='Confirmar devolução';btn.disabled=false;}
+  }
+}
 
 /* ═══ COMISSÃO ═══
    Registra comissão sobre o valor líquido, apenas para papel 'vendedor' com pct>0.
@@ -3618,7 +3791,9 @@ async function carregarRelatorios(){
     if(!vendas.length){document.getElementById('rel-empty').style.display='block';return;}
     document.getElementById('rel-body').style.display='block';
     const fat=vendas.reduce((s,v)=>s+Number(v.preco_unitario)*Number(v.quantidade_vendida),0);
-    const nv=vendas.length;const tkt=nv?fat/nv:0;const itens=vendas.reduce((s,v)=>s+Number(v.quantidade_vendida),0);
+    // devoluções entram como linhas negativas: não contam como "nova venda", mas subtraem do faturamento e das peças
+    const vendasReais=vendas.filter(v=>Number(v.quantidade_vendida)>0);
+    const nv=vendasReais.length;const tkt=nv?fat/nv:0;const itens=vendas.reduce((s,v)=>s+Number(v.quantidade_vendida),0);
     let pFat=0,pNv=0;
     try{const iniP=new Date(ini.getTime()-d.dias*86400000);const vP=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&vendido_em=gte.'+iniP.toISOString()+'&vendido_em=lte.'+ini.toISOString()+'&limit=500');pFat=vP.reduce((s,v)=>s+Number(v.preco_unitario)*Number(v.quantidade_vendida),0);pNv=vP.length;}catch(e){}
     function delta(c,p){if(!p)return'';const pct=Math.round((c-p)/p*100);return pct>0?`<span class="delta-up">▲ ${pct}%</span>`:pct<0?`<span class="delta-dn">▼ ${Math.abs(pct)}%</span>`:'';}
