@@ -135,6 +135,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .flabel{font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;display:block;text-transform:uppercase}
 .flabel.info{color:var(--info)}.flabel.accent{color:var(--accent)}
 .finput{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:11px 12px;font-size:14px;color:var(--text1);outline:none;transition:border .2s}
+.finput.saved{background:var(--surface2);border-color:var(--border);color:var(--text2)}
 .finput:focus{border-color:var(--accent)}
 .fselect{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:11px 12px;font-size:14px;color:var(--text1);outline:none;-webkit-appearance:none}
 .fbtn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:-.2px;box-shadow:0 4px 12px rgba(124,58,237,.3);transition:opacity .15s}
@@ -937,6 +938,12 @@ html{visibility:visible}
         <button class="fbtn fbtn-outline" id="btn-alterar-regras" onclick="habilitarRegrasLoja()">✏️ Alterar regras da loja</button>
         <button class="fbtn" id="btn-salvar-regras" onclick="salvarRegrasLoja()" style="display:none">💾 Salvar</button>
       </div>
+    </div>
+
+    <!-- ── MINHAS COMISSÕES (vendedora) ── -->
+    <div class="perfil-card" id="card-minhas-comissoes" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">💰 Minhas comissões</div>
+      <div id="minhas-comissoes-lista"></div>
     </div>
 
     <!-- ── EQUIPE (gestão de vendedoras) ── -->
@@ -4161,23 +4168,53 @@ function renderComissaoConfig(){
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text1)">${info.nome}</div></div>
       <div style="display:flex;align-items:center;gap:5px">
-        <input class="finput" id="comi-${uid}" inputmode="decimal" value="${info.comissao_pct||''}" placeholder="0" style="width:70px;text-align:right;padding:8px 10px"/>
+        <input class="finput" id="comi-${uid}" inputmode="decimal" value="${info.comissao_pct||''}" placeholder="0" oninput="this.classList.remove('saved')" style="width:70px;text-align:right;padding:8px 10px"/>
         <span style="font-size:13px;font-weight:700;color:var(--text2)">%</span>
       </div>
     </div>`).join('');
 }
 async function salvarComissoes(){
   const vendedoras=Object.entries(MEMBROS_INFO).filter(([,info])=>info.papel==='vendedor'&&info.ativo!==false);
-  try{
-    for(const [uid] of vendedoras){
-      const el=document.getElementById('comi-'+uid);
-      if(!el)continue;
-      const pct=Math.max(0,Math.min(100,parseFloat((el.value||'0').replace(',','.'))||0));
-      await sbPatch('usuarios_lojas','user_id=eq.'+uid,{comissao_pct:pct});
-      if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].comissao_pct=pct;
-    }
-    showToast('Comissões salvas!');
-  }catch(e){showToast('Erro ao salvar comissões',true);}
+  let erro=false,salvou=false;
+  for(const [uid] of vendedoras){
+    const el=document.getElementById('comi-'+uid);
+    if(!el)continue;
+    const pct=Math.max(0,Math.min(100,parseFloat((el.value||'0').replace(',','.'))||0));
+    const ok=await salvarCamposVend(uid,{comissao_pct:pct});
+    if(ok){el.value=String(pct);el.classList.add('saved');salvou=true;}else{erro=true;}
+  }
+  if(erro)showToast('Não foi possível salvar todas as comissões.',true);
+  else if(salvou)showToast('Comissões salvas!');
+}
+
+/* Histórico de comissões da própria vendedora (Perfil). */
+async function renderMinhasComissoes(){
+  const card=document.getElementById('card-minhas-comissoes');
+  if(!card)return;
+  if(PAPEL!=='vendedor'){card.style.display='none';return;}
+  card.style.display='block';
+  const box=document.getElementById('minhas-comissoes-lista');
+  box.innerHTML='<div class="loading-row"><span class="proc-dot"></span>Carregando...</div>';
+  let rows=[];
+  try{ rows=await sbGet('comissoes','vendedor_id=eq.'+USER_ID+'&order=criado_em.desc&limit=200')||[]; }catch(e){}
+  if(!rows.length){box.innerHTML='<div style="font-size:13px;color:var(--text3);padding:10px 0">Nenhuma comissão registrada ainda. Elas aparecem aqui quando você conclui uma venda.</div>';return;}
+  const liq=r=>Number(r.valor||0)-Number(r.estornado||0);
+  const total=rows.reduce((s,r)=>s+liq(r),0);
+  const now=new Date();const ini=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  const mes=rows.filter(r=>new Date(r.criado_em).getTime()>=ini).reduce((s,r)=>s+liq(r),0);
+  box.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1;background:var(--success-l);border-radius:10px;padding:10px 12px"><div style="font-size:11px;color:var(--text2)">Este mês</div><div style="font-size:18px;font-weight:800;color:var(--success)">${fmtR(mes)}</div></div>
+      <div style="flex:1;background:var(--surface2);border-radius:10px;padding:10px 12px"><div style="font-size:11px;color:var(--text2)">Total acumulado</div><div style="font-size:18px;font-weight:800;color:var(--text1)">${fmtR(total)}</div></div>
+    </div>`+
+    rows.map(r=>{
+      const d=r.criado_em?new Date(r.criado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
+      const est=Number(r.estornado||0)>0;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:0"><div style="font-size:13px;color:var(--text1)">${d} · ${Number(r.pct||0)}% de ${fmtR(Number(r.base_valor||0))}</div>${est?`<div style="font-size:11px;color:var(--danger)">Estorno: −${fmtR(Number(r.estornado))}</div>`:''}</div>
+        <div style="font-size:14px;font-weight:800;color:var(--success)">${fmtR(liq(r))}</div>
+      </div>`;
+    }).join('');
 }
 
 /* ═══ GESTÃO DE EQUIPE (só admin) ═══
@@ -4458,9 +4495,9 @@ function renderAcessoLojaBox(){
   }
   box.innerHTML=`<div style="background:${bg};border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:13px;font-weight:700;color:${cor}">${status}</div>${botoes}`;
 }
-// Grava acesso da vendedora via webhook (service_role, ignora RLS) e só
-// atualiza a tela se o servidor CONFIRMAR — evita "falso salvo".
-async function salvarAcessoVend(uid,campos,msgOk){
+// Grava campos da vendedora via webhook (service_role, ignora RLS) e só
+// confirma se o servidor gravar de verdade. Atualiza MEMBROS_INFO local.
+async function salvarCamposVend(uid,campos){
   const token=await tokenFresco();
   if(!token){showToast('Sua sessão expirou. Entre de novo.',true);return false;}
   try{
@@ -4468,11 +4505,15 @@ async function salvarAcessoVend(uid,campos,msgOk){
       body:JSON.stringify({acao:'acesso',token,loja_id:LOJA_ID,user_id:uid,campos})});
     const data=await r.json().catch(()=>({}));
     if(!r.ok||data.erro){showToast(data.erro||'Não foi possível salvar.',true);return false;}
-    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},campos);
-    if(msgOk)showToast(msgOk);
-    renderAcessoConfig();
+    const m=MEMBROS_INFO[uid];
+    if(m){m.acesso=m.acesso||{};for(const k in campos){if(k==='comissao_pct')m.comissao_pct=Number(campos[k]||0);else m.acesso[k]=campos[k];}}
     return true;
   }catch(e){showToast('Erro de conexão.',true);return false;}
+}
+async function salvarAcessoVend(uid,campos,msgOk){
+  const ok=await salvarCamposVend(uid,campos);
+  if(ok){if(msgOk)showToast(msgOk);renderAcessoConfig();}
+  return ok;
 }
 async function salvarJanelaVend(uid){
   const ativa=document.getElementById('ac-jan-'+uid).checked;
@@ -4524,6 +4565,7 @@ async function carregarPerfil(){
     if(PAPEL==='admin'){try{const al=await sbGet('acesso_equipe_loja','loja_id=eq.'+LOJA_ID+'&select=travado_ate,travado_indefinido,extensao_ate&limit=1');ACESSO_LOJA=(al&&al[0])||null;}catch(e){}}
     renderAcessoConfig();
     renderComissaoConfig();
+    renderMinhasComissoes();
     // Carrega dados da loja (lojas_wpp)
     try{
       const loja=await sbGet('lojas_wpp','select=nome_loja,endereco,link_maps&loja_id=eq.'+LOJA_ID);
