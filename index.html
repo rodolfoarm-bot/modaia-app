@@ -4458,48 +4458,48 @@ function renderAcessoLojaBox(){
   }
   box.innerHTML=`<div style="background:${bg};border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:13px;font-weight:700;color:${cor}">${status}</div>${botoes}`;
 }
+// Grava acesso da vendedora via webhook (service_role, ignora RLS) e só
+// atualiza a tela se o servidor CONFIRMAR — evita "falso salvo".
+async function salvarAcessoVend(uid,campos,msgOk){
+  const token=await tokenFresco();
+  if(!token){showToast('Sua sessão expirou. Entre de novo.',true);return false;}
+  try{
+    const r=await fetch(N8N_GESTAO,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({acao:'acesso',token,loja_id:LOJA_ID,user_id:uid,campos})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok||data.erro){showToast(data.erro||'Não foi possível salvar.',true);return false;}
+    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},campos);
+    if(msgOk)showToast(msgOk);
+    renderAcessoConfig();
+    return true;
+  }catch(e){showToast('Erro de conexão.',true);return false;}
+}
 async function salvarJanelaVend(uid){
   const ativa=document.getElementById('ac-jan-'+uid).checked;
-  const body={janela_ativa:ativa};
+  const campos={janela_ativa:ativa};
   if(ativa){
     const sel=g=>[...document.querySelectorAll('.ac-chip.ac-on[data-uid="'+uid+'"][data-g="'+g+'"]')].map(e=>e.dataset.n).join(',');
-    body.janela_sem_dias=sel('sem');
-    body.janela_sem_ini=document.getElementById('ac-sem-ini-'+uid).value||'09:00';
-    body.janela_sem_fim=document.getElementById('ac-sem-fim-'+uid).value||'18:00';
-    body.janela_fds_dias=sel('fds');
-    body.janela_fds_ini=document.getElementById('ac-fds-ini-'+uid).value||'';
-    body.janela_fds_fim=document.getElementById('ac-fds-fim-'+uid).value||'';
-    if(!body.janela_sem_dias&&!body.janela_fds_dias){showToast('Marque ao menos um dia.',true);return;}
+    campos.janela_sem_dias=sel('sem');
+    campos.janela_sem_ini=document.getElementById('ac-sem-ini-'+uid).value||'09:00';
+    campos.janela_sem_fim=document.getElementById('ac-sem-fim-'+uid).value||'18:00';
+    campos.janela_fds_dias=sel('fds');
+    campos.janela_fds_ini=document.getElementById('ac-fds-ini-'+uid).value||'';
+    campos.janela_fds_fim=document.getElementById('ac-fds-fim-'+uid).value||'';
+    if(!campos.janela_sem_dias&&!campos.janela_fds_dias){showToast('Marque ao menos um dia.',true);return;}
   }
-  try{
-    await sbPatch('usuarios_lojas','user_id=eq.'+uid,body);
-    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},body);
-    showToast('Horário salvo!');renderAcessoConfig();
-  }catch(e){showToast('Erro ao salvar horário',true);}
+  await salvarAcessoVend(uid,campos,'Horário salvo!');
 }
 async function folgaVend(uid){
   const a=(MEMBROS_INFO[uid]&&MEMBROS_INFO[uid].acesso)||{};
   const ate=_proximaAbertura(a,new Date());
-  try{
-    await sbPatch('usuarios_lojas','user_id=eq.'+uid,{bloqueio_ate:ate,bloqueio_indefinido:false});
-    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},{bloqueio_ate:ate,bloqueio_indefinido:false});
-    showToast('Folga registrada.');renderAcessoConfig();
-  }catch(e){showToast('Erro ao registrar folga',true);}
+  await salvarAcessoVend(uid,{bloqueio_ate:ate,bloqueio_indefinido:false},'Folga registrada.');
 }
 async function feriasVend(uid){
   if(!confirm('Pausar o acesso desta vendedora até você reativar? (ex.: férias)'))return;
-  try{
-    await sbPatch('usuarios_lojas','user_id=eq.'+uid,{bloqueio_indefinido:true});
-    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},{bloqueio_indefinido:true});
-    showToast('Acesso pausado.');renderAcessoConfig();
-  }catch(e){showToast('Erro ao pausar',true);}
+  await salvarAcessoVend(uid,{bloqueio_indefinido:true},'Acesso pausado.');
 }
 async function reativarVend(uid){
-  try{
-    await sbPatch('usuarios_lojas','user_id=eq.'+uid,{bloqueio_ate:null,bloqueio_indefinido:false});
-    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},{bloqueio_ate:null,bloqueio_indefinido:false});
-    showToast('Acesso reativado.');renderAcessoConfig();
-  }catch(e){showToast('Erro ao reativar',true);}
+  await salvarAcessoVend(uid,{bloqueio_ate:null,bloqueio_indefinido:false},'Acesso reativado.');
 }
 async function _salvarAcessoLoja(patch){
   const body=Object.assign({loja_id:LOJA_ID,atualizado_em:new Date().toISOString()},patch);
