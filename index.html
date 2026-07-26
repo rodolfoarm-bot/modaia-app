@@ -140,6 +140,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .fbtn-danger{background:var(--danger);box-shadow:0 4px 12px rgba(220,38,38,.3)}
 .fbtn-success{background:var(--success);box-shadow:0 4px 12px rgba(5,150,105,.3)}
 .fbtn-outline{background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);box-shadow:none}
+.fbtn-success-soft{background:var(--success-l);color:var(--success);border:1.5px solid var(--success);box-shadow:none}
+.ac-chip{display:inline-block;padding:6px 11px;border-radius:16px;border:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;user-select:none;margin:0 2px 4px 0}
+.ac-chip.ac-on{background:var(--accent);border-color:var(--accent);color:#fff}
 .fbtn-danger-outline{background:var(--surface);color:var(--danger);border:1.5px solid var(--danger);box-shadow:none}
 /* Botões do chat: redondos e mais suaves */
 .chat-ic{width:42px;height:42px;flex:0 0 42px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface2);color:var(--accent);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s,background .12s;padding:0}
@@ -723,7 +726,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     </div>
     <div style="padding:12px 16px 0">
-      <button class="fbtn" onclick="novaVenda()" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Nova venda na loja</button>
+      <button class="fbtn fbtn-success-soft" onclick="novaVenda()" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Nova venda na loja</button>
     </div>
     <div id="ped-filtro-vendedor" style="display:none;padding:12px 16px 0;gap:8px;flex-wrap:wrap"></div>
     <div id="ped-filtro-entrega" style="display:none;padding:12px 16px 0;gap:8px">
@@ -949,6 +952,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       <button class="fbtn fbtn-outline" id="eq-abrir-add" onclick="abrirAddVendedora()" style="margin-top:12px">➕ Adicionar vendedora</button>
     </div>
 
+    <!-- ── ACESSO DA EQUIPE (horário) ── -->
+    <div class="perfil-card" id="card-acesso" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🔒 Acesso da equipe</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Defina quando cada vendedora pode usar o app. Você pode trancar ou liberar todas de uma vez.</div>
+      <div id="acesso-loja-box"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.3px">Por vendedora</div>
+      <div id="acesso-lista"></div>
+    </div>
+
     <!-- ── COMISSÃO DA EQUIPE ── -->
     <div class="perfil-card" id="card-comissao" style="display:none">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">💰 Comissão da equipe</div>
@@ -1042,7 +1054,10 @@ let PAPEL = '';          // 'admin' (proprietário) ou 'vendedor'
 let USER_ID = null;      // id do usuário logado — atribuído a cada venda
 let MODO_EQUIPE = false; // true quando a loja tem mais de uma pessoa
 let VENDEDORES = {};     // user_id -> nome (membros da loja, para rastrear quem vendeu
-let MEMBROS_INFO = {};   // user_id -> {nome, papel, comissao_pct}
+let MEMBROS_INFO = {};   // user_id -> {nome, papel, comissao_pct, ativo, acesso}
+let ACESSO_LOJA = null;  // acesso_equipe_loja {travado_ate, travado_indefinido, extensao_ate}
+let MEU_ACESSO = {ok:true};
+let ACESSO_TIMER = null;
 function getHDR(){const t=localStorage.getItem('sb_token')||SB_KEY;return{'apikey':SB_KEY,'Authorization':'Bearer '+t,'Content-Type':'application/json','Prefer':'return=representation'};}
 
 /* ═══ SUPABASE ═══ */
@@ -1670,6 +1685,8 @@ function renderPedidos(){
     if(pedidoEditando===p.id)return cartaoEdicao(p,num);
     const itens=p.itens||[];
     const total=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+    const liquido=(p.total_liquido!=null)?Number(p.total_liquido):total;
+    const temDesc=liquido < total - 0.005;
     const itensHtml=itens.map(itemLinha).join('');
     const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
     const ehConcluido=p.estado==='concluido';
@@ -1762,7 +1779,8 @@ function renderPedidos(){
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">${clienteLinha}</div>
       ${montarEntregaInfo(p)}
       <div style="margin-bottom:10px">${itensHtml||'<span style="font-size:12px;color:var(--text3)">Sem itens</span>'}</div>
-      <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(total)}</span></div>
+      ${temDesc?`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:3px"><span>Subtotal</span><span style="text-decoration:line-through">${fmtR(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--success);margin-bottom:6px"><span>Desconto</span><span>− ${fmtR(total-liquido)}</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(liquido)}</span></div>
       ${acoes}
     </div>`;
   }).join('');
@@ -3908,8 +3926,22 @@ async function carregarRelatorios(){
     const cliBox=document.getElementById('rel-clientes');
     const comTel=pedidosPer.filter(p=>p.telefone);
     if(comTel.length){
+      // mapa telefone(dígitos)->nome de contatos_wpp: nomes cadastrados no chat aparecem
+      // mesmo quando o pedido não guardou o nome do cliente
+      let contatosMap={};
+      try{
+        const cts=await sbGet('contatos_wpp','loja_id=eq.'+LOJA_ID+'&select=telefone,nome&limit=1000');
+        (cts||[]).forEach(c=>{const d=(c.telefone||'').replace(/\D/g,'');if(d&&c.nome)contatosMap[d]=c.nome;});
+      }catch(e){}
       const porCli={};
-      comTel.forEach(p=>{const t=p.telefone;porCli[t]=porCli[t]||{val:0,n:0,nome:p.nome_cliente||''};porCli[t].val+=valorPedido(p);porCli[t].n++;if(p.nome_cliente&&!porCli[t].nome)porCli[t].nome=p.nome_cliente;});
+      comTel.forEach(p=>{
+        const t=p.telefone;const d=(t||'').replace(/\D/g,'');
+        // presencial: o nome digitado na venda tem prioridade; WhatsApp: o nome cadastrado no contato
+        const nomeCli=p.origem==='presencial'?(p.nome_cliente||contatosMap[d]||''):(contatosMap[d]||p.nome_cliente||'');
+        porCli[t]=porCli[t]||{val:0,n:0,nome:nomeCli};
+        porCli[t].val+=valorPedido(p);porCli[t].n++;
+        if(nomeCli&&!porCli[t].nome)porCli[t].nome=nomeCli;
+      });
       const fmtTel=t=>{const d=(t||'').replace(/\D/g,'');if(d.length>=12){const x=d.slice(2);return '('+x.slice(0,2)+') '+x.slice(2,7)+'-'+x.slice(7);}return t;};
       const linhas=Object.entries(porCli).sort((a,b)=>b[1].val-a[1].val).slice(0,8).map(([tel,o],i)=>{
         const nome=o.nome||fmtTel(tel);
@@ -4018,6 +4050,7 @@ async function esconderLogin(){
     const b3=document.getElementById('ped-aberto-badge');
     if(b3){if(qtd>0){b3.textContent=qtd;b3.style.display='inline-block';}else b3.style.display='none';}
   }catch(e){}
+  iniciarMonitorAcesso();
 }
 async function carregarPerfilLoja(){
   try{
@@ -4038,9 +4071,14 @@ async function carregarPerfilLoja(){
       if(localStorage.getItem('giro_forcar_equipe')==='1')MODO_EQUIPE=true;
       // Mapa de membros da loja (user_id -> nome) para rastrear quem fez cada venda
       try{
-        const membros=await sbGet('usuarios_lojas','loja_id=eq.'+LOJA_ID+'&select=user_id,nome,papel,comissao_pct,ativo');
-        VENDEDORES={}; MEMBROS_INFO={}; (membros||[]).forEach(m=>{if(m.user_id){VENDEDORES[m.user_id]=m.nome||'Vendedor';MEMBROS_INFO[m.user_id]={nome:m.nome||'Vendedor',papel:m.papel||'vendedor',comissao_pct:Number(m.comissao_pct||0),ativo:m.ativo!==false};}});
+        const membros=await sbGet('usuarios_lojas','loja_id=eq.'+LOJA_ID+'&select=user_id,nome,papel,comissao_pct,ativo,janela_ativa,janela_sem_dias,janela_sem_ini,janela_sem_fim,janela_fds_dias,janela_fds_ini,janela_fds_fim,bloqueio_ate,bloqueio_indefinido');
+        VENDEDORES={}; MEMBROS_INFO={}; (membros||[]).forEach(m=>{if(m.user_id){VENDEDORES[m.user_id]=m.nome||'Vendedor';MEMBROS_INFO[m.user_id]={nome:m.nome||'Vendedor',papel:m.papel||'vendedor',comissao_pct:Number(m.comissao_pct||0),ativo:m.ativo!==false,acesso:{janela_ativa:!!m.janela_ativa,janela_sem_dias:m.janela_sem_dias,janela_sem_ini:m.janela_sem_ini,janela_sem_fim:m.janela_sem_fim,janela_fds_dias:m.janela_fds_dias,janela_fds_ini:m.janela_fds_ini,janela_fds_fim:m.janela_fds_fim,bloqueio_ate:m.bloqueio_ate,bloqueio_indefinido:!!m.bloqueio_indefinido}};}});
       }catch(e){VENDEDORES={};}
+      // Estado de acesso da loja inteira (trava/hora extra)
+      try{
+        const al=await sbGet('acesso_equipe_loja','loja_id=eq.'+LOJA_ID+'&select=travado_ate,travado_indefinido,extensao_ate&limit=1');
+        ACESSO_LOJA=(al&&al[0])||null;
+      }catch(e){ACESSO_LOJA=null;}
       const vendedorNome=data[0].nome||'';
       // Agora busca nome da loja usando LOJA_ID já definido
       let nomeLoja='';
@@ -4075,7 +4113,7 @@ async function fazerLogin(){
   }catch(e){err.textContent='Erro de conexão.';err.style.display='block';}
   btn.textContent='Entrar';btn.disabled=false;
 }
-function fazerLogout(){localStorage.removeItem('sb_token');localStorage.removeItem('sb_refresh');localStorage.removeItem('sb_token_ts');usuarioLogado=null;mostrarLogin();document.getElementById('login-email').value='';document.getElementById('login-senha').value='';}
+function fazerLogout(){if(ACESSO_TIMER){clearInterval(ACESSO_TIMER);ACESSO_TIMER=null;}esconderBloqueio();localStorage.removeItem('sb_token');localStorage.removeItem('sb_refresh');localStorage.removeItem('sb_token_ts');usuarioLogado=null;mostrarLogin();document.getElementById('login-email').value='';document.getElementById('login-senha').value='';}
 function toggleSenha(){const inp=document.getElementById('login-senha');const btn=document.getElementById('toggle-senha-btn');if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}else{inp.type='password';btn.textContent='👁';}}
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('login-senha')?.addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
@@ -4137,7 +4175,7 @@ function renderEquipeConfig(){
     const ehAdmin=info.papel==='admin';
     const ehVoce=uid===USER_ID;
     const tag=ehAdmin
-      ?'<span style="font-size:11px;font-weight:700;color:var(--brand)">Dona da loja</span>'
+      ?'<span style="font-size:11px;font-weight:700;color:var(--accent)">Dona da loja</span>'
       :'<span style="font-size:11px;color:var(--text3)">Vendedora</span>';
     const btn=(ehAdmin||ehVoce)?''
       :`<button class="fbtn fbtn-danger-outline" onclick="removerVendedora('${escJs(uid)}','${escJs(info.nome)}')" style="max-width:100px;padding:8px 10px;font-size:13px">Remover</button>`;
@@ -4190,9 +4228,259 @@ async function removerVendedora(uid,nome){
     if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].ativo=false;
     MODO_EQUIPE=Object.values(MEMBROS_INFO).filter(m=>m.ativo!==false).length>1;
     showToast('Vendedora removida.');
-    renderEquipeConfig();renderComissaoConfig();
+    renderEquipeConfig();renderComissaoConfig();renderAcessoConfig();
   }catch(e){showToast('Erro de conexão.',true);}
 }
+
+/* ═══ CONTROLE DE ACESSO POR HORÁRIO (5a-ii) ═══
+   Precedência (não-admin; admin passa sempre):
+   1) loja trancada  2) vendedora em férias  3) vendedora em folga
+   4) hora extra da loja libera todas  5) sem janela => liberada
+   6) dentro da janela do dia => liberada; senão bloqueada.
+   Fuso fixo America/Sao_Paulo (UTC-3, sem horário de verão). */
+function _spWall(agora){
+  const d=new Date((agora||new Date()).toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+  const dow=d.getDay();               // 0=dom..6=sab
+  return {d, iso:(dow===0?7:dow), min:d.getHours()*60+d.getMinutes()};
+}
+function _hhmmMin(h){const m=/^(\d{1,2}):(\d{2})$/.exec((h||'').trim());return m?(+m[1])*60+(+m[2]):null;}
+function _isoDaqui(minutos){return new Date(Date.now()+minutos*60000).toISOString();}
+function _ateTexto(iso){try{return new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+function _dentroDaJanela(a, agora){
+  const w=_spWall(agora);
+  const fds=(w.iso===6||w.iso===7);
+  let dias,ini,fim;
+  if(fds && (a.janela_fds_dias||'').trim()){dias=a.janela_fds_dias;ini=a.janela_fds_ini;fim=a.janela_fds_fim;}
+  else {dias=a.janela_sem_dias;ini=a.janela_sem_ini;fim=a.janela_sem_fim;}
+  const lista=(dias||'').split(',').map(x=>parseInt(x,10)).filter(n=>n>=1&&n<=7);
+  if(!lista.includes(w.iso)) return {ok:false, motivo:'fora_horario'};
+  const mi=_hhmmMin(ini), mf=_hhmmMin(fim);
+  if(mi==null||mf==null) return {ok:true};
+  if(w.min>=mi && w.min<=mf) return {ok:true};
+  return {ok:false, motivo:'fora_horario', ini, fim};
+}
+function avaliarAcesso(pessoa, loja, agora){
+  if(pessoa&&pessoa.papel==='admin') return {ok:true};
+  const now=(agora||new Date()).getTime();
+  const ts=v=>v?new Date(v).getTime():null;
+  const a=(pessoa&&pessoa.acesso)||{};
+  if(loja&&loja.travado_indefinido) return {ok:false, motivo:'loja_fechada'};
+  const tAte=loja?ts(loja.travado_ate):null; if(tAte&&now<tAte) return {ok:false, motivo:'loja_fechada', ate:loja.travado_ate};
+  if(a.bloqueio_indefinido) return {ok:false, motivo:'pausa'};
+  const bAte=ts(a.bloqueio_ate); if(bAte&&now<bAte) return {ok:false, motivo:'folga', ate:a.bloqueio_ate};
+  const eAte=loja?ts(loja.extensao_ate):null; if(eAte&&now<eAte) return {ok:true};
+  if(!a.janela_ativa) return {ok:true};
+  return _dentroDaJanela(a, agora);
+}
+function _proximaAbertura(a, agora){
+  const base=_spWall(agora);
+  if(a&&a.janela_ativa){
+    for(let i=1;i<=8;i++){
+      const dt=new Date(base.d.getTime()+i*86400000);
+      const dow=dt.getDay(); const iso=(dow===0?7:dow); const fds=(iso===6||iso===7);
+      let dias,ini;
+      if(fds&&(a.janela_fds_dias||'').trim()){dias=a.janela_fds_dias;ini=a.janela_fds_ini;}
+      else {dias=a.janela_sem_dias;ini=a.janela_sem_ini;}
+      const lista=(dias||'').split(',').map(x=>parseInt(x,10)).filter(n=>n>=1&&n<=7);
+      if(lista.includes(iso)){
+        const y=dt.getFullYear(),mo=String(dt.getMonth()+1).padStart(2,'0'),da=String(dt.getDate()).padStart(2,'0');
+        const hhmm=(ini&&/^\d{1,2}:\d{2}$/.test(ini))?(ini.length===4?'0'+ini:ini):'00:00';
+        return `${y}-${mo}-${da}T${hhmm}:00-03:00`;
+      }
+    }
+  }
+  const dt=new Date(base.d.getTime()+86400000);
+  const y=dt.getFullYear(),mo=String(dt.getMonth()+1).padStart(2,'0'),da=String(dt.getDate()).padStart(2,'0');
+  return `${y}-${mo}-${da}T00:00:00-03:00`;
+}
+function _motivoTexto(res){
+  if(!res||res.ok) return '';
+  if(res.motivo==='loja_fechada') return 'A loja trancou o acesso da equipe';
+  if(res.motivo==='pausa') return 'Seu acesso está pausado pela loja';
+  if(res.motivo==='folga') return 'Você está de folga'+(res.ate?' até '+_ateTexto(res.ate):'');
+  if(res.motivo==='fora_horario') return (res.ini&&res.fim)?('Fora do horário de atendimento ('+res.ini+' às '+res.fim+')'):'Fora do horário de atendimento';
+  return 'Acesso indisponível no momento';
+}
+
+/* Monitor: recalcula o acesso do usuário logado e mostra/esconde a tela de bloqueio.
+   Re-busca loja + própria linha periodicamente para pegar ações do admin e a virada de horário. */
+function checarMeuAcesso(){
+  if(PAPEL==='admin'){MEU_ACESSO={ok:true};esconderBloqueio();return;}
+  const pessoa={papel:PAPEL, acesso:(MEMBROS_INFO[USER_ID]&&MEMBROS_INFO[USER_ID].acesso)||{}};
+  MEU_ACESSO=avaliarAcesso(pessoa, ACESSO_LOJA, new Date());
+  if(MEU_ACESSO.ok)esconderBloqueio(); else mostrarBloqueio(MEU_ACESSO);
+}
+function iniciarMonitorAcesso(){
+  if(ACESSO_TIMER)clearInterval(ACESSO_TIMER);
+  checarMeuAcesso();
+  ACESSO_TIMER=setInterval(async()=>{
+    try{
+      const al=await sbGet('acesso_equipe_loja','loja_id=eq.'+LOJA_ID+'&select=travado_ate,travado_indefinido,extensao_ate&limit=1');
+      ACESSO_LOJA=(al&&al[0])||null;
+    }catch(e){}
+    if(PAPEL!=='admin'){
+      try{
+        const me=await sbGet('usuarios_lojas','user_id=eq.'+USER_ID+'&select=ativo,janela_ativa,janela_sem_dias,janela_sem_ini,janela_sem_fim,janela_fds_dias,janela_fds_ini,janela_fds_fim,bloqueio_ate,bloqueio_indefinido&limit=1');
+        if(me&&me[0]){
+          if(me[0].ativo===false){clearInterval(ACESSO_TIMER);fazerLogout();return;}
+          if(MEMBROS_INFO[USER_ID])MEMBROS_INFO[USER_ID].acesso={janela_ativa:!!me[0].janela_ativa,janela_sem_dias:me[0].janela_sem_dias,janela_sem_ini:me[0].janela_sem_ini,janela_sem_fim:me[0].janela_sem_fim,janela_fds_dias:me[0].janela_fds_dias,janela_fds_ini:me[0].janela_fds_ini,janela_fds_fim:me[0].janela_fds_fim,bloqueio_ate:me[0].bloqueio_ate,bloqueio_indefinido:!!me[0].bloqueio_indefinido};
+        }
+      }catch(e){}
+    }
+    checarMeuAcesso();
+  }, 45000);
+}
+function mostrarBloqueio(res){
+  let ov=document.getElementById('lock-screen');
+  if(!ov){ov=document.createElement('div');ov.id='lock-screen';document.body.appendChild(ov);}
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px';
+  const motivo=_motivoTexto(res)||'Acesso indisponível no momento';
+  ov.innerHTML=`
+    <div style="font-size:56px;margin-bottom:12px">🔒</div>
+    <div style="font-size:20px;font-weight:800;color:var(--text1);margin-bottom:8px">Acesso pausado</div>
+    <div style="font-size:14px;color:var(--text2);max-width:300px;line-height:1.5;margin-bottom:24px">${motivo}. Você poderá usar o app assim que o acesso for liberado.</div>
+    <button class="fbtn" onclick="checarMeuAcesso()" style="max-width:220px;margin-bottom:10px">Verificar de novo</button>
+    <button class="fbtn fbtn-outline" onclick="fazerLogout()" style="max-width:220px">Sair</button>`;
+  ov.style.display='flex';
+}
+function esconderBloqueio(){const ov=document.getElementById('lock-screen');if(ov)ov.style.display='none';}
+
+/* ── Config de acesso no Perfil (só admin) ── */
+function renderAcessoConfig(){
+  const card=document.getElementById('card-acesso');
+  if(!card)return;
+  const vendedoras=Object.entries(MEMBROS_INFO).filter(([,i])=>i.papel==='vendedor'&&i.ativo!==false);
+  if(PAPEL!=='admin'||vendedoras.length===0){card.style.display='none';return;}
+  card.style.display='block';
+  renderAcessoLojaBox();
+  const dSem=[[1,'Seg'],[2,'Ter'],[3,'Qua'],[4,'Qui'],[5,'Sex']];
+  const dFds=[[6,'Sáb'],[7,'Dom']];
+  const chip=(uid,g,n,l,sel)=>`<span class="ac-chip${sel?' ac-on':''}" data-uid="${uid}" data-g="${g}" data-n="${n}" onclick="this.classList.toggle('ac-on')">${l}</span>`;
+  const box=document.getElementById('acesso-lista');
+  box.innerHTML=vendedoras.map(([uid,info])=>{
+    const a=info.acesso||{};
+    const st=avaliarAcesso({papel:'vendedor',acesso:a}, ACESSO_LOJA, new Date());
+    const pill=st.ok
+      ?'<span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:20px">Ativa agora</span>'
+      :'<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">'+_motivoTexto(st)+'</span>';
+    const semSel=(a.janela_sem_dias||'1,2,3,4,5').split(',').map(x=>x.trim());
+    const fdsSel=(a.janela_fds_dias||'').split(',').map(x=>x.trim());
+    const chipsSem=dSem.map(([n,l])=>chip(uid,'sem',n,l,semSel.includes(String(n)))).join('');
+    const chipsFds=dFds.map(([n,l])=>chip(uid,'fds',n,l,fdsSel.includes(String(n)))).join('');
+    const ativa=!!a.janela_ativa;
+    let pausa;
+    if(a.bloqueio_indefinido){
+      pausa=`<button class="fbtn fbtn-success-soft" onclick="reativarVend('${uid}')" style="padding:10px;margin-top:8px">Reativar acesso</button>`;
+    }else{
+      const emFolga=a.bloqueio_ate&&new Date(a.bloqueio_ate).getTime()>Date.now();
+      pausa=`<div style="display:flex;gap:6px;margin-top:8px">
+        ${emFolga
+          ?`<button class="fbtn fbtn-success-soft" onclick="reativarVend('${uid}')" style="padding:10px;flex:1">Cancelar folga</button>`
+          :`<button class="fbtn fbtn-outline" onclick="folgaVend('${uid}')" style="padding:10px;flex:1">Folga hoje</button>`}
+        <button class="fbtn fbtn-danger-outline" onclick="feriasVend('${uid}')" style="padding:10px;flex:1">Pausar (férias)</button>
+      </div>`;
+    }
+    return `<div style="padding:13px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px">
+        <div style="font-size:14px;font-weight:700;color:var(--text1);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(info.nome||'—').replace(/</g,'&lt;')}</div>${pill}
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:8px">
+        <input type="checkbox" id="ac-jan-${uid}" ${ativa?'checked':''} onchange="document.getElementById('ac-jan-box-${uid}').style.display=this.checked?'block':'none'"/> Restringir por horário
+      </label>
+      <div id="ac-jan-box-${uid}" style="display:${ativa?'block':'none'}">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">Dias de semana</div>
+        <div style="margin-bottom:6px">${chipsSem}</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:11px">
+          <input class="finput" type="time" id="ac-sem-ini-${uid}" value="${a.janela_sem_ini||'09:00'}" style="flex:1"/>
+          <span style="font-size:12px;color:var(--text2)">às</span>
+          <input class="finput" type="time" id="ac-sem-fim-${uid}" value="${a.janela_sem_fim||'18:00'}" style="flex:1"/>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">Fim de semana <span style="font-weight:500;color:var(--text3)">(opcional)</span></div>
+        <div style="margin-bottom:6px">${chipsFds}</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:11px">
+          <input class="finput" type="time" id="ac-fds-ini-${uid}" value="${a.janela_fds_ini||''}" style="flex:1"/>
+          <span style="font-size:12px;color:var(--text2)">às</span>
+          <input class="finput" type="time" id="ac-fds-fim-${uid}" value="${a.janela_fds_fim||''}" style="flex:1"/>
+        </div>
+      </div>
+      <button class="fbtn" onclick="salvarJanelaVend('${uid}')" style="padding:10px">Salvar horário</button>
+      ${pausa}
+    </div>`;
+  }).join('');
+}
+function renderAcessoLojaBox(){
+  const box=document.getElementById('acesso-loja-box');if(!box)return;
+  const L=ACESSO_LOJA||{};const now=Date.now();
+  const travado=L.travado_indefinido||(L.travado_ate&&new Date(L.travado_ate).getTime()>now);
+  const extra=L.extensao_ate&&new Date(L.extensao_ate).getTime()>now;
+  let status,cor,bg;
+  if(travado){status='🔒 Equipe trancada — ninguém atende';cor='var(--danger)';bg='var(--danger-l)';}
+  else if(extra){status='⏰ Hora extra liberada até '+_ateTexto(L.extensao_ate);cor='var(--accent)';bg='var(--accent-l)';}
+  else{status='✅ Liberada — cada vendedora segue o próprio horário';cor='var(--success)';bg='var(--success-l)';}
+  let botoes;
+  if(travado){
+    botoes=`<button class="fbtn fbtn-success-soft" onclick="reabrirLoja()" style="padding:11px">Reabrir a equipe agora</button>`;
+  }else{
+    botoes=`<button class="fbtn fbtn-danger-outline" onclick="trancarLoja()" style="padding:11px;margin-bottom:8px">🔒 Trancar a equipe agora</button>`;
+    botoes+= extra
+      ?`<button class="fbtn fbtn-outline" onclick="cancelarExtra()" style="padding:11px">Cancelar hora extra</button>`
+      :`<div style="font-size:11px;color:var(--text3);margin:2px 0 6px">Hora extra (libera todas além do horário):</div><div style="display:flex;gap:6px"><button class="fbtn fbtn-outline" onclick="liberarExtra(60)" style="padding:10px">+1h</button><button class="fbtn fbtn-outline" onclick="liberarExtra(120)" style="padding:10px">+2h</button><button class="fbtn fbtn-outline" onclick="liberarExtra(180)" style="padding:10px">+3h</button></div>`;
+  }
+  box.innerHTML=`<div style="background:${bg};border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:13px;font-weight:700;color:${cor}">${status}</div>${botoes}`;
+}
+async function salvarJanelaVend(uid){
+  const ativa=document.getElementById('ac-jan-'+uid).checked;
+  const body={janela_ativa:ativa};
+  if(ativa){
+    const sel=g=>[...document.querySelectorAll('.ac-chip.ac-on[data-uid="'+uid+'"][data-g="'+g+'"]')].map(e=>e.dataset.n).join(',');
+    body.janela_sem_dias=sel('sem');
+    body.janela_sem_ini=document.getElementById('ac-sem-ini-'+uid).value||'09:00';
+    body.janela_sem_fim=document.getElementById('ac-sem-fim-'+uid).value||'18:00';
+    body.janela_fds_dias=sel('fds');
+    body.janela_fds_ini=document.getElementById('ac-fds-ini-'+uid).value||'';
+    body.janela_fds_fim=document.getElementById('ac-fds-fim-'+uid).value||'';
+    if(!body.janela_sem_dias&&!body.janela_fds_dias){showToast('Marque ao menos um dia.',true);return;}
+  }
+  try{
+    await sbPatch('usuarios_lojas','user_id=eq.'+uid,body);
+    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},body);
+    showToast('Horário salvo!');renderAcessoConfig();
+  }catch(e){showToast('Erro ao salvar horário',true);}
+}
+async function folgaVend(uid){
+  const a=(MEMBROS_INFO[uid]&&MEMBROS_INFO[uid].acesso)||{};
+  const ate=_proximaAbertura(a,new Date());
+  try{
+    await sbPatch('usuarios_lojas','user_id=eq.'+uid,{bloqueio_ate:ate,bloqueio_indefinido:false});
+    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},{bloqueio_ate:ate,bloqueio_indefinido:false});
+    showToast('Folga registrada.');renderAcessoConfig();
+  }catch(e){showToast('Erro ao registrar folga',true);}
+}
+async function feriasVend(uid){
+  if(!confirm('Pausar o acesso desta vendedora até você reativar? (ex.: férias)'))return;
+  try{
+    await sbPatch('usuarios_lojas','user_id=eq.'+uid,{bloqueio_indefinido:true});
+    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},{bloqueio_indefinido:true});
+    showToast('Acesso pausado.');renderAcessoConfig();
+  }catch(e){showToast('Erro ao pausar',true);}
+}
+async function reativarVend(uid){
+  try{
+    await sbPatch('usuarios_lojas','user_id=eq.'+uid,{bloqueio_ate:null,bloqueio_indefinido:false});
+    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].acesso=Object.assign(MEMBROS_INFO[uid].acesso||{},{bloqueio_ate:null,bloqueio_indefinido:false});
+    showToast('Acesso reativado.');renderAcessoConfig();
+  }catch(e){showToast('Erro ao reativar',true);}
+}
+async function _salvarAcessoLoja(patch){
+  const body=Object.assign({loja_id:LOJA_ID,atualizado_em:new Date().toISOString()},patch);
+  const r=await fetch(SB_URL+'/rest/v1/acesso_equipe_loja?on_conflict=loja_id',{method:'POST',headers:{...getHDR(),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+  ACESSO_LOJA=Object.assign(ACESSO_LOJA||{loja_id:LOJA_ID},patch);
+}
+async function trancarLoja(){try{await _salvarAcessoLoja({travado_indefinido:true,travado_ate:null});showToast('Equipe trancada.');renderAcessoConfig();}catch(e){showToast('Erro ao trancar',true);}}
+async function reabrirLoja(){try{await _salvarAcessoLoja({travado_indefinido:false,travado_ate:null});showToast('Equipe reaberta.');renderAcessoConfig();}catch(e){showToast('Erro ao reabrir',true);}}
+async function liberarExtra(min){try{await _salvarAcessoLoja({extensao_ate:_isoDaqui(min)});showToast('Hora extra liberada.');renderAcessoConfig();}catch(e){showToast('Erro',true);}}
+async function cancelarExtra(){try{await _salvarAcessoLoja({extensao_ate:null});showToast('Hora extra cancelada.');renderAcessoConfig();}catch(e){showToast('Erro',true);}}
 
 async function carregarPerfil(){
   try{
@@ -4202,6 +4490,9 @@ async function carregarPerfil(){
     try{const prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
     try{const vendas=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
     renderEquipeConfig();
+    // atualiza o estado de acesso da loja antes de renderizar a config
+    if(PAPEL==='admin'){try{const al=await sbGet('acesso_equipe_loja','loja_id=eq.'+LOJA_ID+'&select=travado_ate,travado_indefinido,extensao_ate&limit=1');ACESSO_LOJA=(al&&al[0])||null;}catch(e){}}
+    renderAcessoConfig();
     renderComissaoConfig();
     // Carrega dados da loja (lojas_wpp)
     try{
