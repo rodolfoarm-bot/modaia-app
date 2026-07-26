@@ -3996,6 +3996,17 @@ async function renovarToken(){
   return false;
 }
 
+// Garante um access token válido antes de operações sensíveis (ex.: webhooks).
+// Renova se o token já tem mais de ~45 min (expira em ~60). Retorna o token ou null.
+async function tokenFresco(){
+  const ts=parseInt(localStorage.getItem('sb_token_ts')||'0');
+  if(!ts||Date.now()-ts>45*60*1000){
+    const ok=await renovarToken();
+    if(!ok)return null;
+  }
+  return localStorage.getItem('sb_token');
+}
+
 async function verificarSessao(){
   const token=localStorage.getItem('sb_token');
   if(!token){mostrarLogin();return;}
@@ -4031,6 +4042,14 @@ setInterval(async()=>{
     await renovarToken();
   }
 },50*60*1000);
+
+// Ao voltar pro primeiro plano (celular saiu do bloqueio / trocou de app), garante
+// token fresco. Só faz rede se o token estiver velho — em uso normal não custa nada.
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&usuarioLogado&&localStorage.getItem('sb_refresh')){
+    tokenFresco();
+  }
+});
 function mostrarLogin(){document.getElementById('sc-login').style.display='flex';document.getElementById('bnav').style.display='none';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));}
 async function esconderLogin(){
   document.getElementById('sc-login').style.display='none';document.getElementById('bnav').style.display='flex';document.getElementById('sc-estoque').classList.add('active');
@@ -4212,8 +4231,10 @@ async function adicionarVendedora(){
   if(senha.length<6){showToast('Senha de no mínimo 6 caracteres.',true);return;}
   const btn=document.getElementById('eq-add-btn');btn.disabled=true;btn.textContent='Adicionando...';
   try{
+    const token=await tokenFresco();
+    if(!token){showToast('Sua sessão expirou. Entre de novo.',true);btn.disabled=false;btn.textContent='Adicionar';return;}
     const r=await fetch(N8N_GESTAO,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({acao:'criar',token:localStorage.getItem('sb_token'),loja_id:LOJA_ID,nome,usuario,senha})});
+      body:JSON.stringify({acao:'criar',token,loja_id:LOJA_ID,nome,usuario,senha})});
     const data=await r.json().catch(()=>({}));
     if(!r.ok||data.erro){showToast(data.erro||'Não foi possível adicionar.',true);}
     else{
@@ -4228,8 +4249,10 @@ async function adicionarVendedora(){
 async function removerVendedora(uid,nome){
   if(!confirm('Remover '+(nome||'esta vendedora')+'?\n\nEla perde o acesso ao app na hora. O histórico de vendas dela é mantido nos relatórios.'))return;
   try{
+    const token=await tokenFresco();
+    if(!token){showToast('Sua sessão expirou. Entre de novo.',true);return;}
     const r=await fetch(N8N_GESTAO,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({acao:'excluir',token:localStorage.getItem('sb_token'),loja_id:LOJA_ID,user_id:uid})});
+      body:JSON.stringify({acao:'excluir',token,loja_id:LOJA_ID,user_id:uid})});
     const data=await r.json().catch(()=>({}));
     if(!r.ok||data.erro){showToast(data.erro||'Não foi possível remover.',true);return;}
     if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].ativo=false;
