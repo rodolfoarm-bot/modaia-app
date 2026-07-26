@@ -932,7 +932,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
       </div>
     </div>
 
-    <!-- ── PARÂMETROS DA LOJA ── -->
+    <!-- ── EQUIPE (gestão de vendedoras) ── -->
+    <div class="perfil-card" id="card-equipe" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">👥 Equipe</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Cadastre ou remova as vendedoras da loja. Elas entram com o e-mail e a senha que você definir aqui.</div>
+      <div id="equipe-lista"></div>
+      <div id="equipe-add-box" style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);display:none">
+        <input class="finput" id="eq-nome" placeholder="Nome da vendedora" style="margin-bottom:8px"/>
+        <input class="finput" id="eq-email" type="email" inputmode="email" autocapitalize="none" placeholder="E-mail de acesso" style="margin-bottom:8px"/>
+        <input class="finput" id="eq-senha" type="text" placeholder="Senha inicial (mín. 6 caracteres)" style="margin-bottom:10px"/>
+        <div style="display:flex;gap:8px">
+          <button class="fbtn fbtn-outline" onclick="cancelarAddVendedora()">Cancelar</button>
+          <button class="fbtn" id="eq-add-btn" onclick="adicionarVendedora()">Adicionar</button>
+        </div>
+      </div>
+      <button class="fbtn fbtn-outline" id="eq-abrir-add" onclick="abrirAddVendedora()" style="margin-top:12px">➕ Adicionar vendedora</button>
+    </div>
+
+    <!-- ── COMISSÃO DA EQUIPE ── -->
     <div class="perfil-card" id="card-comissao" style="display:none">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">💰 Comissão da equipe</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Percentual sobre o valor líquido de cada venda concluída pela vendedora</div>
@@ -1016,6 +1033,7 @@ const PROD_COLS='id,loja_id,foto_url,tipo,subtipo,genero,faixa_etaria,faixa_etar
 const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vendedor';
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 const N8N_RELAY = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/vendedor_envia';
+const N8N_GESTAO = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/gestao_equipe';
 let LOJA_ID = null;
 let NOME_LOJA = '';
 let LOJA_ENDERECO = '';
@@ -4005,22 +4023,23 @@ async function carregarPerfilLoja(){
   try{
     const uid=usuarioLogado?.id||null;
     // Filtra pela própria linha (robusto mesmo quando a RLS permite ler outros membros da loja)
-    const data=await sbGet('usuarios_lojas','user_id=eq.'+uid+'&select=loja_id,nome,papel');
+    const data=await sbGet('usuarios_lojas','user_id=eq.'+uid+'&select=loja_id,nome,papel,ativo');
     if(data&&data[0]){
+      if(data[0].ativo===false){showToast('Seu acesso foi removido pela loja.',true);fazerLogout();return;}
       LOJA_ID=data[0].loja_id; // define LOJA_ID primeiro
       PAPEL=data[0].papel||'vendedor';
       USER_ID=uid;
       // Detecta se a loja já tem equipe (mais de uma pessoa). Solo por padrão.
       try{
-        const equipe=await sbGet('usuarios_lojas','select=loja_id&loja_id=eq.'+LOJA_ID);
-        MODO_EQUIPE=(equipe?.length||0)>1;
+        const equipe=await sbGet('usuarios_lojas','select=ativo&loja_id=eq.'+LOJA_ID);
+        MODO_EQUIPE=(equipe||[]).filter(m=>m.ativo!==false).length>1;
       }catch(e){MODO_EQUIPE=false;}
       // Chave de teste: força o modo equipe (ex.: para testar o chat in-app antes de ter vendedor)
       if(localStorage.getItem('giro_forcar_equipe')==='1')MODO_EQUIPE=true;
       // Mapa de membros da loja (user_id -> nome) para rastrear quem fez cada venda
       try{
-        const membros=await sbGet('usuarios_lojas','loja_id=eq.'+LOJA_ID+'&select=user_id,nome,papel,comissao_pct');
-        VENDEDORES={}; MEMBROS_INFO={}; (membros||[]).forEach(m=>{if(m.user_id){VENDEDORES[m.user_id]=m.nome||'Vendedor';MEMBROS_INFO[m.user_id]={nome:m.nome||'Vendedor',papel:m.papel||'vendedor',comissao_pct:Number(m.comissao_pct||0)};}});
+        const membros=await sbGet('usuarios_lojas','loja_id=eq.'+LOJA_ID+'&select=user_id,nome,papel,comissao_pct,ativo');
+        VENDEDORES={}; MEMBROS_INFO={}; (membros||[]).forEach(m=>{if(m.user_id){VENDEDORES[m.user_id]=m.nome||'Vendedor';MEMBROS_INFO[m.user_id]={nome:m.nome||'Vendedor',papel:m.papel||'vendedor',comissao_pct:Number(m.comissao_pct||0),ativo:m.ativo!==false};}});
       }catch(e){VENDEDORES={};}
       const vendedorNome=data[0].nome||'';
       // Agora busca nome da loja usando LOJA_ID já definido
@@ -4071,7 +4090,7 @@ function renderComissaoConfig(){
   const lista=document.getElementById('comissao-lista');
   if(!card||!lista)return;
   // só admin vê; e só faz sentido se houver vendedoras
-  const vendedoras=Object.entries(MEMBROS_INFO).filter(([,info])=>info.papel==='vendedor');
+  const vendedoras=Object.entries(MEMBROS_INFO).filter(([,info])=>info.papel==='vendedor'&&info.ativo!==false);
   if(PAPEL!=='admin'||vendedoras.length===0){ card.style.display='none'; return; }
   card.style.display='block';
   lista.innerHTML=vendedoras.map(([uid,info])=>`
@@ -4084,7 +4103,7 @@ function renderComissaoConfig(){
     </div>`).join('');
 }
 async function salvarComissoes(){
-  const vendedoras=Object.entries(MEMBROS_INFO).filter(([,info])=>info.papel==='vendedor');
+  const vendedoras=Object.entries(MEMBROS_INFO).filter(([,info])=>info.papel==='vendedor'&&info.ativo!==false);
   try{
     for(const [uid] of vendedoras){
       const el=document.getElementById('comi-'+uid);
@@ -4097,6 +4116,84 @@ async function salvarComissoes(){
   }catch(e){showToast('Erro ao salvar comissões',true);}
 }
 
+/* ═══ GESTÃO DE EQUIPE (só admin) ═══
+   Cadastro/remoção de vendedoras feito pela própria dona da loja.
+   Criar um login exige a service_role (Auth admin) → NÃO pode sair do app.
+   Por isso passa pelo webhook n8n `gestao_equipe`, que valida se quem chama
+   é admin da loja e faz o trabalho no servidor. Remoção é soft-delete
+   (ativo=false) para preservar o histórico de vendas da vendedora. */
+function renderEquipeConfig(){
+  const card=document.getElementById('card-equipe');
+  const lista=document.getElementById('equipe-lista');
+  if(!card||!lista)return;
+  if(PAPEL!=='admin'){ card.style.display='none'; return; }
+  card.style.display='block';
+  const membros=Object.entries(MEMBROS_INFO)
+    .filter(([,info])=>info.ativo!==false)
+    .sort((a,b)=>(a[1].papel==='admin'?0:1)-(b[1].papel==='admin'?0:1));
+  const esc=s=>(s||'').replace(/</g,'&lt;');
+  const escJs=s=>(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  lista.innerHTML=membros.map(([uid,info])=>{
+    const ehAdmin=info.papel==='admin';
+    const ehVoce=uid===USER_ID;
+    const tag=ehAdmin
+      ?'<span style="font-size:11px;font-weight:700;color:var(--brand)">Dona da loja</span>'
+      :'<span style="font-size:11px;color:var(--text3)">Vendedora</span>';
+    const btn=(ehAdmin||ehVoce)?''
+      :`<button class="fbtn fbtn-danger-outline" onclick="removerVendedora('${escJs(uid)}','${escJs(info.nome)}')" style="max-width:100px;padding:8px 10px;font-size:13px">Remover</button>`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(info.nome)||'—'}</div>${tag}
+      </div>${btn}
+    </div>`;
+  }).join('')||'<div style="font-size:13px;color:var(--text3);padding:8px 0">Só você por enquanto.</div>';
+}
+function abrirAddVendedora(){
+  document.getElementById('equipe-add-box').style.display='block';
+  document.getElementById('eq-abrir-add').style.display='none';
+  ['eq-nome','eq-email','eq-senha'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('eq-nome').focus();
+}
+function cancelarAddVendedora(){
+  document.getElementById('equipe-add-box').style.display='none';
+  document.getElementById('eq-abrir-add').style.display='block';
+}
+async function adicionarVendedora(){
+  const nome=(document.getElementById('eq-nome').value||'').trim();
+  const email=(document.getElementById('eq-email').value||'').trim().toLowerCase();
+  const senha=(document.getElementById('eq-senha').value||'');
+  if(!nome){showToast('Informe o nome.',true);return;}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){showToast('E-mail inválido.',true);return;}
+  if(senha.length<6){showToast('Senha de no mínimo 6 caracteres.',true);return;}
+  const btn=document.getElementById('eq-add-btn');btn.disabled=true;btn.textContent='Adicionando...';
+  try{
+    const r=await fetch(N8N_GESTAO,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({acao:'criar',token:localStorage.getItem('sb_token'),loja_id:LOJA_ID,nome,email,senha})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok||data.erro){showToast(data.erro||'Não foi possível adicionar.',true);}
+    else{
+      showToast('Vendedora adicionada!');
+      if(data.user_id){MEMBROS_INFO[data.user_id]={nome,papel:'vendedor',comissao_pct:0,ativo:true};VENDEDORES[data.user_id]=nome;}
+      MODO_EQUIPE=true;
+      cancelarAddVendedora();renderEquipeConfig();renderComissaoConfig();
+    }
+  }catch(e){showToast('Erro de conexão.',true);}
+  btn.disabled=false;btn.textContent='Adicionar';
+}
+async function removerVendedora(uid,nome){
+  if(!confirm('Remover '+(nome||'esta vendedora')+'?\n\nEla perde o acesso ao app na hora. O histórico de vendas dela é mantido nos relatórios.'))return;
+  try{
+    const r=await fetch(N8N_GESTAO,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({acao:'excluir',token:localStorage.getItem('sb_token'),loja_id:LOJA_ID,user_id:uid})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok||data.erro){showToast(data.erro||'Não foi possível remover.',true);return;}
+    if(MEMBROS_INFO[uid])MEMBROS_INFO[uid].ativo=false;
+    MODO_EQUIPE=Object.values(MEMBROS_INFO).filter(m=>m.ativo!==false).length>1;
+    showToast('Vendedora removida.');
+    renderEquipeConfig();renderComissaoConfig();
+  }catch(e){showToast('Erro de conexão.',true);}
+}
+
 async function carregarPerfil(){
   try{
     if(usuarioLogado)document.getElementById('perfil-email').textContent=usuarioLogado.email||'—';
@@ -4104,6 +4201,7 @@ async function carregarPerfil(){
     if(ul&&ul[0]){document.getElementById('perfil-nome').textContent=ul[0].nome||'Vendedor';document.getElementById('perfil-loja').textContent=ul[0].loja_id||'—';document.getElementById('perfil-papel').textContent=ul[0].papel==='admin'?'Administrador':'Vendedor';}
     try{const prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&select=id&ativo=neq.false');document.getElementById('perfil-produtos').textContent=prods.length+' produtos';}catch(e){}
     try{const vendas=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&select=id');document.getElementById('perfil-vendas').textContent=vendas.length+' vendas';}catch(e){}
+    renderEquipeConfig();
     renderComissaoConfig();
     // Carrega dados da loja (lojas_wpp)
     try{
