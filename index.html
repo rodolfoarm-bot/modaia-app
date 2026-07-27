@@ -725,7 +725,7 @@ html{visibility:visible}
   <div class="tb">
     <div class="tb-row">
       <span class="tb-logo">G</span><span class="tb-title">Vendas</span>
-      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-pedidos">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><span class="tb-badge" id="badge-pedidos">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub">Vendas na loja e pedidos da assistente no WhatsApp</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
@@ -744,6 +744,7 @@ html{visibility:visible}
     <div id="ped-filtro-entrega" style="display:none;padding:12px 16px 0;gap:8px">
       <button class="ped-fchip on" data-fent="todos" onclick="setFiltroEntrega('todos')">Todas</button>
       <button class="ped-fchip" data-fent="pendentes" onclick="setFiltroEntrega('pendentes')">📦 Pendentes de entrega</button>
+      <button class="ped-fchip" data-fent="falando" onclick="setFiltroEntrega('falando')">🙋 Voltaram a falar</button>
     </div>
     <div id="ped-filtro-periodo" style="display:none;padding:10px 16px 0;gap:8px;flex-wrap:wrap">
       <button class="ped-fchip on" data-fper="tudo" onclick="setFiltroPeriodo('tudo')">Tudo</button>
@@ -1050,6 +1051,19 @@ html{visibility:visible}
   </div>
 </div>
 
+<!-- painel de notificações -->
+<div id="notif-ov" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45)" onclick="if(event.target===this)fecharNotificacoes()">
+  <div style="position:absolute;left:0;right:0;bottom:0;max-height:78%;display:flex;flex-direction:column;background:var(--bg);border-radius:18px 18px 0 0;animation:ovUp .22s ease">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px">
+      <span style="font-size:17px;font-weight:800;color:var(--text1)">Notificações</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="lerTodasNotificacoes()" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">Marcar todas</button>
+        <button class="ov-x" onclick="fecharNotificacoes()">×</button>
+      </div>
+    </div>
+    <div id="notif-lista" style="overflow:auto;padding:0 16px 20px"></div>
+  </div>
+</div>
 <!-- input escondido para anexos (câmera/galeria/arquivos) -->
 <input type="file" id="anexo-file-input" accept="image/*,application/pdf" style="display:none" onchange="anexoSelecionado(event)"/>
 <!-- BOTTOM NAV — ordem: Produtos · Cadastrar · Alertas · Relatórios · Perfil -->
@@ -1758,6 +1772,12 @@ function renderPedidos(){
     const desde=_periodoInicio(concluidoPeriodo);
     fonte=fonte.filter(p=>{const t=new Date(p.concluido_em||p.atualizado_em||p.criado_em||0).getTime();return t>=desde;});
   }
+  // "Voltaram a falar" (pós-venda) nas Concluídas
+  if(pedidosSubAba==='concluido'&&concluidoFiltro==='falando'){
+    fonte=fonte.filter(p=>p.aguardando_humano===true);
+  }
+  // quem pediu atendimento sobe para o topo
+  fonte=fonte.slice().sort((a,b)=>(b.aguardando_humano===true?1:0)-(a.aguardando_humano===true?1:0));
   if(fonte.length===0){
     lista.innerHTML='';
     if(vazio){
@@ -1872,7 +1892,14 @@ function renderPedidos(){
     const clienteLinha=(p.nome_cliente||p.telefone)
       ?`Cliente: ${p.nome_cliente?p.nome_cliente+' · ':''}${p.telefone||'—'} · ${tempoRelativo(p.criado_em)}`
       :`Venda na loja · ${tempoRelativo(p.criado_em)}`;
-    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
+    const pedeHumano=p.aguardando_humano===true;
+    const bannerHumano=pedeHumano?`<div style="background:var(--warning-l);border-radius:10px;padding:9px 11px;margin:-4px 0 10px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:16px">🙋</span>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800;color:var(--warning)">${ehConcluido?'Cliente voltou a falar':'Cliente pediu atendimento'}</div>${p.handoff_motivo?`<div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(p.handoff_motivo||'').replace(/</g,'&lt;')}</div>`:''}</div>
+      <button onclick="marcarAtendido('${p.id}')" title="Marcar como atendido" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 4px">✓</button>
+    </div>`:'';
+    return `<div style="background:var(--surface);border:1px solid ${pedeHumano?'var(--warning)':'var(--border)'};border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
+      ${bannerHumano}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-size:15px;font-weight:800;color:var(--text1)">${ehPresencial?'Venda':'Pedido'} ${num}${origemBadge}</span>
         ${statusPill}
@@ -2006,6 +2033,61 @@ async function removerAnexo(pedidoId,media_url){
   }catch(e){showToast('Não foi possível remover.',true);return false;}
 }
 
+/* ═══ NOTIFICAÇÕES NO APP ═══
+   Destinatário: user_id = eu, ou NULL (broadcast da loja).
+   Origem: nodes do n8n (handoff e contato pós-venda). */
+let NOTIFS=[];
+async function carregarNotificacoes(){
+  if(!LOJA_ID||!USER_ID)return;
+  try{
+    NOTIFS=await sbGet('notificacoes','loja_id=eq.'+LOJA_ID+'&or=(user_id.eq.'+USER_ID+',user_id.is.null)&order=criado_em.desc&limit=50')||[];
+  }catch(e){NOTIFS=[];}
+  const n=NOTIFS.filter(x=>!x.lida).length;
+  const b=document.getElementById('notif-badge');
+  if(b){if(n>0){b.textContent=n>9?'9+':String(n);b.style.display='flex';}else b.style.display='none';}
+}
+function abrirNotificacoes(){
+  document.getElementById('notif-ov').style.display='block';
+  renderNotificacoes();
+  carregarNotificacoes().then(renderNotificacoes);
+}
+function fecharNotificacoes(){document.getElementById('notif-ov').style.display='none';}
+function renderNotificacoes(){
+  const box=document.getElementById('notif-lista');if(!box)return;
+  if(!NOTIFS.length){box.innerHTML='<div style="font-size:13px;color:var(--text3);padding:16px 0;text-align:center">Nenhuma notificação por aqui.</div>';return;}
+  const esc=s=>(s||'').replace(/</g,'&lt;');
+  const ico=t=>t==='handoff'?'🙋':t==='pos_venda'?'💬':'🛒';
+  box.innerHTML=NOTIFS.map(x=>`<div onclick="abrirNotif('${x.id}')" style="display:flex;gap:10px;padding:12px;margin-bottom:8px;border-radius:12px;cursor:pointer;background:${x.lida?'var(--surface)':'var(--accent-l)'};border:1px solid ${x.lida?'var(--border)':'var(--accent)'}">
+    <span style="font-size:18px">${ico(x.tipo)}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13.5px;font-weight:${x.lida?'600':'800'};color:var(--text1)">${esc(x.titulo)}</div>
+      ${x.corpo?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(x.corpo)}</div>`:''}
+      <div style="font-size:10.5px;color:var(--text3);margin-top:3px">${tempoRelativo(x.criado_em)}</div>
+    </div>
+  </div>`).join('');
+}
+async function abrirNotif(id){
+  const x=NOTIFS.find(n=>n.id===id);if(!x)return;
+  if(!x.lida){x.lida=true;try{await sbPatch('notificacoes','id=eq.'+id,{lida:true});}catch(e){}carregarNotificacoes();}
+  fecharNotificacoes();
+  if(x.telefone){abrirChat(x.telefone,'',x.pedido_id||null);}
+  else{navTo('pedidos');}
+}
+async function lerTodasNotificacoes(){
+  const naoLidas=NOTIFS.filter(x=>!x.lida);
+  NOTIFS.forEach(x=>x.lida=true);renderNotificacoes();
+  for(const x of naoLidas){try{await sbPatch('notificacoes','id=eq.'+x.id,{lida:true});}catch(e){}}
+  carregarNotificacoes();
+}
+/* Encerra a sinalização de "cliente esperando" num pedido */
+async function marcarAtendido(id){
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{aguardando_humano:false,atualizado_em:new Date().toISOString()});
+    const p=PEDIDOS.find(x=>x.id===id); if(p)p.aguardando_humano=false;
+    showToast('Marcado como atendido.');renderPedidos();
+  }catch(e){showToast('Não foi possível marcar.',true);}
+}
+
 function atualizarBadgePedidos(){
   if(pedidosSubAba!=='aberto')return; // só recalcula quando a lista de abertos está carregada
   const n=PEDIDOS.filter(p=>p.estado==='aguardando_pagamento').length;
@@ -2030,7 +2112,7 @@ async function confirmarCancelamento(id){
 
 async function assumirPedido(id){
   try{
-    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'em_atendimento',vendedor_id:USER_ID,assumido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'em_atendimento',vendedor_id:USER_ID,assumido_em:new Date().toISOString(),aguardando_humano:false,atualizado_em:new Date().toISOString()});
     await carregarPedidos();
   }catch(e){showToast('Erro ao assumir o pedido',true);}
 }
@@ -2295,7 +2377,7 @@ async function concluirPedido(id,forcar){
       const precoLiq=Math.round(Number(it.preco_unitario||0)*fator*100)/100;
       await sbPost('vendas',{produto_id:it.produto_id,loja_id:LOJA_ID,quantidade_vendida:Number(it.quantidade||0),preco_unitario:precoLiq,forma_pagamento:pgtoFinal,vendedor_id:USER_ID});
     }
-    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgtoFinal,total_liquido:calc.liquido,concluido_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'concluido',forma_pagamento:pgtoFinal,total_liquido:calc.liquido,concluido_em:new Date().toISOString(),aguardando_humano:false,atualizado_em:new Date().toISOString()});
     await registrarComissao(id, USER_ID, calc.liquido);
     showToast('Pedido concluído! Venda registrada e estoque atualizado. 🎉');
     try{PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');}catch(e){}
@@ -4347,6 +4429,7 @@ async function esconderLogin(){
     const b3=document.getElementById('ped-aberto-badge');
     if(b3){if(qtd>0){b3.textContent=qtd;b3.style.display='inline-block';}else b3.style.display='none';}
   }catch(e){}
+  carregarNotificacoes();
   iniciarMonitorAcesso();
 }
 async function carregarPerfilLoja(){
@@ -4710,6 +4793,7 @@ function iniciarMonitorAcesso(){
         }
       }catch(e){}
     }
+    carregarNotificacoes();
     checarMeuAcesso();
   }, 45000);
 }
