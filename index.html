@@ -1020,6 +1020,8 @@ html{visibility:visible}
   </div>
 </div>
 
+<!-- input escondido para anexos (câmera/galeria/arquivos) -->
+<input type="file" id="anexo-file-input" accept="image/*,application/pdf" style="display:none" onchange="anexoSelecionado(event)"/>
 <!-- BOTTOM NAV — ordem: Produtos · Cadastrar · Alertas · Relatórios · Perfil -->
 <nav class="bnav" id="bnav">
   <button class="bnav-item" id="nav-pedidos" data-sc="pedidos" onclick="navTo('pedidos')" style="position:relative">
@@ -1422,7 +1424,7 @@ let pedidoAlerta=null;          // {id, faltas:[{nome,tem,pedido}]} aviso de est
 let pedidosSubAba='aberto';     // 'aberto' | 'concluido'
 let PED_FOTOS={};               // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
 let concluidoFiltro='todos';    // 'todos' | 'pendentes' (entrega)
-let filtroVendedor='todos';     // 'todos' | 'mim' | <user_id>
+let filtroVendSel=new Set(); // vazio = todos; senão, conjunto de user_ids selecionados
 let CHAVE_PIX='';               // chave Pix da loja (regras_loja.chave_pix)
 let vendaItens=[]; let vendaPgto='Pix'; let vendaNome=''; let vendaAviso=false; // venda presencial em construção
 let vendaTel=''; let vendaDescTipo='reais'; let vendaDescValor=0; let vendaParcelas=1;   // cliente, desconto e parcelamento
@@ -1434,7 +1436,7 @@ function estoqueProduto(id){const p=PRODS.find(x=>x.id===id);return p?Number(p.q
 
 function trocarSubAbaPedidos(aba){
   pedidosSubAba=aba; pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
-  concluidoFiltro='todos'; filtroVendedor='todos';
+  concluidoFiltro='todos'; filtroVendSel=new Set();
   document.querySelectorAll('[data-ped]').forEach(b=>b.classList.toggle('on',b.dataset.ped===aba));
   document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent==='todos'));
   const filtroBox=document.getElementById('ped-filtro-entrega');
@@ -1447,28 +1449,45 @@ function setFiltroEntrega(f){
   document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent===f));
   renderPedidos();
 }
-/* ── Filtro por vendedor (Em aberto = quem está atendendo | Concluídas = quem concluiu) ── */
+/* ── Filtro por vendedor: multi-seleção (só vendedores ativos) ── */
+function _fvLabel(){
+  if(filtroVendSel.size===0)return 'Todos os vendedores';
+  if(filtroVendSel.size===1){const uid=[...filtroVendSel][0];return uid===USER_ID?'Você':((MEMBROS_INFO[uid]&&MEMBROS_INFO[uid].nome)||'Vendedor');}
+  return filtroVendSel.size+' selecionados';
+}
 function renderFiltroVendedor(){
   const box=document.getElementById('ped-filtro-vendedor');
   if(!box)return;
-  // só faz sentido quando a loja tem equipe
-  if(!MODO_EQUIPE){ box.style.display='none'; box.innerHTML=''; return; }
-  const nomes=Object.keys(VENDEDORES||{});
-  if(nomes.length<2){ box.style.display='none'; box.innerHTML=''; return; }
-  const chip=(val,txt)=>`<button class="ped-fchip${filtroVendedor===val?' on':''}" onclick="setFiltroVendedor('${val}')">${txt}</button>`;
-  let html=chip('todos','Todos')+chip('mim','Só os meus');
-  nomes.forEach(uid=>{
-    if(uid===USER_ID)return;
-    html+=chip(uid,(VENDEDORES[uid]||'vendedor'));
-  });
-  box.innerHTML=html;
-  box.style.display='flex';
+  const ativos=Object.entries(MEMBROS_INFO).filter(([,i])=>i.ativo!==false);
+  if(!MODO_EQUIPE||ativos.length<2){ box.style.display='none'; box.innerHTML=''; return; }
+  // limpa da seleção quem não é mais ativo
+  [...filtroVendSel].forEach(uid=>{ if(!MEMBROS_INFO[uid]||MEMBROS_INFO[uid].ativo===false)filtroVendSel.delete(uid); });
+  const esc=s=>(s||'').replace(/</g,'&lt;');
+  ativos.sort((a,b)=>(a[0]===USER_ID?-1:b[0]===USER_ID?1:(a[1].nome||'').localeCompare(b[1].nome||'')));
+  const itens=ativos.map(([uid,i])=>{
+    const nome=uid===USER_ID?('Você'+(i.nome?' ('+esc(i.nome)+')':'')):esc(i.nome||'Vendedor');
+    const ck=filtroVendSel.has(uid)?'checked':'';
+    return `<label style="display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:14px;color:var(--text1);cursor:pointer;border-bottom:1px solid var(--border)"><input type="checkbox" ${ck} onchange="toggleVendSel('${uid}')" style="width:17px;height:17px;accent-color:var(--accent)"/> ${nome}</label>`;
+  }).join('');
+  box.innerHTML=`<div style="position:relative">
+    <button class="ped-fchip" onclick="toggleVendMenu(event)" style="display:inline-flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span id="fv-label">${_fvLabel()}</span> <span style="font-size:10px">▾</span>
+    </button>
+    <div id="fv-menu" style="display:none;position:absolute;top:112%;left:0;z-index:50;min-width:220px;max-height:290px;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.20)">
+      ${itens}
+      <button onclick="limparVendSel()" style="width:100%;padding:11px;background:none;border:none;border-top:1px solid var(--border);color:var(--accent);font-weight:700;font-size:13px;cursor:pointer">Mostrar todos</button>
+    </div>
+  </div>`;
+  box.style.display='block';
 }
-function setFiltroVendedor(v){
-  filtroVendedor=v;
-  renderFiltroVendedor();
+function toggleVendMenu(e){if(e)e.stopPropagation();const m=document.getElementById('fv-menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
+function toggleVendSel(uid){
+  if(filtroVendSel.has(uid))filtroVendSel.delete(uid);else filtroVendSel.add(uid);
+  const lb=document.getElementById('fv-label');if(lb)lb.textContent=_fvLabel();
   renderPedidos();
 }
+function limparVendSel(){filtroVendSel.clear();const m=document.getElementById('fv-menu');if(m)m.style.display='none';renderFiltroVendedor();renderPedidos();}
 /* devolve o vendedor "dono" do pedido conforme a aba */
 function vendedorDoPedido(p){
   return p.vendedor_id||null; // atendendo (em aberto) ou quem concluiu (concluídas)
@@ -1673,15 +1692,14 @@ function renderPedidos(){
     fonte=PEDIDOS.filter(p=>p.tipo_entrega==='entrega'&&!p.entregue_em);
   }
   // filtro por vendedor (atendendo, na aba Em aberto; quem concluiu, na aba Concluídas)
-  if(filtroVendedor&&filtroVendedor!=='todos'){
-    const alvo = filtroVendedor==='mim' ? USER_ID : filtroVendedor;
-    fonte=fonte.filter(p=>vendedorDoPedido(p)===alvo);
+  if(filtroVendSel.size>0){
+    fonte=fonte.filter(p=>filtroVendSel.has(vendedorDoPedido(p)));
   }
   if(fonte.length===0){
     lista.innerHTML='';
     if(vazio){
       vazio.style.display='block';
-      const temFiltroVend = filtroVendedor && filtroVendedor!=='todos';
+      const temFiltroVend = filtroVendSel.size>0;
       vazio.querySelector('.empty-txt').textContent = temFiltroVend
         ? 'Nenhuma venda para esse vendedor'
         : (pedidosSubAba==='concluido'
@@ -1705,7 +1723,7 @@ function renderPedidos(){
     const tel=(p.telefone||'').replace(/\D/g,'');
     const waIcon='<svg viewBox="0 0 24 24" width="16" height="16" fill="#25D366" style="flex-shrink:0"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.004c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.13h-.003a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.39c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42-.14 0-.31-.02-.47-.02s-.43.06-.66.31c-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/></svg>';
     const waBtn=tel?`<a href="https://wa.me/${tel}" target="_blank" rel="noopener" class="fbtn fbtn-outline" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:7px">${waIcon} Conversar pelo WhatsApp</a>`:'';
-    const appBtn=tel?`<button class="fbtn" onclick="abrirChat('${p.telefone||''}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`:'';
+    const appBtn=tel?`<button class="fbtn" onclick="abrirChat('${p.telefone||''}','','${p.id}')" style="display:flex;align-items:center;justify-content:center;gap:6px">💬 Conversar pelo app</button>`:'';
     // Proprietário (no celular com o WhatsApp da loja) sempre tem o WhatsApp; e o app quando há equipe. Vendedor usa o app.
     const contato = PAPEL==='admin' ? (waBtn+(MODO_EQUIPE?appBtn:'')) : appBtn;
     const origemBadge=`<span style="font-size:9px;font-weight:700;color:var(--text2);background:var(--surface2);padding:2px 7px;border-radius:20px;margin-left:6px">${ehPresencial?'Loja':'WhatsApp'}</span>`;
@@ -1793,9 +1811,73 @@ function renderPedidos(){
       <div style="margin-bottom:10px">${itensHtml||'<span style="font-size:12px;color:var(--text3)">Sem itens</span>'}</div>
       ${temDesc?`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:3px"><span>Subtotal</span><span style="text-decoration:line-through">${fmtR(total)}</span></div><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--success);margin-bottom:6px"><span>Desconto</span><span>− ${fmtR(total-liquido)}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;margin-bottom:12px"><span>Total</span><span>${fmtR(liquido)}</span></div>
+      ${montarAnexos(p)}
       ${acoes}
     </div>`;
   }).join('');
+}
+
+/* ═══ ANEXOS DA VENDA ═══
+   Foto/PDF vinculados a um pedido (carrinhos_wpp.anexos jsonb).
+   Origem: foto tirada na hora / arquivo escolhido, ou mídia recebida na conversa.
+   Visível no card do pedido (aberto e concluído). */
+let anexoPedidoAlvo=null;
+function montarAnexos(p){
+  const arr=Array.isArray(p.anexos)?p.anexos:[];
+  const thumbs=arr.map(a=>{
+    if(a&&a.tipo==='documento'){
+      return `<div onclick="window.open('${a.media_url}','_blank')" title="${((a.nome_arquivo||'PDF')+'').replace(/"/g,'')}" style="width:54px;height:54px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface2)"><span style="font-size:22px">📄</span></div>`;
+    }
+    return `<img src="${a.media_url}" onclick="abrirFotoFullscreen('${a.media_url}')" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer"/>`;
+  }).join('');
+  return `<div style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📎 Anexos${arr.length?' ('+arr.length+')':''}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      ${thumbs}
+      <button onclick="anexarArquivo('${p.id}')" title="Tirar foto ou escolher arquivo" style="width:54px;height:54px;border-radius:8px;border:1.5px dashed var(--border2);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="font-size:20px">📷</span></button>
+    </div>
+  </div>`;
+}
+function anexarArquivo(pedidoId){
+  anexoPedidoAlvo=pedidoId;
+  const inp=document.getElementById('anexo-file-input');
+  if(inp){inp.value='';inp.click();}
+}
+async function anexoSelecionado(e){
+  const file=e.target.files&&e.target.files[0];
+  const pedidoId=anexoPedidoAlvo; anexoPedidoAlvo=null;
+  if(!file||!pedidoId)return;
+  const ehPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name||'');
+  showToast('Enviando anexo...');
+  try{
+    const ext=ehPdf?'pdf':((file.type||'').split('/')[1]||'jpg');
+    const nome='anexo_'+pedidoId+'_'+Date.now()+'.'+ext;
+    const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':file.type||(ehPdf?'application/pdf':'image/jpeg')},body:file});
+    if(!up.ok)throw new Error('upload '+up.status);
+    const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+    await adicionarAnexo(pedidoId,{media_url:url,tipo:ehPdf?'documento':'imagem',nome_arquivo:file.name||nome,criado_em:new Date().toISOString()});
+  }catch(err){showToast('Não foi possível enviar o anexo.',true);}
+}
+async function anexarDaConversa(i){
+  const m=chatMsgs[i];
+  if(!m||!m.media_url){showToast('Mídia indisponível.',true);return;}
+  if(!chatPedidoId){showToast('Abra a conversa a partir de uma venda para anexar.',true);return;}
+  await adicionarAnexo(chatPedidoId,{media_url:m.media_url,tipo:m.tipo==='documento'?'documento':'imagem',nome_arquivo:(m.meta&&m.meta.nome_arquivo)||'',criado_em:new Date().toISOString()});
+}
+async function adicionarAnexo(pedidoId,anexo){
+  let atual=[];
+  const p=PEDIDOS.find(x=>x.id===pedidoId);
+  if(p&&Array.isArray(p.anexos))atual=p.anexos;
+  else{try{const r=await sbGet('carrinhos_wpp','id=eq.'+pedidoId+'&select=anexos&limit=1');if(r&&r[0]&&Array.isArray(r[0].anexos))atual=r[0].anexos;}catch(e){}}
+  const novo=[...atual,anexo];
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+pedidoId,{anexos:novo,atualizado_em:new Date().toISOString()});
+    if(p)p.anexos=novo;
+    showToast('Anexo adicionado ✅');
+    renderPedidos();
+    return true;
+  }catch(e){showToast('Não foi possível anexar.',true);return false;}
 }
 
 function atualizarBadgePedidos(){
@@ -2362,9 +2444,9 @@ function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; a
    O vendedor conversa com o cliente pelo WhatsApp da loja sem expor a chave da
    Evolution: o envio passa pelo webhook vendedor_envia (n8n). As mensagens ficam
    em mensagens_wpp (in = cliente, out = loja) e o app faz polling para exibir. */
-let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0, chatMsgs=[];
-async function abrirChat(telefone,nome){
-  chatTelefone=(telefone||'').toString(); chatUltimoCount=-1;
+let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0, chatMsgs=[], chatPedidoId=null;
+async function abrirChat(telefone,nome,pedidoId){
+  chatTelefone=(telefone||'').toString(); chatUltimoCount=-1; chatPedidoId=pedidoId||null;
   let nomeContato='';
   try{ const c=await sbGet('contatos_wpp','loja_id=eq.'+LOJA_ID+'&telefone=eq.'+chatTelefone+'&select=nome&limit=1'); if(c&&c[0]&&c[0].nome)nomeContato=c[0].nome; }catch(e){}
   chatNome=nomeContato||nome||(PEDIDOS.find(x=>x.telefone===chatTelefone)||{}).nome_cliente||'';
@@ -2462,15 +2544,18 @@ async function carregarMensagens(){
     const out=m.direcao==='out';
     const hora=m.criado_em?new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     let conteudo;
+    const btnAnexar=(!out&&chatPedidoId)?`<button onclick="anexarDaConversa(${i})" style="margin-top:6px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-l);border:none;border-radius:8px;padding:5px 9px;cursor:pointer">📎 Anexar a esta venda</button>`:'';
     if(m.tipo==='imagem'&&m.media_url){
       conteudo=`<img src="${m.media_url}" onclick="ampliarMsg(${i})" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
       if(m.texto&&m.texto!=='[imagem]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
+      conteudo+=btnAnexar;
     }else if(m.tipo==='audio'&&m.media_url){
       conteudo=`<audio controls preload="metadata" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
       if(m.texto&&!['[áudio]','[audio]'].includes(m.texto))conteudo+=`<div style="font-size:12px;opacity:.85;margin-top:5px;font-style:italic">“${(m.texto||'').replace(/</g,'&lt;')}”</div>`;
     }else if(m.tipo==='documento'&&m.media_url){
       const fn=(m.meta&&m.meta.nome_arquivo)||'Documento';
       conteudo=`<div onclick="abrirPdfMsg(${i})" style="display:flex;align-items:center;gap:9px;cursor:pointer;color:inherit"><span style="font-size:24px">📄</span><span style="font-size:13px;font-weight:600;word-break:break-all;text-decoration:underline">${(fn+'').replace(/</g,'&lt;')}</span></div>`;
+      conteudo+=btnAnexar;
     }else if(m.tipo==='localizacao'){
       const lat=m.meta&&m.meta.latitude, lng=m.meta&&m.meta.longitude;
       const maps=(m.media_url&&m.media_url.startsWith('http'))?m.media_url:((lat&&lng)?`https://www.google.com/maps?q=${lat},${lng}`:'#');
@@ -3828,11 +3913,47 @@ async function arquivarGrupo(key){
 
 /* ═══ RELATÓRIOS ═══ */
 const PD={hoje:{label:'Dia',navs:['Hoje','Ontem','2 dias atrás','3 dias atrás'],dias:1},semana:{label:'Esta semana',navs:['Esta semana','Semana passada','Há 2 semanas','Há 3 semanas'],dias:7},mes:{label:'Este mês',navs:['Maio 2026','Abril 2026','Março 2026','Fevereiro 2026'],dias:30},trimestre:{label:'Trimestre',navs:['Abr–Jun 2026','Jan–Mar 2026','Out–Dez 2025','Jul–Set 2025'],dias:90},ano:{label:'Ano 2026',navs:['2026','2025','2024','2023'],dias:365}};
+const MAXOFF={hoje:30,semana:12,mes:12,trimestre:8,ano:5};
+const _MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+// Períodos de CALENDÁRIO: semana seg→dom; mês dia 1→último; trimestre e ano fechados.
+function periodoRange(period, offset){
+  const now=new Date(); const dcurto=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  let ini,fim,label;
+  if(period==='hoje'){
+    const b=new Date(now.getFullYear(),now.getMonth(),now.getDate()-offset);
+    ini=new Date(b.getFullYear(),b.getMonth(),b.getDate(),0,0,0,0);
+    fim=new Date(b.getFullYear(),b.getMonth(),b.getDate(),23,59,59,999);
+    label=offset===0?'Hoje':offset===1?'Ontem':dcurto(b);
+  }else if(period==='semana'){
+    const dow=now.getDay(); const ateSeg=(dow===0?6:dow-1);
+    const seg=new Date(now.getFullYear(),now.getMonth(),now.getDate()-ateSeg-offset*7,0,0,0,0);
+    ini=seg; fim=new Date(seg.getFullYear(),seg.getMonth(),seg.getDate()+6,23,59,59,999);
+    label=offset===0?'Esta semana':offset===1?'Semana passada':(dcurto(ini)+'–'+dcurto(fim));
+  }else if(period==='mes'){
+    const m=new Date(now.getFullYear(),now.getMonth()-offset,1);
+    ini=new Date(m.getFullYear(),m.getMonth(),1,0,0,0,0);
+    fim=new Date(m.getFullYear(),m.getMonth()+1,0,23,59,59,999);
+    label=_MESES[m.getMonth()]+' '+m.getFullYear();
+  }else if(period==='trimestre'){
+    const qBase=Math.floor(now.getMonth()/3)-offset;
+    const q=new Date(now.getFullYear(),qBase*3,1);
+    ini=new Date(q.getFullYear(),q.getMonth(),1,0,0,0,0);
+    fim=new Date(q.getFullYear(),q.getMonth()+3,0,23,59,59,999);
+    label=['Jan–Mar','Abr–Jun','Jul–Set','Out–Dez'][Math.floor(q.getMonth()/3)]+' '+q.getFullYear();
+  }else{
+    const y=now.getFullYear()-offset;
+    ini=new Date(y,0,1,0,0,0,0); fim=new Date(y,11,31,23,59,59,999); label=String(y);
+  }
+  return {ini,fim,label};
+}
 async function carregarRelatorios(){
   document.getElementById('rel-loading').style.display='flex';document.getElementById('rel-body').style.display='none';document.getElementById('rel-empty').style.display='none';
-  const d=PD[curPeriod];document.getElementById('ph-label').textContent=d.label;document.getElementById('ph-cur').textContent=d.navs[Math.min(curOffset,d.navs.length-1)];
-  document.getElementById('ph-prev').style.opacity=curOffset>=d.navs.length-1?'.3':'1';document.getElementById('ph-next').style.opacity=curOffset===0?'.3':'1';
-  const agora=new Date();const dias=curOffset*d.dias;const fim=new Date(agora.getTime()-dias*86400000);const ini=new Date(fim.getTime()-d.dias*86400000);
+  const d=PD[curPeriod];
+  const R=periodoRange(curPeriod,curOffset);
+  const maxOff=MAXOFF[curPeriod]||11;
+  document.getElementById('ph-label').textContent=d.label;document.getElementById('ph-cur').textContent=R.label;
+  document.getElementById('ph-prev').style.opacity=curOffset>=maxOff?'.3':'1';document.getElementById('ph-next').style.opacity=curOffset===0?'.3':'1';
+  const ini=R.ini, fim=R.fim;
   try{
     const vendas=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&vendido_em=gte.'+ini.toISOString()+'&vendido_em=lte.'+fim.toISOString()+'&order=vendido_em.desc&limit=500');
     VENDAS=vendas;document.getElementById('rel-loading').style.display='none';
@@ -3843,7 +3964,7 @@ async function carregarRelatorios(){
     const vendasReais=vendas.filter(v=>Number(v.quantidade_vendida)>0);
     const nv=vendasReais.length;const tkt=nv?fat/nv:0;const itens=vendas.reduce((s,v)=>s+Number(v.quantidade_vendida),0);
     let pFat=0,pNv=0;
-    try{const iniP=new Date(ini.getTime()-d.dias*86400000);const vP=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&vendido_em=gte.'+iniP.toISOString()+'&vendido_em=lte.'+ini.toISOString()+'&limit=500');pFat=vP.reduce((s,v)=>s+Number(v.preco_unitario)*Number(v.quantidade_vendida),0);pNv=vP.length;}catch(e){}
+    try{const Rp=periodoRange(curPeriod,curOffset+1);const vP=await sbGet('vendas','loja_id=eq.'+LOJA_ID+'&vendido_em=gte.'+Rp.ini.toISOString()+'&vendido_em=lte.'+Rp.fim.toISOString()+'&limit=500');pFat=vP.reduce((s,v)=>s+Number(v.preco_unitario)*Number(v.quantidade_vendida),0);pNv=vP.length;}catch(e){}
     function delta(c,p){if(!p)return'';const pct=Math.round((c-p)/p*100);return pct>0?`<span class="delta-up">▲ ${pct}%</span>`:pct<0?`<span class="delta-dn">▼ ${Math.abs(pct)}%</span>`:'';}
     document.getElementById('rel-stats').innerHTML=[
       {l:'Faturamento',v:'R$ '+(fat>=1000?(fat/1000).toFixed(1)+'k':fat.toFixed(0)),cls:'accent',dt:delta(fat,pFat)},
@@ -3879,7 +4000,7 @@ async function carregarRelatorios(){
 
     // ── Fluxo de caixa: faturamento por dia (usa 'vendas' para granularidade) ──
     const caixaBox=document.getElementById('rel-caixa');
-    const nDias=d.dias;
+    const nDias=Math.max(1,Math.round((fim.getTime()-ini.getTime())/86400000));
     if(nDias<=1){
       document.getElementById('caixa-title').style.display='none';caixaBox.style.display='none';
     }else{
@@ -3930,6 +4051,7 @@ async function carregarRelatorios(){
         }).join('');
         const totalComi=Object.values(porV).reduce((s,o)=>s+(o.bruto-o.estorno),0);
         comiBox.innerHTML=linhas+`<div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:14px;padding:10px 0 2px;border-top:2px solid var(--border);margin-top:4px"><span>Total a pagar</span><span>${fmtR(totalComi)}</span></div>`;
+        comiTitle.textContent='Comissões a pagar · '+R.label;
         comiTitle.style.display='block';comiBox.style.display='block';
       }else{comiTitle.style.display='none';comiBox.style.display='none';}
     }else{comiTitle.style.display='none';comiBox.style.display='none';}
@@ -4056,6 +4178,11 @@ document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'&&usuarioLogado&&localStorage.getItem('sb_refresh')){
     tokenFresco();
   }
+});
+// Fecha o menu de filtro de vendedor ao clicar fora
+document.addEventListener('click',function(e){
+  const box=document.getElementById('ped-filtro-vendedor');const m=document.getElementById('fv-menu');
+  if(m&&m.style.display==='block'&&box&&!box.contains(e.target))m.style.display='none';
 });
 function mostrarLogin(){document.getElementById('sc-login').style.display='flex';document.getElementById('bnav').style.display='none';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));}
 async function esconderLogin(){
