@@ -136,6 +136,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .flabel.info{color:var(--info)}.flabel.accent{color:var(--accent)}
 .finput{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:11px 12px;font-size:14px;color:var(--text1);outline:none;transition:border .2s}
 .finput.saved{background:var(--surface2);border-color:var(--border);color:var(--text2)}
+@keyframes sklsh{0%{background-position:-200px 0}100%{background-position:calc(200px + 100%) 0}}
+.skl{background:var(--surface2);background-image:linear-gradient(90deg,rgba(0,0,0,0) 0,rgba(128,128,128,.14) 40px,rgba(0,0,0,0) 80px);background-size:200px 100%;background-repeat:no-repeat;border-radius:8px;animation:sklsh 1.15s infinite linear}
 .finput:focus{border-color:var(--accent)}
 .fselect{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:11px 12px;font-size:14px;color:var(--text1);outline:none;-webkit-appearance:none}
 .fbtn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:-.2px;box-shadow:0 4px 12px rgba(124,58,237,.3);transition:opacity .15s}
@@ -1469,7 +1471,10 @@ function renderFiltroVendedor(){
     const ck=filtroVendSel.has(uid)?'checked':'';
     return `<label style="display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:14px;color:var(--text1);cursor:pointer;border-bottom:1px solid var(--border)"><input type="checkbox" ${ck} onchange="toggleVendSel('${uid}')" style="width:17px;height:17px;accent-color:var(--accent)"/> ${nome}</label>`;
   }).join('');
-  box.innerHTML=`<div style="position:relative">
+  const soMeus=(filtroVendSel.size===1&&filtroVendSel.has(USER_ID));
+  box.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <button class="ped-fchip${soMeus?' on':''}" onclick="soOsMeus()">Só os meus</button>
+    <div style="position:relative">
     <button class="ped-fchip" onclick="toggleVendMenu(event)" style="display:inline-flex;align-items:center;gap:6px">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
       <span id="fv-label">${_fvLabel()}</span> <span style="font-size:10px">▾</span>
@@ -1478,8 +1483,14 @@ function renderFiltroVendedor(){
       ${itens}
       <button onclick="limparVendSel()" style="width:100%;padding:11px;background:none;border:none;border-top:1px solid var(--border);color:var(--accent);font-weight:700;font-size:13px;cursor:pointer">Mostrar todos</button>
     </div>
+    </div>
   </div>`;
   box.style.display='block';
+}
+function soOsMeus(){
+  if(filtroVendSel.size===1&&filtroVendSel.has(USER_ID)){filtroVendSel.clear();}
+  else{filtroVendSel=new Set([USER_ID]);}
+  renderFiltroVendedor();renderPedidos();
 }
 function toggleVendMenu(e){if(e)e.stopPropagation();const m=document.getElementById('fv-menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
 function toggleVendSel(uid){
@@ -1513,8 +1524,9 @@ async function carregarPedidos(){
   const load=document.getElementById('pedidos-loading');
   const lista=document.getElementById('pedidos-list');
   const vazio=document.getElementById('pedidos-empty');
-  if(load)load.style.display='flex';
+  if(load)load.style.display='none';
   if(vazio)vazio.style.display='none';
+  if(lista)lista.innerHTML=skeletonPedidos(3);
   pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
   renderFiltroVendedor();
   const filtro=pedidosSubAba==='concluido'
@@ -1709,7 +1721,15 @@ function renderPedidos(){
     return;
   }
   if(vazio)vazio.style.display='none';
-  lista.innerHTML=fonte.map(p=>{
+  let resumoConcl='';
+  if(pedidosSubAba==='concluido'){
+    const totFonte=fonte.reduce((s,p)=>s+valorLiquidoPedido(p),0);
+    resumoConcl=`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--success-l);border-radius:12px;padding:11px 14px;margin-bottom:12px">
+      <span style="font-size:12px;font-weight:600;color:var(--text2)">${fonte.length} venda${fonte.length===1?'':'s'}</span>
+      <span style="font-size:16px;font-weight:800;color:var(--success)">${fmtR(totFonte)}</span>
+    </div>`;
+  }
+  lista.innerHTML=resumoConcl+fonte.map(p=>{
     const ehPresencial=p.origem==='presencial';
     const num=p.numero_pedido?'#'+String(p.numero_pedido).padStart(3,'0'):(ehPresencial?'Loja':'#—');
     if(pedidoEditando===p.id)return cartaoEdicao(p,num);
@@ -1822,13 +1842,27 @@ function renderPedidos(){
    Origem: foto tirada na hora / arquivo escolhido, ou mídia recebida na conversa.
    Visível no card do pedido (aberto e concluído). */
 let anexoPedidoAlvo=null;
+function valorLiquidoPedido(p){
+  if(p.total_liquido!=null)return Number(p.total_liquido);
+  if(p.total_bruto!=null)return Number(p.total_bruto);
+  return (p.itens||[]).reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
+}
+function skeletonPedidos(n){
+  const card='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">'
+    +'<div class="skl" style="height:15px;width:45%;margin-bottom:10px"></div>'
+    +'<div class="skl" style="height:11px;width:72%;margin-bottom:12px"></div>'
+    +'<div class="skl" style="height:46px;width:100%;margin-bottom:10px"></div>'
+    +'<div class="skl" style="height:40px;width:100%"></div></div>';
+  return Array(n||3).fill(card).join('');
+}
 function montarAnexos(p){
   const arr=Array.isArray(p.anexos)?p.anexos:[];
   const thumbs=arr.map(a=>{
+    const rm=`<button onclick="event.stopPropagation();removerAnexoCard('${p.id}','${a.media_url}')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:2px solid var(--surface);font-size:10px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">✕</button>`;
     if(a&&a.tipo==='documento'){
-      return `<div onclick="window.open('${a.media_url}','_blank')" title="${((a.nome_arquivo||'PDF')+'').replace(/"/g,'')}" style="width:54px;height:54px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface2)"><span style="font-size:22px">📄</span></div>`;
+      return `<div style="position:relative"><div onclick="window.open('${a.media_url}','_blank')" title="${((a.nome_arquivo||'PDF')+'').replace(/"/g,'')}" style="width:54px;height:54px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface2)"><span style="font-size:22px">📄</span></div>${rm}</div>`;
     }
-    return `<img src="${a.media_url}" onclick="abrirFotoFullscreen('${a.media_url}')" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer"/>`;
+    return `<div style="position:relative"><img src="${a.media_url}" onclick="abrirFotoFullscreen('${a.media_url}')" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer"/>${rm}</div>`;
   }).join('');
   return `<div style="margin-bottom:12px">
     <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📎 Anexos${arr.length?' ('+arr.length+')':''}</div>
@@ -1863,7 +1897,19 @@ async function anexarDaConversa(i){
   const m=chatMsgs[i];
   if(!m||!m.media_url){showToast('Mídia indisponível.',true);return;}
   if(!chatPedidoId){showToast('Abra a conversa a partir de uma venda para anexar.',true);return;}
-  await adicionarAnexo(chatPedidoId,{media_url:m.media_url,tipo:m.tipo==='documento'?'documento':'imagem',nome_arquivo:(m.meta&&m.meta.nome_arquivo)||'',criado_em:new Date().toISOString()});
+  const anexo={media_url:m.media_url,tipo:m.tipo==='documento'?'documento':'imagem',nome_arquivo:(m.meta&&m.meta.nome_arquivo)||'',criado_em:new Date().toISOString()};
+  const ok=await adicionarAnexo(chatPedidoId,anexo);
+  if(ok){chatPedidoAnexos.push(anexo);carregarMensagens();}
+}
+async function removerAnexoConversa(i){
+  const m=chatMsgs[i];
+  if(!m||!m.media_url||!chatPedidoId)return;
+  const ok=await removerAnexo(chatPedidoId,m.media_url);
+  if(ok){chatPedidoAnexos=chatPedidoAnexos.filter(a=>a&&a.media_url!==m.media_url);carregarMensagens();}
+}
+function removerAnexoCard(pedidoId,url){
+  if(!confirm('Remover este anexo desta venda?'))return;
+  removerAnexo(pedidoId,url);
 }
 async function adicionarAnexo(pedidoId,anexo){
   let atual=[];
@@ -1878,6 +1924,20 @@ async function adicionarAnexo(pedidoId,anexo){
     renderPedidos();
     return true;
   }catch(e){showToast('Não foi possível anexar.',true);return false;}
+}
+async function removerAnexo(pedidoId,media_url){
+  let atual=[];
+  const p=PEDIDOS.find(x=>x.id===pedidoId);
+  if(p&&Array.isArray(p.anexos))atual=p.anexos;
+  else{try{const r=await sbGet('carrinhos_wpp','id=eq.'+pedidoId+'&select=anexos&limit=1');if(r&&r[0]&&Array.isArray(r[0].anexos))atual=r[0].anexos;}catch(e){}}
+  const novo=atual.filter(a=>a&&a.media_url!==media_url);
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+pedidoId,{anexos:novo,atualizado_em:new Date().toISOString()});
+    if(p)p.anexos=novo;
+    showToast('Anexo removido.');
+    renderPedidos();
+    return true;
+  }catch(e){showToast('Não foi possível remover.',true);return false;}
 }
 
 function atualizarBadgePedidos(){
@@ -2444,9 +2504,15 @@ function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; a
    O vendedor conversa com o cliente pelo WhatsApp da loja sem expor a chave da
    Evolution: o envio passa pelo webhook vendedor_envia (n8n). As mensagens ficam
    em mensagens_wpp (in = cliente, out = loja) e o app faz polling para exibir. */
-let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0, chatMsgs=[], chatPedidoId=null;
+let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0, chatMsgs=[], chatPedidoId=null, chatPedidoAnexos=[];
 async function abrirChat(telefone,nome,pedidoId){
   chatTelefone=(telefone||'').toString(); chatUltimoCount=-1; chatPedidoId=pedidoId||null;
+  chatPedidoAnexos=[];
+  if(chatPedidoId){
+    const pp=PEDIDOS.find(x=>x.id===chatPedidoId);
+    if(pp&&Array.isArray(pp.anexos))chatPedidoAnexos=pp.anexos.slice();
+    else{try{const r=await sbGet('carrinhos_wpp','id=eq.'+chatPedidoId+'&select=anexos&limit=1');if(r&&r[0]&&Array.isArray(r[0].anexos))chatPedidoAnexos=r[0].anexos;}catch(e){}}
+  }
   let nomeContato='';
   try{ const c=await sbGet('contatos_wpp','loja_id=eq.'+LOJA_ID+'&telefone=eq.'+chatTelefone+'&select=nome&limit=1'); if(c&&c[0]&&c[0].nome)nomeContato=c[0].nome; }catch(e){}
   chatNome=nomeContato||nome||(PEDIDOS.find(x=>x.telefone===chatTelefone)||{}).nome_cliente||'';
@@ -2544,7 +2610,12 @@ async function carregarMensagens(){
     const out=m.direcao==='out';
     const hora=m.criado_em?new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     let conteudo;
-    const btnAnexar=(!out&&chatPedidoId)?`<button onclick="anexarDaConversa(${i})" style="margin-top:6px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-l);border:none;border-radius:8px;padding:5px 9px;cursor:pointer">📎 Anexar a esta venda</button>`:'';
+    const jaAnexado=m.media_url&&chatPedidoAnexos.some(a=>a&&a.media_url===m.media_url);
+    const btnAnexar=(!out&&chatPedidoId&&m.media_url)
+      ? (jaAnexado
+          ? `<button onclick="removerAnexoConversa(${i})" style="margin-top:6px;font-size:11px;font-weight:700;color:#fff;background:var(--danger);border:none;border-radius:8px;padding:5px 9px;cursor:pointer">Remover anexo</button>`
+          : `<button onclick="anexarDaConversa(${i})" style="margin-top:6px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-l);border:none;border-radius:8px;padding:5px 9px;cursor:pointer">📎 Anexar a esta venda</button>`)
+      : '';
     if(m.tipo==='imagem'&&m.media_url){
       conteudo=`<img src="${m.media_url}" onclick="ampliarMsg(${i})" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
       if(m.texto&&m.texto!=='[imagem]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
