@@ -281,6 +281,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .login-error{background:var(--danger-l);color:var(--danger);border-radius:var(--radius);padding:10px 14px;font-size:13px;font-weight:600;text-align:center;display:none}
 .login-footer{font-size:12px;color:var(--text3);margin-top:24px;text-align:center}
 .perfil-card{background:var(--surface);border-radius:var(--card-radius);border:1px solid var(--border);padding:20px;margin:0 16px 12px;box-shadow:var(--shadow)}
+#cfg-tabs{display:flex;gap:6px;overflow-x:auto;margin:0 16px 16px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+#cfg-tabs::-webkit-scrollbar{display:none}
+.cfg-tab{flex-shrink:0;padding:8px 15px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.cfg-tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#sc-perfil [data-cfg]{display:none}
 .perfil-avatar{width:64px;height:64px;border-radius:50%;background:var(--topbar-bg);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;box-shadow:0 4px 12px rgba(124,58,237,.3)}
 .perfil-nome{font-size:18px;font-weight:700;color:var(--text1);text-align:center;margin-bottom:4px}
 .perfil-email{font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px}
@@ -740,6 +745,12 @@ html{visibility:visible}
       <button class="ped-fchip on" data-fent="todos" onclick="setFiltroEntrega('todos')">Todas</button>
       <button class="ped-fchip" data-fent="pendentes" onclick="setFiltroEntrega('pendentes')">📦 Pendentes de entrega</button>
     </div>
+    <div id="ped-filtro-periodo" style="display:none;padding:10px 16px 0;gap:8px;flex-wrap:wrap">
+      <button class="ped-fchip on" data-fper="tudo" onclick="setFiltroPeriodo('tudo')">Tudo</button>
+      <button class="ped-fchip" data-fper="hoje" onclick="setFiltroPeriodo('hoje')">Hoje</button>
+      <button class="ped-fchip" data-fper="7" onclick="setFiltroPeriodo('7')">7 dias</button>
+      <button class="ped-fchip" data-fper="30" onclick="setFiltroPeriodo('30')">30 dias</button>
+    </div>
     <div class="loading-row" id="pedidos-loading"><span class="proc-dot"></span>Carregando...</div>
     <div id="pedidos-list" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px"></div>
     <div class="empty" id="pedidos-empty" style="display:none"><div class="empty-ic">🧾</div><div class="empty-txt">Nenhuma venda no momento</div></div>
@@ -800,7 +811,7 @@ html{visibility:visible}
 <!-- TELA: PERFIL -->
 <div id="sc-perfil" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Meu Perfil</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Configurações</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-perfil" style="padding:20px 16px">
     <div class="ptr-indicator" id="ptr-perfil">
@@ -809,7 +820,8 @@ html{visibility:visible}
     <div class="perfil-avatar">👤</div>
     <div class="perfil-nome" id="perfil-nome" style="text-align:center;margin-bottom:4px">—</div>
     <div class="perfil-email" id="perfil-email" style="text-align:center;margin-bottom:20px">—</div>
-    <div class="perfil-card">
+    <div id="cfg-tabs"></div>
+    <div class="perfil-card" data-cfg="login">
       <div class="perfil-row">
         <span class="perfil-label">Loja</span>
         <span class="perfil-val accent" id="perfil-loja">—</span>
@@ -829,7 +841,7 @@ html{visibility:visible}
     </div>
 
     <!-- ── DADOS DA LOJA ── -->
-    <div class="perfil-card" id="card-dados-loja">
+    <div class="perfil-card" id="card-dados-loja" data-cfg="loja">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🏪 Dados da loja</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Informações que a assistente virtual usa no WhatsApp</div>
 
@@ -853,7 +865,7 @@ html{visibility:visible}
     </div>
 
     <!-- ── REGRAS DA LOJA ── -->
-    <div class="perfil-card" id="card-regras-loja">
+    <div class="perfil-card" id="card-regras-loja" data-cfg="loja">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">📋 Regras da loja</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Políticas que a assistente virtual usa para responder dúvidas dos clientes</div>
 
@@ -943,13 +955,29 @@ html{visibility:visible}
     </div>
 
     <!-- ── MINHAS COMISSÕES (vendedora) ── -->
-    <div class="perfil-card" id="card-minhas-comissoes" style="display:none">
+    <div class="perfil-card" id="card-minhas-comissoes" data-cfg="comissoes" data-role="vendedor">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">💰 Minhas comissões</div>
       <div id="minhas-comissoes-lista"></div>
     </div>
 
+    <!-- ── COMISSÕES A PAGAR (dona) ── -->
+    <div class="perfil-card" id="card-comissoes-admin" data-cfg="comissoes" data-role="admin">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">💰 Comissões a pagar</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Filtre por período conforme o acerto de cada vendedora (semanal ou mensal).</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="ped-fchip" id="cadm-semana" onclick="setComAdmPeriodo('semana')">Semana</button>
+        <button class="ped-fchip on" id="cadm-mes" onclick="setComAdmPeriodo('mes')">Mês</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <button onclick="navComAdm(1)" style="background:var(--surface2);border:none;border-radius:8px;width:34px;height:34px;font-size:18px;color:var(--text2);cursor:pointer">‹</button>
+        <span id="cadm-label" style="font-size:14px;font-weight:700;color:var(--text1)">—</span>
+        <button id="cadm-next" onclick="navComAdm(-1)" style="background:var(--surface2);border:none;border-radius:8px;width:34px;height:34px;font-size:18px;color:var(--text2);cursor:pointer">›</button>
+      </div>
+      <div id="cadm-lista"></div>
+    </div>
+
     <!-- ── EQUIPE (gestão de vendedoras) ── -->
-    <div class="perfil-card" id="card-equipe" style="display:none">
+    <div class="perfil-card" id="card-equipe" data-cfg="equipe">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">👥 Equipe</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Cadastre ou remova as vendedoras da loja. Elas entram com o e-mail e a senha que você definir aqui.</div>
       <div id="equipe-lista"></div>
@@ -967,7 +995,7 @@ html{visibility:visible}
     </div>
 
     <!-- ── ACESSO DA EQUIPE (horário) ── -->
-    <div class="perfil-card" id="card-acesso" style="display:none">
+    <div class="perfil-card" id="card-acesso" data-cfg="equipe">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🔒 Acesso da equipe</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Defina quando cada vendedora pode usar o app. Você pode trancar ou liberar todas de uma vez.</div>
       <div id="acesso-loja-box"></div>
@@ -976,14 +1004,14 @@ html{visibility:visible}
     </div>
 
     <!-- ── COMISSÃO DA EQUIPE ── -->
-    <div class="perfil-card" id="card-comissao" style="display:none">
+    <div class="perfil-card" id="card-comissao" data-cfg="equipe">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">💰 Comissão da equipe</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Percentual sobre o valor líquido de cada venda concluída pela vendedora</div>
       <div id="comissao-lista"></div>
       <button class="fbtn" onclick="salvarComissoes()" style="margin-top:12px">Salvar comissões</button>
     </div>
 
-    <div class="perfil-card" id="card-parametros-loja">
+    <div class="perfil-card" id="card-parametros-loja" data-cfg="loja">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">⚙️ Parâmetros da loja</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Configurações usadas na aba Estoque</div>
 
@@ -1008,7 +1036,7 @@ html{visibility:visible}
       <button class="fbtn" onclick="salvarParametros()" style="margin-top:14px">Salvar parâmetros</button>
     </div>
 
-    <div class="perfil-card">
+    <div class="perfil-card" data-cfg="login">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">🔒 Alterar senha</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <input class="finput" id="perfil-nova-senha" type="password" placeholder="Nova senha (mín. 6 caracteres)"/>
@@ -1044,8 +1072,8 @@ html{visibility:visible}
     <span class="bnav-lb">Relatórios</span>
   </button>
   <button class="bnav-item" data-sc="perfil" onclick="navTo('perfil')">
-    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-    <span class="bnav-lb">Perfil</span>
+    <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="bnav-lb">Config</span>
   </button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -1426,6 +1454,7 @@ let pedidoAlerta=null;          // {id, faltas:[{nome,tem,pedido}]} aviso de est
 let pedidosSubAba='aberto';     // 'aberto' | 'concluido'
 let PED_FOTOS={};               // produto_id -> {foto_url, codigo_loja, tipo, tamanho}
 let concluidoFiltro='todos';    // 'todos' | 'pendentes' (entrega)
+let concluidoPeriodo='tudo';    // 'tudo' | 'hoje' | '7' | '30'
 let filtroVendSel=new Set(); // vazio = todos; senão, conjunto de user_ids selecionados
 let CHAVE_PIX='';               // chave Pix da loja (regras_loja.chave_pix)
 let vendaItens=[]; let vendaPgto='Pix'; let vendaNome=''; let vendaAviso=false; // venda presencial em construção
@@ -1438,11 +1467,14 @@ function estoqueProduto(id){const p=PRODS.find(x=>x.id===id);return p?Number(p.q
 
 function trocarSubAbaPedidos(aba){
   pedidosSubAba=aba; pedidoCancelando=null; pedidoEditando=null; editBuffer=null; pedidoAlerta=null;
-  concluidoFiltro='todos'; filtroVendSel=new Set();
+  concluidoFiltro='todos'; concluidoPeriodo='tudo'; filtroVendSel=new Set();
   document.querySelectorAll('[data-ped]').forEach(b=>b.classList.toggle('on',b.dataset.ped===aba));
   document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent==='todos'));
+  document.querySelectorAll('[data-fper]').forEach(b=>b.classList.toggle('on',b.dataset.fper==='tudo'));
   const filtroBox=document.getElementById('ped-filtro-entrega');
   if(filtroBox)filtroBox.style.display=aba==='concluido'?'flex':'none';
+  const perBox=document.getElementById('ped-filtro-periodo');
+  if(perBox)perBox.style.display=aba==='concluido'?'flex':'none';
   renderFiltroVendedor();
   carregarPedidos();
 }
@@ -1450,6 +1482,18 @@ function setFiltroEntrega(f){
   concluidoFiltro=f;
   document.querySelectorAll('[data-fent]').forEach(b=>b.classList.toggle('on',b.dataset.fent===f));
   renderPedidos();
+}
+function setFiltroPeriodo(p){
+  concluidoPeriodo=p;
+  document.querySelectorAll('[data-fper]').forEach(b=>b.classList.toggle('on',b.dataset.fper===p));
+  renderPedidos();
+}
+function _periodoInicio(p){
+  const now=new Date();
+  if(p==='hoje')return new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0,0).getTime();
+  if(p==='7')return now.getTime()-7*86400000;
+  if(p==='30')return now.getTime()-30*86400000;
+  return 0;
 }
 /* ── Filtro por vendedor: multi-seleção (só vendedores ativos) ── */
 function _fvLabel(){
@@ -1554,6 +1598,8 @@ async function carregarPedidos(){
   if(load)load.style.display='none';
   const fb=document.getElementById('ped-filtro-entrega');
   if(fb)fb.style.display=pedidosSubAba==='concluido'?'flex':'none';
+  const pb=document.getElementById('ped-filtro-periodo');
+  if(pb)pb.style.display=pedidosSubAba==='concluido'?'flex':'none';
   renderPedidos();
   atualizarBadgePedidos();
 }
@@ -1707,6 +1753,11 @@ function renderPedidos(){
   if(filtroVendSel.size>0){
     fonte=fonte.filter(p=>filtroVendSel.has(vendedorDoPedido(p)));
   }
+  // filtro por período (só Concluídas)
+  if(pedidosSubAba==='concluido'&&concluidoPeriodo&&concluidoPeriodo!=='tudo'){
+    const desde=_periodoInicio(concluidoPeriodo);
+    fonte=fonte.filter(p=>{const t=new Date(p.concluido_em||p.atualizado_em||p.criado_em||0).getTime();return t>=desde;});
+  }
   if(fonte.length===0){
     lista.innerHTML='';
     if(vazio){
@@ -1855,6 +1906,21 @@ function skeletonPedidos(n){
     +'<div class="skl" style="height:40px;width:100%"></div></div>';
   return Array(n||3).fill(card).join('');
 }
+function skeletonEstoque(n){
+  const c='<div class="pcard"><div class="pcard-img skl"></div><div class="pcard-body">'
+    +'<div class="skl" style="height:13px;width:80%;margin-bottom:8px"></div>'
+    +'<div class="skl" style="height:11px;width:55%;margin-bottom:8px"></div>'
+    +'<div class="skl" style="height:22px;width:100%;margin-bottom:8px"></div>'
+    +'<div class="skl" style="height:14px;width:45%"></div></div></div>';
+  return Array(n||6).fill(c).join('');
+}
+function skeletonRelatorios(){
+  const stat='<div class="skl" style="height:72px;border-radius:12px"></div>';
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+Array(4).fill(stat).join('')+'</div>'
+    +'<div class="skl" style="height:13px;width:40%;margin-bottom:10px"></div>'
+    +'<div class="skl" style="height:58px;width:100%;margin-bottom:8px"></div>'
+    +'<div class="skl" style="height:58px;width:100%"></div>';
+}
 function montarAnexos(p){
   const arr=Array.isArray(p.anexos)?p.anexos:[];
   const thumbs=arr.map(a=>{
@@ -1899,13 +1965,13 @@ async function anexarDaConversa(i){
   if(!chatPedidoId){showToast('Abra a conversa a partir de uma venda para anexar.',true);return;}
   const anexo={media_url:m.media_url,tipo:m.tipo==='documento'?'documento':'imagem',nome_arquivo:(m.meta&&m.meta.nome_arquivo)||'',criado_em:new Date().toISOString()};
   const ok=await adicionarAnexo(chatPedidoId,anexo);
-  if(ok){chatPedidoAnexos.push(anexo);carregarMensagens();}
+  if(ok){chatPedidoAnexos.push(anexo);chatUltimoCount=-1;carregarMensagens();}
 }
 async function removerAnexoConversa(i){
   const m=chatMsgs[i];
   if(!m||!m.media_url||!chatPedidoId)return;
   const ok=await removerAnexo(chatPedidoId,m.media_url);
-  if(ok){chatPedidoAnexos=chatPedidoAnexos.filter(a=>a&&a.media_url!==m.media_url);carregarMensagens();}
+  if(ok){chatPedidoAnexos=chatPedidoAnexos.filter(a=>a&&a.media_url!==m.media_url);chatUltimoCount=-1;carregarMensagens();}
 }
 function removerAnexoCard(pedidoId,url){
   if(!confirm('Remover este anexo desta venda?'))return;
@@ -2907,15 +2973,15 @@ function renderCards(grupos,highlightSim=false){
 
 /* ═══ ESTOQUE ═══ */
 async function carregarEstoque(){
-  document.getElementById('est-loading').style.display='flex';
-  document.getElementById('pgrid').style.display='none';
+  document.getElementById('est-loading').style.display='none';
   document.getElementById('empty-est').style.display='none';
+  const grid=document.getElementById('pgrid');
+  if(grid){grid.innerHTML=skeletonEstoque(6);grid.style.display='';}
   try{
     PRODS=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select='+PROD_COLS+'&order=criado_em.desc&limit=500');
     popularFiltroTamanhos();
     GRUPOS=agrupar(filtrado());renderEstoque();
   }catch(e){showToast('Erro ao carregar estoque',true);}
-  document.getElementById('est-loading').style.display='none';
 }
 function filtrado(){
   // Detecta busca por código: "#1", "#001", "001", "1" — quando a busca é só dígitos (com ou sem #)
@@ -4018,7 +4084,9 @@ function periodoRange(period, offset){
   return {ini,fim,label};
 }
 async function carregarRelatorios(){
-  document.getElementById('rel-loading').style.display='flex';document.getElementById('rel-body').style.display='none';document.getElementById('rel-empty').style.display='none';
+  const rl=document.getElementById('rel-loading');
+  if(rl){rl.style.display='block';rl.style.padding='0 16px';rl.innerHTML=skeletonRelatorios();}
+  document.getElementById('rel-body').style.display='none';document.getElementById('rel-empty').style.display='none';
   const d=PD[curPeriod];
   const R=periodoRange(curPeriod,curOffset);
   const maxOff=MAXOFF[curPeriod]||11;
@@ -4360,8 +4428,8 @@ function renderComissaoConfig(){
   if(!card||!lista)return;
   // só admin vê; e só faz sentido se houver vendedoras
   const vendedoras=Object.entries(MEMBROS_INFO).filter(([,info])=>info.papel==='vendedor'&&info.ativo!==false);
-  if(PAPEL!=='admin'||vendedoras.length===0){ card.style.display='none'; return; }
-  card.style.display='block';
+  if(PAPEL!=='admin')return;
+  if(vendedoras.length===0){ lista.innerHTML='<div style="font-size:13px;color:var(--text3);padding:6px 0">Adicione vendedoras para definir comissões.</div>'; return; }
   lista.innerHTML=vendedoras.map(([uid,info])=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text1)">${info.nome}</div></div>
@@ -4389,8 +4457,7 @@ async function salvarComissoes(){
 async function renderMinhasComissoes(){
   const card=document.getElementById('card-minhas-comissoes');
   if(!card)return;
-  if(PAPEL!=='vendedor'){card.style.display='none';return;}
-  card.style.display='block';
+  if(PAPEL!=='vendedor')return;
   const box=document.getElementById('minhas-comissoes-lista');
   box.innerHTML='<div class="loading-row"><span class="proc-dot"></span>Carregando...</div>';
   let rows=[];
@@ -4415,6 +4482,58 @@ async function renderMinhasComissoes(){
     }).join('');
 }
 
+/* ═══ CONFIGURAÇÕES: abas (Loja / Equipe / Comissões / Conta) ═══ */
+let cfgAbaAtual='';
+function renderCfgTabs(){
+  const box=document.getElementById('cfg-tabs'); if(!box)return;
+  const tabs = PAPEL==='admin'
+    ? [['loja','Loja'],['equipe','Equipe'],['comissoes','Comissões'],['login','Conta']]
+    : [['comissoes','Comissões'],['login','Conta']];
+  box.innerHTML=tabs.map(([k,l])=>`<button class="cfg-tab" data-cfgtab="${k}" onclick="abrirCfgAba('${k}')">${l}</button>`).join('');
+}
+function abrirCfgAba(aba){
+  cfgAbaAtual=aba;
+  document.querySelectorAll('#sc-perfil [data-cfg]').forEach(el=>{
+    const okCfg=el.dataset.cfg===aba;
+    const okRole=!el.dataset.role||el.dataset.role===PAPEL;
+    el.style.display=(okCfg&&okRole)?'block':'none';
+  });
+  document.querySelectorAll('#cfg-tabs [data-cfgtab]').forEach(b=>b.classList.toggle('on',b.dataset.cfgtab===aba));
+  if(aba==='comissoes'){ if(PAPEL==='admin')renderComissoesAdmin(); else renderMinhasComissoes(); }
+}
+
+/* ═══ COMISSÕES A PAGAR (dona) — com filtro de período (semana/mês) ═══ */
+let comAdmPeriodo='mes', comAdmOffset=0;
+function setComAdmPeriodo(p){
+  comAdmPeriodo=p; comAdmOffset=0;
+  const s=document.getElementById('cadm-semana'),m=document.getElementById('cadm-mes');
+  if(s)s.classList.toggle('on',p==='semana'); if(m)m.classList.toggle('on',p==='mes');
+  renderComissoesAdmin();
+}
+function navComAdm(d){ comAdmOffset=Math.max(0,comAdmOffset+d); renderComissoesAdmin(); }
+async function renderComissoesAdmin(){
+  if(PAPEL!=='admin')return;
+  const R=periodoRange(comAdmPeriodo,comAdmOffset);
+  const lbl=document.getElementById('cadm-label'); if(lbl)lbl.textContent=R.label;
+  const nx=document.getElementById('cadm-next'); if(nx)nx.style.opacity=comAdmOffset===0?'.3':'1';
+  const box=document.getElementById('cadm-lista'); if(!box)return;
+  box.innerHTML='<div class="loading-row"><span class="proc-dot"></span>Carregando...</div>';
+  let comis=[];
+  try{ comis=await sbGet('comissoes','loja_id=eq.'+LOJA_ID+'&criado_em=gte.'+R.ini.toISOString()+'&criado_em=lte.'+R.fim.toISOString()+'&limit=3000')||[]; }catch(e){}
+  if(!comis.length){box.innerHTML='<div style="font-size:13px;color:var(--text3);padding:10px 0">Nenhuma comissão neste período.</div>';return;}
+  const porV={};
+  comis.forEach(c=>{const uid=c.vendedor_id;porV[uid]=porV[uid]||{bruto:0,estorno:0,base:0};porV[uid].bruto+=Number(c.valor||0);porV[uid].estorno+=Number(c.estornado||0);porV[uid].base+=Number(c.base_valor||0);});
+  const esc=s=>(s||'').replace(/</g,'&lt;');
+  const linhas=Object.entries(porV).sort((a,b)=>(b[1].bruto-b[1].estorno)-(a[1].bruto-a[1].estorno)).map(([uid,o])=>{
+    const nome=(MEMBROS_INFO[uid]&&MEMBROS_INFO[uid].nome)||VENDEDORES[uid]||'Vendedor';
+    const liq=o.bruto-o.estorno;
+    const est=o.estorno>0?`<div style="font-size:11px;color:var(--danger)">− ${fmtR(o.estorno)} estornado</div>`:'';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)"><div style="min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text1)">${esc(nome)}</div><div style="font-size:11px;color:var(--text2)">sobre ${fmtR(o.base)} vendidos</div>${est}</div><div style="font-size:15px;font-weight:800;color:var(--success)">${fmtR(liq)}</div></div>`;
+  }).join('');
+  const total=Object.values(porV).reduce((s,o)=>s+(o.bruto-o.estorno),0);
+  box.innerHTML=linhas+`<div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text1);font-size:15px;padding:11px 0 2px;border-top:2px solid var(--border);margin-top:4px"><span>Total a pagar</span><span>${fmtR(total)}</span></div>`;
+}
+
 /* ═══ GESTÃO DE EQUIPE (só admin) ═══
    Cadastro/remoção de vendedoras feito pela própria dona da loja.
    Criar um login exige a service_role (Auth admin) → NÃO pode sair do app.
@@ -4425,8 +4544,7 @@ function renderEquipeConfig(){
   const card=document.getElementById('card-equipe');
   const lista=document.getElementById('equipe-lista');
   if(!card||!lista)return;
-  if(PAPEL!=='admin'){ card.style.display='none'; return; }
-  card.style.display='block';
+  if(PAPEL!=='admin')return;
   const membros=Object.entries(MEMBROS_INFO)
     .filter(([,info])=>info.ativo!==false)
     .sort((a,b)=>(a[1].papel==='admin'?0:1)-(b[1].papel==='admin'?0:1));
@@ -4615,8 +4733,8 @@ function renderAcessoConfig(){
   const card=document.getElementById('card-acesso');
   if(!card)return;
   const vendedoras=Object.entries(MEMBROS_INFO).filter(([,i])=>i.papel==='vendedor'&&i.ativo!==false);
-  if(PAPEL!=='admin'||vendedoras.length===0){card.style.display='none';return;}
-  card.style.display='block';
+  if(PAPEL!=='admin')return;
+  if(vendedoras.length===0){ const bx=document.getElementById('acesso-lista'); if(bx)bx.innerHTML='<div style="font-size:13px;color:var(--text3);padding:6px 0">Adicione vendedoras para configurar horários.</div>'; const lb=document.getElementById('acesso-loja-box'); if(lb)lb.innerHTML=''; return; }
   renderAcessoLojaBox();
   const dSem=[[1,'Seg'],[2,'Ter'],[3,'Qua'],[4,'Qui'],[5,'Sex']];
   const dFds=[[6,'Sáb'],[7,'Dom']];
@@ -4764,6 +4882,9 @@ async function carregarPerfil(){
     renderAcessoConfig();
     renderComissaoConfig();
     renderMinhasComissoes();
+    renderCfgTabs();
+    const _abas=PAPEL==='admin'?['loja','equipe','comissoes','login']:['comissoes','login'];
+    abrirCfgAba(_abas.includes(cfgAbaAtual)?cfgAbaAtual:_abas[0]);
     // Carrega dados da loja (lojas_wpp)
     try{
       const loja=await sbGet('lojas_wpp','select=nome_loja,endereco,link_maps&loja_id=eq.'+LOJA_ID);
