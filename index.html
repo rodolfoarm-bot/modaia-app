@@ -1589,10 +1589,12 @@ async function carregarPedidos(){
   renderFiltroVendedor();
   const filtro=pedidosSubAba==='concluido'
     ? 'estado=eq.concluido&order=atualizado_em.desc&limit=100'
-    : 'estado=in.(aguardando_pagamento,em_atendimento)&order=criado_em.desc&limit=100';
+    : 'estado=in.(aberto,aguardando_pagamento,em_atendimento)&order=criado_em.desc&limit=100';
   try{
     const dados=await sbGet('carrinhos_wpp','loja_id=eq.'+LOJA_ID+'&'+filtro);
-    PEDIDOS=Array.isArray(dados)?dados:[];
+    // carrinho 'aberto' é o que a Sofia ainda está montando: só aparece
+    // na lista se a cliente pediu atendimento humano.
+    PEDIDOS=(Array.isArray(dados)?dados:[]).filter(p=>p.estado!=='aberto'||p.aguardando_humano===true);
   }catch(e){
     PEDIDOS=[];
     if(load)load.style.display='none';
@@ -1806,7 +1808,7 @@ function renderPedidos(){
     if(pedidoEditando===p.id)return cartaoEdicao(p,num);
     const itens=p.itens||[];
     const total=itens.reduce((s,it)=>s+Number(it.preco_unitario||0)*Number(it.quantidade||0),0);
-    const liquido=(p.total_liquido!=null)?Number(p.total_liquido):total;
+    const liquido=(p.total_liquido!=null&&Number(p.total_liquido)>0)?Number(p.total_liquido):total;
     const temDesc=liquido < total - 0.005;
     const itensHtml=itens.map(itemLinha).join('');
     const assumidoPorMim=p.estado==='em_atendimento'&&p.vendedor_id===USER_ID;
@@ -1901,7 +1903,7 @@ function renderPedidos(){
     return `<div style="background:var(--surface);border:1px solid ${pedeHumano?'var(--warning)':'var(--border)'};border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
       ${bannerHumano}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:15px;font-weight:800;color:var(--text1)">${ehPresencial?'Venda':'Pedido'} ${num}${origemBadge}</span>
+        <span style="font-size:15px;font-weight:800;color:var(--text1)">${p.numero_pedido?((ehPresencial?'Venda':'Pedido')+' '+num):'Atendimento'}${origemBadge}</span>
         ${statusPill}
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px">${clienteLinha}</div>
@@ -2800,7 +2802,15 @@ async function carregarMensagens(){
       <div style="font-size:10px;opacity:.7;margin-top:3px;text-align:right">${hora}</div>
     </div>`;
   }).join('');
-  cont.scrollTop=cont.scrollHeight;
+  const irPraBaixo=()=>{cont.scrollTop=cont.scrollHeight;};
+  irPraBaixo();
+  requestAnimationFrame(irPraBaixo);
+  setTimeout(irPraBaixo,120); setTimeout(irPraBaixo,400);
+  // fotos/áudios só empurram a altura depois de carregar
+  cont.querySelectorAll('img,audio').forEach(el=>{
+    el.addEventListener('load',irPraBaixo,{once:true});
+    el.addEventListener('loadedmetadata',irPraBaixo,{once:true});
+  });
 }
 function ampliarMsg(i){ const m=chatMsgs[i]; if(m&&m.media_url)abrirFotoFullscreen(m.media_url); }
 async function abrirPdfMsg(i){
