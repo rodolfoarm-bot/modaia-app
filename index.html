@@ -2098,6 +2098,14 @@ async function marcarAtendido(id){
   try{
     await sbPatch('carrinhos_wpp','id=eq.'+id,body);
     if(p){p.aguardando_humano=false;if(body.estado)p.estado=body.estado;}
+    // avisa a cliente que voltou para a Sofia (senão o silêncio confunde)
+    if(p&&p.telefone){
+      const txt='Prontinho! 💜 Você voltou a falar com a Sofia, nossa atendente virtual.\n\nSe quiser ver algum produto específico, é só me dizer que eu procuro e te mando as fotos. E quando quiser fechar o pedido, me avise a qualquer momento 😊';
+      try{
+        await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({loja_id:LOJA_ID,telefone:p.telefone,texto:txt,tipo:'texto',vendedor_id:USER_ID})});
+      }catch(e){}
+    }
     showToast(body.estado?'Atendimento encerrado. Sofia voltou a responder.':'Marcado como atendido.');
     if(body.estado){await carregarPedidos();}else{renderPedidos();}
   }catch(e){showToast('Não foi possível marcar.',true);}
