@@ -567,7 +567,7 @@ html{visibility:visible}
 <!-- TELA: CADASTRO -->
 <div id="sc-cadastro" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="tb-sub">Tire a foto e preencha os dados — a catalogação acontece em segundo plano</div>
   </div>
   <div class="scroll">
@@ -652,7 +652,7 @@ html{visibility:visible}
   <div class="tb">
     <div class="tb-row">
       <span class="tb-logo">G</span><span class="tb-title">Estoque</span>
-      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-alerta">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-alerta">0</span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub" id="estoque-subtitle">Visão completa · valor, tipos e alertas</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
@@ -725,7 +725,7 @@ html{visibility:visible}
   <div class="tb">
     <div class="tb-row">
       <span class="tb-logo">G</span><span class="tb-title">Vendas</span>
-      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><span class="tb-badge" id="badge-pedidos">0</span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub">Vendas na loja e pedidos da assistente no WhatsApp</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
@@ -761,7 +761,7 @@ html{visibility:visible}
 <!-- TELA: RELATÓRIOS -->
 <div id="sc-relatorios" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="period-tabs" id="ptabs">
       <button class="ptab on" data-p="hoje">Dia</button>
       <button class="ptab" data-p="semana">Semana</button>
@@ -812,7 +812,7 @@ html{visibility:visible}
 <!-- TELA: PERFIL -->
 <div id="sc-perfil" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Configurações</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Configurações</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-perfil" style="padding:20px 16px">
     <div class="ptr-indicator" id="ptr-perfil">
@@ -2043,8 +2043,9 @@ async function carregarNotificacoes(){
     NOTIFS=await sbGet('notificacoes','loja_id=eq.'+LOJA_ID+'&or=(user_id.eq.'+USER_ID+',user_id.is.null)&order=criado_em.desc&limit=50')||[];
   }catch(e){NOTIFS=[];}
   const n=NOTIFS.filter(x=>!x.lida).length;
-  const b=document.getElementById('notif-badge');
-  if(b){if(n>0){b.textContent=n>9?'9+':String(n);b.style.display='flex';}else b.style.display='none';}
+  document.querySelectorAll('.notif-badge').forEach(b=>{
+    if(n>0){b.textContent=n>9?'9+':String(n);b.style.display='flex';}else b.style.display='none';
+  });
 }
 function abrirNotificacoes(){
   document.getElementById('notif-ov').style.display='block';
