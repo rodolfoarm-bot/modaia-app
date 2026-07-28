@@ -1896,7 +1896,7 @@ function renderPedidos(){
     const bannerHumano=pedeHumano?`<div style="background:var(--warning-l);border-radius:10px;padding:9px 11px;margin:-4px 0 10px;display:flex;align-items:center;gap:8px">
       <span style="font-size:16px">🙋</span>
       <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800;color:var(--warning)">${ehConcluido?'Cliente voltou a falar':'Cliente pediu atendimento'}</div>${p.handoff_motivo?`<div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(p.handoff_motivo||'').replace(/</g,'&lt;')}</div>`:''}</div>
-      <button onclick="marcarAtendido('${p.id}')" title="Marcar como atendido" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 4px">✓</button>
+      <button onclick="marcarAtendido('${p.id}')" style="background:var(--surface);border:1.5px solid var(--warning);color:var(--warning);font-size:11px;font-weight:700;border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">✓ Já atendi</button>
     </div>`:'';
     return `<div style="background:var(--surface);border:1px solid ${pedeHumano?'var(--warning)':'var(--border)'};border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
       ${bannerHumano}
@@ -2079,12 +2079,24 @@ async function lerTodasNotificacoes(){
   for(const x of naoLidas){try{await sbPatch('notificacoes','id=eq.'+x.id,{lida:true});}catch(e){}}
   carregarNotificacoes();
 }
-/* Encerra a sinalização de "cliente esperando" num pedido */
+/* Encerra a sinalização de "cliente esperando" e DEVOLVE a conversa para a Sofia.
+   Se for um atendimento sem itens (ninguém chegou a vender nada), o pedido é
+   encerrado — senão ele continuaria segurando a Sofia calada. */
 async function marcarAtendido(id){
+  const p=PEDIDOS.find(x=>x.id===id);
+  const semItens=!p||!Array.isArray(p.itens)||p.itens.length===0;
+  const aberto=p&&(p.estado==='aguardando_pagamento'||p.estado==='em_atendimento');
+  const body={aguardando_humano:false,atualizado_em:new Date().toISOString()};
+  if(semItens&&aberto){
+    if(!confirm('Encerrar este atendimento e devolver a conversa para a Sofia?'))return;
+    body.estado='cancelado';
+    body.cancelado_em=new Date().toISOString();
+  }
   try{
-    await sbPatch('carrinhos_wpp','id=eq.'+id,{aguardando_humano:false,atualizado_em:new Date().toISOString()});
-    const p=PEDIDOS.find(x=>x.id===id); if(p)p.aguardando_humano=false;
-    showToast('Marcado como atendido.');renderPedidos();
+    await sbPatch('carrinhos_wpp','id=eq.'+id,body);
+    if(p){p.aguardando_humano=false;if(body.estado)p.estado=body.estado;}
+    showToast(body.estado?'Atendimento encerrado. Sofia voltou a responder.':'Marcado como atendido.');
+    if(body.estado){await carregarPedidos();}else{renderPedidos();}
   }catch(e){showToast('Não foi possível marcar.',true);}
 }
 
