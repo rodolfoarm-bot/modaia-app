@@ -2792,6 +2792,20 @@ async function carregarMensagens(){
   cont.innerHTML=msgs.map((m,i)=>{
     const out=m.direcao==='out';
     const hora=m.criado_em?new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    // ── Citação (cliente deslizou sobre uma foto) ──
+    // Mostra a miniatura + legenda da mensagem citada acima do texto,
+    // igual ao WhatsApp.
+    let blocoCitacao = '';
+    if(m.resposta_a){
+      const orig=msgs.find(x=>x.wamid===m.resposta_a);
+      if(orig){
+        const mini=orig.media_url?`<img src="${orig.media_url}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0"/>`:'';
+        const resumo=((orig.texto||'').split('\n')[0]||'Mensagem').slice(0,45);
+        blocoCitacao=`<div onclick="irParaMensagem('${orig.wamid}')" style="display:flex;gap:7px;align-items:center;background:rgba(127,127,127,.16);border-left:3px solid var(--accent);border-radius:6px;padding:5px 7px;margin-bottom:5px;cursor:pointer">
+          ${mini}<div style="font-size:11px;opacity:.85;line-height:1.3;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumo.replace(/</g,'&lt;')}</div>
+        </div>`;
+      }
+    }
     let conteudo;
     const jaAnexado=m.media_url&&chatPedidoAnexos.some(a=>a&&a.media_url===m.media_url);
     const btnAnexar=(!out&&chatPedidoId&&m.media_url)
@@ -2817,8 +2831,8 @@ async function carregarMensagens(){
     }else{
       conteudo=`<div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
     }
-    return `<div style="align-self:${out?'flex-end':'flex-start'};max-width:80%;background:${out?'var(--accent)':'var(--surface)'};color:${out?'#fff':'var(--text1)'};border:${out?'none':'1px solid var(--border)'};padding:8px 12px;border-radius:14px;border-bottom-${out?'right':'left'}-radius:4px">
-      ${conteudo}
+    return `<div id="msg-${m.wamid||i}" style="align-self:${out?'flex-end':'flex-start'};max-width:80%;background:${out?'var(--accent)':'var(--surface)'};color:${out?'#fff':'var(--text1)'};border:${out?'none':'1px solid var(--border)'};padding:8px 12px;border-radius:14px;border-bottom-${out?'right':'left'}-radius:4px">
+      ${blocoCitacao}${conteudo}
       <div style="font-size:10px;opacity:.7;margin-top:3px;text-align:right">${hora}</div>
     </div>`;
   }).join('');
@@ -2831,6 +2845,14 @@ async function carregarMensagens(){
     el.addEventListener('load',irPraBaixo,{once:true});
     el.addEventListener('loadedmetadata',irPraBaixo,{once:true});
   });
+}
+function irParaMensagem(wamid){
+  const el=document.getElementById('msg-'+wamid);
+  if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  const bg=el.style.boxShadow;
+  el.style.boxShadow='0 0 0 3px var(--accent)';
+  setTimeout(()=>{el.style.boxShadow=bg;},1200);
 }
 function ampliarMsg(i){ const m=chatMsgs[i]; if(m&&m.media_url)abrirFotoFullscreen(m.media_url); }
 async function abrirPdfMsg(i){
