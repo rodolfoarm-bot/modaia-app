@@ -2687,6 +2687,18 @@ function addProdutoNaEdicao(){ _capturarCamposEdicao(); if(!editBuffer)return; a
    O vendedor conversa com o cliente pelo WhatsApp da loja sem expor a chave da
    Evolution: o envio passa pelo webhook vendedor_envia (n8n). As mensagens ficam
    em mensagens_wpp (in = cliente, out = loja) e o app faz polling para exibir. */
+/* Telefone BR: a Meta usa 12 dígitos (55 + DDD + 8) e o app costuma guardar 13
+   (com o 9 após o DDD). Gera as duas formas para casar em qualquer caso. */
+function variantesTelefone(tel){
+  const d=(tel||'').toString().replace(/\D/g,'');
+  const set=new Set([d]);
+  if(d.startsWith('55')){
+    const ddd=d.slice(2,4), resto=d.slice(4);
+    if(resto.length===8) set.add('55'+ddd+'9'+resto);            // 12 -> 13
+    if(resto.length===9&&resto.startsWith('9')) set.add('55'+ddd+resto.slice(1)); // 13 -> 12
+  }
+  return [...set];
+}
 let chatTelefone=null, chatNome='', chatPollTimer=null, chatUltimoCount=0, chatMsgs=[], chatPedidoId=null, chatPedidoAnexos=[];
 async function abrirChat(telefone,nome,pedidoId){
   chatTelefone=(telefone||'').toString(); chatUltimoCount=-1; chatPedidoId=pedidoId||null;
@@ -2779,7 +2791,10 @@ async function carregarMensagens(){
   if(!chatTelefone)return;
   let msgs=[];
   try{
-    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&telefone=eq.'+chatTelefone+'&order=criado_em.asc&limit=300');
+    // A Meta entrega o telefone BR SEM o 9 (12 dígitos), mas o pedido pode ter
+    // sido salvo COM o 9 (13 dígitos). Buscamos as duas formas, senão o chat
+    // fica vazio mesmo com as mensagens gravadas.
+    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&telefone=in.('+variantesTelefone(chatTelefone).join(',')+')&order=criado_em.asc&limit=300');
   }catch(e){msgs=[];}
   const cont=document.getElementById('chat-msgs'); if(!cont)return;
   if(Array.isArray(msgs)&&msgs.length===chatUltimoCount)return; // evita piscar
