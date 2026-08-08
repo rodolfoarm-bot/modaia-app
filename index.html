@@ -1104,6 +1104,19 @@ const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vended
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 const N8N_RELAY = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/vendedor_envia';
 const N8N_GESTAO = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/gestao_equipe';
+
+/* Toda chamada ao relay leva o token do usuário logado. O servidor valida
+   quem é e se pertence à loja — sem isso, qualquer um com a URL do webhook
+   conseguiria mandar mensagem pelo WhatsApp da loja. */
+async function relayEnviar(payload){
+  const token = await tokenFresco();
+  if(!token){ showToast('Sua sessão expirou. Entre de novo.',true); return null; }
+  return fetch(N8N_RELAY,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...payload, token})
+  });
+}
 let LOJA_ID = null;
 let NOME_LOJA = '';
 let LOJA_ENDERECO = '';
@@ -2102,8 +2115,7 @@ async function marcarAtendido(id){
     if(p&&p.telefone){
       const txt='Prontinho! 💜 Você voltou a falar com a Sofia, nossa atendente virtual.\n\nSe quiser ver algum produto específico, é só me dizer que eu procuro e te mando as fotos. E quando quiser fechar o pedido, me avise a qualquer momento 😊';
       try{
-        await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({loja_id:LOJA_ID,telefone:p.telefone,texto:txt,tipo:'texto',vendedor_id:USER_ID})});
+        await relayEnviar({loja_id:LOJA_ID,telefone:p.telefone,texto:txt,tipo:'texto',vendedor_id:USER_ID});
       }catch(e){}
     }
     showToast(body.estado?'Atendimento encerrado. Sofia voltou a responder.':'Marcado como atendido.');
@@ -2840,7 +2852,7 @@ async function enviarChavePix(){
   const nome=NOME_LOJA?(' ('+NOME_LOJA+')'):'';
   const texto='🔑 Chave Pix'+nome+':\n'+chave;
   try{
-    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID})});
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID});
     chatUltimoCount=-1; setTimeout(carregarMensagens,600);
     showToast('Chave Pix enviada');
   }catch(e){showToast('Erro ao enviar a chave Pix',true);}
@@ -2850,7 +2862,7 @@ async function enviarMensagemChat(){
   const texto=inp.value.trim(); if(!texto||!chatTelefone)return;
   inp.value='';
   try{
-    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID})});
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID});
     chatUltimoCount=-1; setTimeout(carregarMensagens,600);
   }catch(e){showToast('Erro ao enviar a mensagem',true);inp.value=texto;}
 }
@@ -2864,7 +2876,7 @@ async function enviarFotoChat(input){
     const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':'image/jpeg'},body:blob});
     if(!up.ok)throw new Error('upload');
     const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
-    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'imagem',media_url:url,vendedor_id:USER_ID})});
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'imagem',media_url:url,vendedor_id:USER_ID});
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar a foto',true);}
 }
@@ -2878,7 +2890,7 @@ async function enviarArquivoChat(input){
     const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':'application/pdf'},body:file});
     if(!up.ok)throw new Error('upload');
     const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
-    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'documento',media_url:url,nome_arquivo:fname,vendedor_id:USER_ID})});
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'documento',media_url:url,nome_arquivo:fname,vendedor_id:USER_ID});
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar o arquivo',true);}
 }
@@ -2989,7 +3001,7 @@ async function enviarAudioPendente(){
     const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':mt},body:blob});
     if(!up.ok)throw new Error('upload');
     const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
-    await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'audio',media_url:url,vendedor_id:USER_ID})});
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'audio',media_url:url,vendedor_id:USER_ID});
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar o áudio',true);}
 }
@@ -3000,7 +3012,7 @@ function enviarLocalizacaoChat(){
   navigator.geolocation.getCurrentPosition(async(pos)=>{
     const lat=pos.coords.latitude, lng=pos.coords.longitude;
     try{
-      const r=await fetch(N8N_RELAY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'localizacao',latitude:lat,longitude:lng,vendedor_id:USER_ID})});
+      const r=await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'localizacao',latitude:lat,longitude:lng,vendedor_id:USER_ID});
       if(!r.ok)throw new Error('relay');
       showToast('Localização enviada!');
       chatUltimoCount=-1; setTimeout(carregarMensagens,800);
