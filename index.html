@@ -1861,8 +1861,12 @@ function renderPedidos(){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Novo</span>`;
     }else if(assumidoPorMim){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-l);padding:3px 9px;border-radius:20px">Você está atendendo</span>`;
+    }else if(!p.vendedor_id){
+      // atendimento aberto pelo handoff: ninguém assumiu ainda
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Aguardando atendimento</span>`;
     }else{
-      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px">Em atendimento</span>`;
+      const qn=(MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'Outra vendedora';
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px">${qn.replace(/</g,'&lt;')} atendendo</span>`;
     }
     if(!ehConcluido){
       if(pedidoCancelando===p.id){
@@ -1900,8 +1904,23 @@ function renderPedidos(){
           <div id="ped-totais-${p.id}" style="font-size:12px;color:var(--text2)"></div>
           <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · <span id="ped-btn-total-${p.id}">${fmtR(total)}</span></button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
         </div>`;
+      }else if(!p.vendedor_id){
+        // Atendimento criado pelo handoff: ninguém assumiu ainda.
+        acoes=`<div style="display:flex;flex-direction:column;gap:8px">
+          <button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir atendimento</button>
+          <div style="display:flex;gap:8px">${contato?contato:''}<button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
+        </div>`;
+      }else if(PAPEL==='admin'){
+        // A dona assume qualquer pedido, inclusive os que já estão com outra vendedora.
+        const qn=(MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'outra vendedora';
+        acoes=`<div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;color:var(--text3);text-align:center">Em atendimento por ${qn.replace(/</g,'&lt;')}.</div>
+          <button class="fbtn fbtn-outline" onclick="assumirPedido('${p.id}',true)">Assumir mesmo assim</button>
+          ${contato?contato:''}
+        </div>`;
       }else{
-        acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">Outro vendedor está atendendo este pedido.</div>`;
+        const qn=(MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'Outra vendedora';
+        acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">${qn.replace(/</g,'&lt;')} está atendendo este pedido.</div>`;
       }
     }
     const clienteLinha=(p.nome_cliente||p.telefone)
@@ -2128,9 +2147,16 @@ async function confirmarCancelamento(id){
   }catch(e){showToast('Erro ao cancelar o pedido',true);renderPedidos();}
 }
 
-async function assumirPedido(id){
+async function assumirPedido(id,forcar){
+  // forcar = admin assumindo um pedido que já está com outra vendedora
+  if(forcar){
+    const p=PEDIDOS.find(x=>x.id===id);
+    const qn=(p&&MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'outra vendedora';
+    if(!confirm('Este atendimento está com '+qn+'.\n\nAssumir para você?'))return;
+  }
   try{
     await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'em_atendimento',vendedor_id:USER_ID,assumido_em:new Date().toISOString(),aguardando_humano:false,atualizado_em:new Date().toISOString()});
+    showToast(forcar?'Atendimento assumido por você.':'Atendimento assumido!');
     await carregarPedidos();
   }catch(e){showToast('Erro ao assumir o pedido',true);}
 }
