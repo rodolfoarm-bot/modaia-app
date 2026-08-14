@@ -1911,7 +1911,7 @@ function renderPedidos(){
     const bannerHumano=pedeHumano?`<div style="background:var(--warning-l);border-radius:10px;padding:9px 11px;margin:-4px 0 10px;display:flex;align-items:center;gap:8px">
       <span style="font-size:16px">🙋</span>
       <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:800;color:var(--warning)">${ehConcluido?'Cliente voltou a falar':'Cliente pediu atendimento'}</div>${p.handoff_motivo?`<div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(p.handoff_motivo||'').replace(/</g,'&lt;')}</div>`:''}</div>
-      <button onclick="marcarAtendido('${p.id}')" style="background:var(--surface);border:1.5px solid var(--warning);color:var(--warning);font-size:11px;font-weight:700;border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">✓ Já atendi</button>
+
     </div>`:'';
     return `<div style="background:var(--surface);border:1px solid ${pedeHumano?'var(--warning)':'var(--border)'};border-radius:var(--card-radius);padding:14px;box-shadow:var(--shadow)">
       ${bannerHumano}
@@ -2095,32 +2095,15 @@ async function lerTodasNotificacoes(){
   for(const x of naoLidas){try{await sbPatch('notificacoes','id=eq.'+x.id,{lida:true});}catch(e){}}
   carregarNotificacoes();
 }
-/* Encerra a sinalização de "cliente esperando" e DEVOLVE a conversa para a Sofia.
-   Se for um atendimento sem itens (ninguém chegou a vender nada), o pedido é
-   encerrado — senão ele continuaria segurando a Sofia calada. */
+/* A conversa fica com a equipe até a venda ser CONCLUÍDA ou CANCELADA —
+   não existe mais devolver para a Sofia no meio do atendimento. Concluir ou
+   cancelar o pedido é o que libera a Sofia para o próximo atendimento. */
 async function marcarAtendido(id){
-  const p=PEDIDOS.find(x=>x.id===id);
-  const semItens=!p||!Array.isArray(p.itens)||p.itens.length===0;
-  const aberto=p&&(p.estado==='aguardando_pagamento'||p.estado==='em_atendimento');
-  const body={aguardando_humano:false,atualizado_em:new Date().toISOString()};
-  if(semItens&&aberto){
-    if(!confirm('Encerrar este atendimento e devolver a conversa para a Sofia?'))return;
-    body.estado='cancelado';
-    body.cancelado_em=new Date().toISOString();
-  }
   try{
-    await sbPatch('carrinhos_wpp','id=eq.'+id,body);
-    if(p){p.aguardando_humano=false;if(body.estado)p.estado=body.estado;}
-    // avisa a cliente que voltou para a Sofia (senão o silêncio confunde)
-    if(p&&p.telefone){
-      const txt='Prontinho! 💜 Você voltou a falar com a Sofia, nossa atendente virtual.\n\nSe quiser ver algum produto específico, é só me dizer que eu procuro e te mando as fotos. E quando quiser fechar o pedido, me avise a qualquer momento 😊';
-      try{
-        await relayEnviar({loja_id:LOJA_ID,telefone:p.telefone,texto:txt,tipo:'texto',vendedor_id:USER_ID});
-      }catch(e){}
-    }
-    showToast(body.estado?'Atendimento encerrado. Sofia voltou a responder.':'Marcado como atendido.');
-    if(body.estado){await carregarPedidos();}else{renderPedidos();}
-  }catch(e){showToast('Não foi possível marcar.',true);}
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{aguardando_humano:false,atualizado_em:new Date().toISOString()});
+    const p=PEDIDOS.find(x=>x.id===id); if(p)p.aguardando_humano=false;
+    renderPedidos();
+  }catch(e){}
 }
 
 function atualizarBadgePedidos(){
@@ -2139,7 +2122,7 @@ function voltarCancelamento(){pedidoCancelando=null;renderPedidos();}
 async function confirmarCancelamento(id){
   pedidoCancelando=null;
   try{
-    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'cancelado',atualizado_em:new Date().toISOString()});
+    await sbPatch('carrinhos_wpp','id=eq.'+id,{estado:'cancelado',aguardando_humano:false,atualizado_em:new Date().toISOString()});
     showToast('Pedido cancelado.');
     await carregarPedidos();
   }catch(e){showToast('Erro ao cancelar o pedido',true);renderPedidos();}
@@ -2742,6 +2725,29 @@ async function editarNomeContato(){
     showToast('Nome salvo!');
   }catch(e){showToast('Erro ao salvar o nome',true);}
 }
+/* Envia foto + ficha de um produto do estoque pelo chat, no MESMO formato da
+   Sofia — assim a cliente reconhece o padrão e pode responder deslizando
+   sobre a foto. Reaproveita o seletor de produtos do app. */
+function enviarProdutoChat(){
+  if(!chatTelefone){showToast('Abra uma conversa primeiro.',true);return;}
+  abrirSeletorProduto(async (prod)=>{
+    if(!prod)return;
+    try{
+      const foto=(prod.foto_url||'').startsWith('http')
+        ? prod.foto_url
+        : SB_URL+'/storage/v1/object/public/fotos-produtos/'+prod.foto_url;
+      const cod=prod.codigo_loja?('Código #'+String(prod.codigo_loja).padStart(3,'0')):'';
+      const preco=prod.preco?('R$ '+Number(prod.preco).toFixed(2).replace('.',',')):'';
+      const l1=[prod.tipo?prod.tipo.charAt(0).toUpperCase()+prod.tipo.slice(1):'Produto',prod.marca].filter(Boolean).join(' · ');
+      const l2=[prod.tamanho?('Tamanho '+prod.tamanho):'',prod.cores].filter(Boolean).join(' · ');
+      const legenda=[l1,l2,cod,preco].filter(Boolean).join('\n');
+      showToast('Enviando produto...');
+      await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:legenda,tipo:'imagem',media_url:foto,vendedor_id:USER_ID});
+      chatUltimoCount=-1; setTimeout(carregarMensagens,700);
+    }catch(e){showToast('Não foi possível enviar o produto.',true);}
+  }, ()=>{ fecharSeletor(); });
+}
+
 function renderChatFoot(modo){
   const foot=document.getElementById('chat-foot'); if(!foot)return;
   if(modo==='gravando'){
@@ -2759,6 +2765,7 @@ function renderChatFoot(modo){
     foot.innerHTML=`
       <input type="file" id="chat-anexo" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
       <button class="chat-ic" onclick="abrirMenuAnexo()" title="Anexar">📎</button>
+      <button class="chat-ic" onclick="enviarProdutoChat()" title="Enviar produto do estoque">📦</button>
       <button class="chat-ic" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
       <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
       <button class="chat-send" onclick="enviarMensagemChat()" title="Enviar">
