@@ -70,14 +70,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;display:flex;justify-content:center;transition:background .3s}
 .app{width:100%;max-width:430px;height:100vh;display:flex;flex-direction:column;background:var(--bg);position:relative;overflow:hidden;transition:background .3s}
 .tb{background:var(--topbar-bg);padding:max(env(safe-area-inset-top),16px) 16px 14px;flex-shrink:0}
-.tb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.tb-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.4px}
+.tb-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0}
+.tb-row+.tb-sub:not(:empty){margin-top:6px}
+.tb-row+*:not(.tb-sub){margin-top:12px}
+.tb-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.4px;white-space:nowrap}
 .tb-logo{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:#fff;color:var(--accent);font-size:15px;font-weight:800;line-height:1;margin-right:7px;vertical-align:-4px;box-shadow:0 1px 3px rgba(0,0,0,.18);font-family:inherit}
-.tb-actions{display:flex;align-items:center;gap:8px}
+.tb-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;min-width:0}
 .tb-badge{background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;backdrop-filter:blur(4px)}
 .theme-btn{background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:14px;backdrop-filter:blur(4px);transition:background .2s}
 .theme-btn:active{background:rgba(255,255,255,.3)}
-.tb-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:2px}
+.tb-sub{font-size:12px;color:rgba(255,255,255,.7)}
+.tb-sub:empty{display:none}
 .srch-wrap{display:flex;gap:8px;align-items:stretch}
 .srch{position:relative;flex:1}
 .srch input{width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:10px 12px 10px 38px;color:#fff;font-size:14px;outline:none;backdrop-filter:blur(4px);transition:all .2s}
@@ -507,7 +510,7 @@ html{visibility:visible}
         <span style="font-size:13px;color:rgba(255,255,255,.85);font-weight:600" id="tb-total-pecas">—</span>
       </div>
       <div class="tb-actions">
-        <span id="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span>
+        <span id="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
         <button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
       </div>
     </div>
@@ -567,8 +570,7 @@ html{visibility:visible}
 <!-- TELA: CADASTRO -->
 <div id="sc-cadastro" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
-    <div class="tb-sub">Tire a foto e preencha os dados — a catalogação acontece em segundo plano</div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Novo produto</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
   </div>
   <div class="scroll">
     <div style="padding:12px 16px 0">
@@ -652,9 +654,9 @@ html{visibility:visible}
   <div class="tb">
     <div class="tb-row">
       <span class="tb-logo">G</span><span class="tb-title">Estoque</span>
-      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><span class="tb-badge" id="badge-alerta">0</span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:4px"></span><span class="tb-badge" id="badge-alerta">0</span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
-    <div class="tb-sub" id="estoque-subtitle">Visão completa · valor, tipos e alertas</div>
+    <div class="tb-sub" id="estoque-subtitle"></div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
       <button class="estq-tab" data-estqnav="produtos" onclick="irEstoque('produtos')">Produtos</button>
       <button class="estq-tab on" data-estqnav="geral" onclick="irEstoque('geral')">Visão Geral</button>
@@ -725,9 +727,8 @@ html{visibility:visible}
   <div class="tb">
     <div class="tb-row">
       <span class="tb-logo">G</span><span class="tb-title">Vendas</span>
-      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:6px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
+      <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:4px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
-    <div class="tb-sub">Vendas na loja e pedidos da assistente no WhatsApp</div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
       <button class="estq-tab on" data-ped="aberto" onclick="trocarSubAbaPedidos('aberto')">Em aberto <span id="ped-aberto-badge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">0</span></button>
       <button class="estq-tab" data-ped="concluido" onclick="trocarSubAbaPedidos('concluido')">Concluídas</button>
@@ -761,7 +762,7 @@ html{visibility:visible}
 <!-- TELA: RELATÓRIOS -->
 <div id="sc-relatorios" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Relatórios</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
     <div class="period-tabs" id="ptabs">
       <button class="ptab on" data-p="hoje">Dia</button>
       <button class="ptab" data-p="semana">Semana</button>
@@ -812,7 +813,7 @@ html{visibility:visible}
 <!-- TELA: PERFIL -->
 <div id="sc-perfil" class="screen">
   <div class="tb">
-    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Configurações</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:2px"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
+    <div class="tb-row"><span class="tb-logo">G</span><span class="tb-title">Configurações</span><div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div></div>
   </div>
   <div class="scroll scroll-ptr" id="scroll-perfil" style="padding:20px 16px">
     <div class="ptr-indicator" id="ptr-perfil">
@@ -1863,10 +1864,10 @@ function renderPedidos(){
       statusPill=`<span style="font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-l);padding:3px 9px;border-radius:20px">Você está atendendo</span>`;
     }else if(!p.vendedor_id){
       // atendimento aberto pelo handoff: ninguém assumiu ainda
-      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px">Aguardando atendimento</span>`;
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--warning);background:var(--warning-l);padding:3px 9px;border-radius:20px;white-space:nowrap">Aguardando</span>`;
     }else{
-      const qn=(MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'Outra vendedora';
-      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px">${qn.replace(/</g,'&lt;')} atendendo</span>`;
+      const qn=((MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'Outra').split(' ')[0];
+      statusPill=`<span style="font-size:10px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px;white-space:nowrap">${qn.replace(/</g,'&lt;')} atendendo</span>`;
     }
     if(!ehConcluido){
       if(pedidoCancelando===p.id){
@@ -1905,22 +1906,18 @@ function renderPedidos(){
           <div style="display:flex;gap:8px"><button class="fbtn fbtn-success" id="ped-concluir-${p.id}" onclick="concluirPedido('${p.id}')">Concluir venda · <span id="ped-btn-total-${p.id}">${fmtR(total)}</span></button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
         </div>`;
       }else if(!p.vendedor_id){
-        // Atendimento criado pelo handoff: ninguém assumiu ainda.
+        // Atendimento aberto pelo handoff: ninguém assumiu ainda.
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
           <button class="fbtn" onclick="assumirPedido('${p.id}')">Assumir atendimento</button>
-          <div style="display:flex;gap:8px">${contato?contato:''}<button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')" style="max-width:110px">Cancelar</button></div>
+          <div style="display:flex;gap:8px"><button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar</button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')">Cancelar</button></div>
         </div>`;
       }else if(PAPEL==='admin'){
-        // A dona assume qualquer pedido, inclusive os que já estão com outra vendedora.
-        const qn=(MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'outra vendedora';
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
-          <div style="font-size:12px;color:var(--text3);text-align:center">Em atendimento por ${qn.replace(/</g,'&lt;')}.</div>
-          <button class="fbtn fbtn-outline" onclick="assumirPedido('${p.id}',true)">Assumir mesmo assim</button>
-          ${contato?contato:''}
+          <button class="fbtn fbtn-outline" onclick="assumirPedido('${p.id}',true)">Assumir atendimento</button>
+          <div style="display:flex;gap:8px"><button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar</button><button class="fbtn fbtn-danger-outline" onclick="pedirCancelamento('${p.id}')">Cancelar</button></div>
         </div>`;
       }else{
-        const qn=(MEMBROS_INFO[p.vendedor_id]&&MEMBROS_INFO[p.vendedor_id].nome)||'Outra vendedora';
-        acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">${qn.replace(/</g,'&lt;')} está atendendo este pedido.</div>`;
+        acoes=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px">Em atendimento por outra vendedora.</div>`;
       }
     }
     const clienteLinha=(p.nome_cliente||p.telefone)
@@ -2751,27 +2748,40 @@ async function editarNomeContato(){
     showToast('Nome salvo!');
   }catch(e){showToast('Erro ao salvar o nome',true);}
 }
-/* Envia foto + ficha de um produto do estoque pelo chat, no MESMO formato da
-   Sofia — assim a cliente reconhece o padrão e pode responder deslizando
-   sobre a foto. Reaproveita o seletor de produtos do app. */
+/* Envia produtos do estoque pelo chat, no MESMO formato da Sofia — a cliente
+   reconhece o padrão e pode responder deslizando sobre a foto.
+   Seleciona vários e envia tudo ao fechar o seletor (não envia a cada toque). */
+function fichaProduto(prod){
+  const cod=prod.codigo_loja?('Código #'+String(prod.codigo_loja).padStart(3,'0')):'';
+  const preco=prod.preco?('R$ '+Number(prod.preco).toFixed(2).replace('.',',')):'';
+  const l1=[prod.tipo?prod.tipo.charAt(0).toUpperCase()+prod.tipo.slice(1):'Produto',prod.marca].filter(Boolean).join(' · ');
+  const l2=[prod.tamanho?('Tamanho '+prod.tamanho):'',prod.cores].filter(Boolean).join(' · ');
+  return [l1,l2,cod,preco].filter(Boolean).join('\n');
+}
 function enviarProdutoChat(){
   if(!chatTelefone){showToast('Abra uma conversa primeiro.',true);return;}
-  abrirSeletorProduto(async (prod)=>{
-    if(!prod)return;
-    try{
-      const foto=(prod.foto_url||'').startsWith('http')
-        ? prod.foto_url
-        : SB_URL+'/storage/v1/object/public/fotos-produtos/'+prod.foto_url;
-      const cod=prod.codigo_loja?('Código #'+String(prod.codigo_loja).padStart(3,'0')):'';
-      const preco=prod.preco?('R$ '+Number(prod.preco).toFixed(2).replace('.',',')):'';
-      const l1=[prod.tipo?prod.tipo.charAt(0).toUpperCase()+prod.tipo.slice(1):'Produto',prod.marca].filter(Boolean).join(' · ');
-      const l2=[prod.tamanho?('Tamanho '+prod.tamanho):'',prod.cores].filter(Boolean).join(' · ');
-      const legenda=[l1,l2,cod,preco].filter(Boolean).join('\n');
-      showToast('Enviando produto...');
-      await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:legenda,tipo:'imagem',media_url:foto,vendedor_id:USER_ID});
-      chatUltimoCount=-1; setTimeout(carregarMensagens,700);
-    }catch(e){showToast('Não foi possível enviar o produto.',true);}
-  }, ()=>{ fecharSeletor(); });
+  const escolhidos=[];
+  abrirSeletorProduto(
+    (prod)=>{ if(prod&&!escolhidos.some(x=>x.id===prod.id))escolhidos.push(prod); },
+    async ()=>{
+      if(!escolhidos.length)return;
+      showToast('Enviando '+escolhidos.length+(escolhidos.length>1?' produtos...':' produto...'));
+      let ok=0;
+      for(const prod of escolhidos){
+        try{
+          const foto=(prod.foto_url||'').startsWith('http')
+            ? prod.foto_url
+            : SB_URL+'/storage/v1/object/public/fotos-produtos/'+prod.foto_url;
+          await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:fichaProduto(prod),tipo:'imagem',media_url:foto,vendedor_id:USER_ID});
+          ok++;
+          await new Promise(r=>setTimeout(r,900)); // respeita a ordem de entrega
+        }catch(e){}
+      }
+      showToast(ok?(ok+(ok>1?' produtos enviados':' produto enviado')):'Não foi possível enviar.',!ok);
+      chatUltimoCount=-1; setTimeout(carregarMensagens,800);
+    },
+    (id)=>{ const i=escolhidos.findIndex(x=>x.id===id); if(i>=0)escolhidos.splice(i,1); }
+  );
 }
 
 function renderChatFoot(modo){
@@ -2825,10 +2835,15 @@ async function carregarMensagens(){
   let msgs=[];
   try{
     // A Meta entrega o telefone BR SEM o 9 (12 dígitos), mas o pedido pode ter
-    // sido salvo COM o 9 (13 dígitos). Buscamos as duas formas, senão o chat
-    // fica vazio mesmo com as mensagens gravadas.
-    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&telefone=in.('+variantesTelefone(chatTelefone).join(',')+')&order=criado_em.asc&limit=300');
-  }catch(e){msgs=[];}
+    // sido salvo COM o 9 (13 dígitos). Buscamos as duas formas.
+    const ors=variantesTelefone(chatTelefone).map(t=>'telefone.eq.'+t).join(',');
+    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&or=('+ors+')&order=criado_em.asc&limit=300');
+  }catch(e){
+    // NUNCA engolir o erro: chat vazio sem explicação já nos custou horas.
+    msgs=[];
+    console.error('chat:',e);
+    showToast('Não consegui carregar as mensagens: '+String(e.message||e).slice(0,90),true);
+  }
   const cont=document.getElementById('chat-msgs'); if(!cont)return;
   if(Array.isArray(msgs)&&msgs.length===chatUltimoCount)return; // evita piscar
   chatUltimoCount=Array.isArray(msgs)?msgs.length:0;
