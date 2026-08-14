@@ -2837,7 +2837,11 @@ async function carregarMensagens(){
     // A Meta entrega o telefone BR SEM o 9 (12 dígitos), mas o pedido pode ter
     // sido salvo COM o 9 (13 dígitos). Buscamos as duas formas.
     const ors=variantesTelefone(chatTelefone).map(t=>'telefone.eq.'+t).join(',');
-    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&or=('+ors+')&order=criado_em.asc&limit=300');
+    // BUSCA AS MAIS RECENTES (desc) e inverte para exibir em ordem.
+    // Com 'asc + limit' o app trazia as 300 mais ANTIGAS: passado esse total,
+    // as mensagens novas ficavam fora da janela e o chat parecia congelado.
+    msgs=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA_ID+'&or=('+ors+')&order=criado_em.desc&limit=200');
+    if(Array.isArray(msgs))msgs=msgs.reverse();
   }catch(e){
     // NUNCA engolir o erro: chat vazio sem explicação já nos custou horas.
     msgs=[];
@@ -2845,8 +2849,11 @@ async function carregarMensagens(){
     showToast('Não consegui carregar as mensagens: '+String(e.message||e).slice(0,90),true);
   }
   const cont=document.getElementById('chat-msgs'); if(!cont)return;
-  if(Array.isArray(msgs)&&msgs.length===chatUltimoCount)return; // evita piscar
-  chatUltimoCount=Array.isArray(msgs)?msgs.length:0;
+  // Assinatura leve: quantidade + id da última. Só comparar a quantidade
+  // travava o redesenho quando a janela enchia (sempre 200).
+  const _assin=(Array.isArray(msgs)&&msgs.length)?(msgs.length+'|'+(msgs[msgs.length-1].id||msgs[msgs.length-1].criado_em)):'0';
+  if(_assin===chatUltimoCount)return; // evita piscar
+  chatUltimoCount=_assin;
   if(!msgs||msgs.length===0){
     cont.innerHTML=`<div style="text-align:center;color:var(--text3);padding:30px 16px;font-size:13px">Nenhuma mensagem ainda. Envie a primeira mensagem para o cliente.</div>`;
     return;
