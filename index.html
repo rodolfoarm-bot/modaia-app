@@ -2058,13 +2058,29 @@ async function anexarDaConversa(i){
   if(!chatPedidoId){showToast('Abra a conversa a partir de uma venda para anexar.',true);return;}
   const anexo={media_url:m.media_url,tipo:m.tipo==='documento'?'documento':'imagem',nome_arquivo:(m.meta&&m.meta.nome_arquivo)||'',criado_em:new Date().toISOString()};
   const ok=await adicionarAnexo(chatPedidoId,anexo);
-  if(ok){chatPedidoAnexos.push(anexo);chatUltimoCount=-1;carregarMensagens();}
+  if(ok){
+    chatPedidoAnexos.push(anexo);
+    const c=document.getElementById('chat-msgs');
+    const pos=c?c.scrollTop:0;
+    chatUltimoCount=-1;
+    await carregarMensagens();
+    // devolve a leitura ao ponto exato: o redesenho estava jogando o chat
+    // para outra parte da conversa
+    if(c)requestAnimationFrame(()=>{c.scrollTop=pos;});
+  }
 }
 async function removerAnexoConversa(i){
   const m=chatMsgs[i];
   if(!m||!m.media_url||!chatPedidoId)return;
   const ok=await removerAnexo(chatPedidoId,m.media_url);
-  if(ok){chatPedidoAnexos=chatPedidoAnexos.filter(a=>a&&a.media_url!==m.media_url);chatUltimoCount=-1;carregarMensagens();}
+  if(ok){
+    chatPedidoAnexos=chatPedidoAnexos.filter(a=>a&&a.media_url!==m.media_url);
+    const c=document.getElementById('chat-msgs');
+    const pos=c?c.scrollTop:0;
+    chatUltimoCount=-1;
+    await carregarMensagens();
+    if(c)requestAnimationFrame(()=>{c.scrollTop=pos;});
+  }
 }
 function removerAnexoCard(pedidoId,url){
   if(!confirm('Remover este anexo desta venda?'))return;
@@ -3161,6 +3177,14 @@ async function enviarFotoChat(input){
 async function enviarVideoChat(input){
   const file=input.files&&input.files[0]; if(!file||!chatTelefone){input.value='';return;}
   input.value='';
+  // A Meta so entrega MP4 (H.264) e 3GPP. Ela ACEITA a chamada com outros
+  // formatos e devolve wamid — mas a mensagem nunca chega. Mesmo padrao ja
+  // conhecido no projeto com audio WAV/m4a. Por isso barramos aqui.
+  const tipoOk=/^video\/(mp4|3gpp)$/i.test(file.type||'');
+  if(!tipoOk){
+    alert('Este vídeo está em formato '+((file.type||'desconhecido').replace('video/',''))+', que o WhatsApp não entrega.\n\nÉ preciso MP4 (H.264). No iPhone:\nAjustes > Câmera > Formatos > "Mais Compatível"\n\nDepois grave o vídeo de novo.');
+    return;
+  }
   const MAX=16*1024*1024;
   if(file.size>MAX){
     alert('Vídeo de '+(file.size/1048576).toFixed(1)+' MB — o WhatsApp aceita até 16 MB.\n\nComo resolver:\n• Grave um trecho mais curto (até ~30s)\n• Ou baixe a qualidade da câmera:\n   iPhone: Ajustes > Câmera > Gravar Vídeo > 720p HD 30 fps\n   Android: Câmera > Configurações > Resolução de vídeo > HD');
