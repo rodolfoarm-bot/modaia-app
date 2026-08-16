@@ -2823,6 +2823,7 @@ function renderChatFoot(modo){
         <button class="chat-act" onclick="iniciarGravacao()" title="Gravar áudio"><span>🎤</span>Áudio</button>
         <button class="chat-act" onclick="confirmarEnvio('localizacao')" title="Enviar localização"><span>📍</span>Local</button>
         <button class="chat-act" onclick="confirmarEnvio('pix')" title="Enviar chave Pix"><span>🔑</span>Pix</button>
+        <button class="chat-act" onclick="confirmarEnvio('carrinho')" title="Enviar resumo do carrinho"><span>🧾</span>Carrinho</button>
       </div>
       <div class="chat-linha">
         <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
@@ -2832,12 +2833,38 @@ function renderChatFoot(modo){
       </div>`;
   }
 }
+/* Resumo do carrinho do pedido aberto, no formato que a cliente entende:
+   item, quantidade, subtotal e total. Útil para conferir no meio da conversa
+   ou na hora de fechar. */
+async function enviarCarrinhoChat(){
+  if(!chatPedidoId){showToast('Abra a conversa por um pedido.',true);return;}
+  try{
+    const cr=await sbGet('carrinhos_wpp','id=eq.'+chatPedidoId+'&select=itens,total_liquido&limit=1');
+    const itens=(cr&&cr[0]&&Array.isArray(cr[0].itens))?cr[0].itens:[];
+    if(!itens.length){showToast('O carrinho ainda está vazio.',true);return;}
+    const linhas=itens.map(it=>{
+      const q=Number(it.quantidade||1);
+      const pu=Number(it.preco_unitario||0);
+      const cod=it.codigo_loja?(' (#'+String(it.codigo_loja).padStart(3,'0')+')'):'';
+      const nome=(it.tipo?it.tipo.charAt(0).toUpperCase()+it.tipo.slice(1):'Produto')+cod
+        +(it.tamanho?(' · Tam '+it.tamanho):'');
+      return '• '+nome+'\n   '+q+'x '+fmtR(pu)+' = '+fmtR(q*pu);
+    });
+    const total=itens.reduce((a,it)=>a+Number(it.preco_unitario||0)*Number(it.quantidade||1),0);
+    const texto='🛒 *Seu carrinho até agora*\n\n'+linhas.join('\n')+'\n\n*Total: '+fmtR(total)+'*';
+    showToast('Enviando resumo...');
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,700);
+  }catch(e){showToast('Não foi possível enviar o carrinho.',true);}
+}
+
 /* Localização e chave Pix vão direto para a cliente — pedimos confirmação
    para evitar envio por toque acidental. */
 function confirmarEnvio(tipo){
   const cfg={
     localizacao:{txt:'Enviar a localização da loja para a cliente?',fn:enviarLocalizacaoChat},
-    pix:{txt:'Enviar a chave Pix da loja para a cliente?',fn:enviarChavePix}
+    pix:{txt:'Enviar a chave Pix da loja para a cliente?',fn:enviarChavePix},
+    carrinho:{txt:'Enviar o resumo do carrinho para a cliente?',fn:enviarCarrinhoChat}
   }[tipo];
   if(!cfg)return;
   if(confirm(cfg.txt))cfg.fn();
