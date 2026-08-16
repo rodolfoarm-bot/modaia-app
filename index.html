@@ -1121,11 +1121,23 @@ const N8N_GESTAO = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/gestao_equi
 async function relayEnviar(payload){
   const token = await tokenFresco();
   if(!token){ showToast('Sua sessão expirou. Entre de novo.',true); return null; }
-  return fetch(N8N_RELAY,{
+  const r = await fetch(N8N_RELAY,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({...payload, token})
   });
+  // O relay responde 200 com {ok:false, erro} quando a Meta recusa. Sem
+  // mostrar isso, um vídeo rejeitado sumia sem explicação nenhuma.
+  try{
+    const d=await r.clone().json();
+    if(d&&d.ok===false&&d.erro){
+      const msg=/13000|type|format|media|unsupported/i.test(String(d.erro))
+        ? 'O WhatsApp recusou o arquivo. Vídeo precisa ser MP4 (H.264).'
+        : String(d.erro).slice(0,110);
+      showToast(msg,true);
+    }
+  }catch(e){}
+  return r;
 }
 let LOJA_ID = null;
 let NOME_LOJA = '';
@@ -2982,8 +2994,11 @@ async function carregarMensagens(){
       conteudo+=btnAnexar;
     }else if(m.tipo==='localizacao'){
       const lat=m.meta&&m.meta.latitude, lng=m.meta&&m.meta.longitude;
-      const maps=(m.media_url&&m.media_url.startsWith('http'))?m.media_url:((lat&&lng)?`https://www.google.com/maps?q=${lat},${lng}`:'#');
-      conteudo=`<a href="${maps}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit"><span style="font-size:24px">📍</span><span style="font-size:13px;font-weight:600">Ver localização no mapa</span></a>`;
+      const maps=(m.media_url&&(m.media_url+'').startsWith('http'))?m.media_url:((lat&&lng)?('https://www.google.com/maps?q='+lat+','+lng):null);
+      // Sem link valido NAO usamos href="#": no PWA isso reinicia o app.
+      conteudo=maps
+        ? `<div onclick="abrirMapa('${maps}')" style="display:flex;align-items:center;gap:9px;cursor:pointer"><span style="font-size:24px">📍</span><span style="font-size:13px;font-weight:600;text-decoration:underline">Ver localização no mapa</span></div>`
+        : `<div style="display:flex;align-items:center;gap:9px;opacity:.7"><span style="font-size:24px">📍</span><span style="font-size:13px">Localização recebida</span></div>`;
     }else{
       conteudo=`<div style="font-size:14px;line-height:1.35;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
     }
@@ -3046,6 +3061,12 @@ async function carregarMaisAntigas(){
   await carregarMensagens();
   // mantém a leitura onde estava (senão o chat "pula" para o fim)
   if(cont)requestAnimationFrame(()=>{cont.scrollTop=cont.scrollHeight-alturaAntes;});
+}
+/* window.open mantém o PWA vivo; <a href> com target dentro do app
+   instalado no iOS costuma reiniciar a sessão. */
+function abrirMapa(url){
+  try{ window.open(url,'_blank','noopener'); }
+  catch(e){ showToast('Não consegui abrir o mapa.',true); }
 }
 function irParaMensagem(wamid){
   const el=document.getElementById('msg-'+wamid);
@@ -3110,7 +3131,7 @@ async function enviarVideoChat(input){
   input.value='';
   const MAX=16*1024*1024;
   if(file.size>MAX){
-    showToast('Vídeo muito grande ('+(file.size/1048576).toFixed(1)+' MB). O limite do WhatsApp é 16 MB.',true);
+    alert('Vídeo de '+(file.size/1048576).toFixed(1)+' MB — o WhatsApp aceita até 16 MB.\n\nComo resolver:\n• Grave um trecho mais curto (até ~30s)\n• Ou baixe a qualidade da câmera:\n   iPhone: Ajustes > Câmera > Gravar Vídeo > 720p HD 30 fps\n   Android: Câmera > Configurações > Resolução de vídeo > HD');
     return;
   }
   try{
