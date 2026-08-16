@@ -2833,28 +2833,41 @@ function renderChatFoot(modo){
       </div>`;
   }
 }
-/* Resumo do carrinho do pedido aberto, no formato que a cliente entende:
-   item, quantidade, subtotal e total. Útil para conferir no meio da conversa
-   ou na hora de fechar. */
+/* Resumo do carrinho com FOTO de cada item — a cliente confere visualmente o
+   que está levando, não só o texto. Envia foto+legenda por item e fecha com o
+   total. Pausa entre envios para a Meta entregar na ordem. */
 async function enviarCarrinhoChat(){
   if(!chatPedidoId){showToast('Abra a conversa por um pedido.',true);return;}
   try{
-    const cr=await sbGet('carrinhos_wpp','id=eq.'+chatPedidoId+'&select=itens,total_liquido&limit=1');
+    const cr=await sbGet('carrinhos_wpp','id=eq.'+chatPedidoId+'&select=itens&limit=1');
     const itens=(cr&&cr[0]&&Array.isArray(cr[0].itens))?cr[0].itens:[];
     if(!itens.length){showToast('O carrinho ainda está vazio.',true);return;}
-    const linhas=itens.map(it=>{
-      const q=Number(it.quantidade||1);
-      const pu=Number(it.preco_unitario||0);
+    showToast('Enviando carrinho...');
+
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'🛒 *Seu carrinho até agora:*',tipo:'texto',vendedor_id:USER_ID});
+    await new Promise(r=>setTimeout(r,700));
+
+    let total=0;
+    for(const it of itens){
+      const q=Number(it.quantidade||1), pu=Number(it.preco_unitario||0);
+      total+=q*pu;
       const cod=it.codigo_loja?(' (#'+String(it.codigo_loja).padStart(3,'0')+')'):'';
-      const nome=(it.tipo?it.tipo.charAt(0).toUpperCase()+it.tipo.slice(1):'Produto')+cod
-        +(it.tamanho?(' · Tam '+it.tamanho):'');
-      return '• '+nome+'\n   '+q+'x '+fmtR(pu)+' = '+fmtR(q*pu);
-    });
-    const total=itens.reduce((a,it)=>a+Number(it.preco_unitario||0)*Number(it.quantidade||1),0);
-    const texto='🛒 *Seu carrinho até agora*\n\n'+linhas.join('\n')+'\n\n*Total: '+fmtR(total)+'*';
-    showToast('Enviando resumo...');
-    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto,tipo:'texto',vendedor_id:USER_ID});
-    chatUltimoCount=-1; setTimeout(carregarMensagens,700);
+      const nome=(it.tipo?it.tipo.charAt(0).toUpperCase()+it.tipo.slice(1):'Produto')+cod;
+      const legenda=nome+(it.tamanho?('\nTamanho '+it.tamanho):'')+'\n'+q+'x '+fmtR(pu)+' = '+fmtR(q*pu);
+      const foto=it.foto_url
+        ? ((it.foto_url+'').startsWith('http')?it.foto_url:SB_URL+'/storage/v1/object/public/fotos-produtos/'+it.foto_url)
+        : null;
+      if(foto){
+        await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:legenda,tipo:'imagem',media_url:foto,vendedor_id:USER_ID,produto_id:it.produto_id});
+      }else{
+        await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'• '+legenda,tipo:'texto',vendedor_id:USER_ID});
+      }
+      await new Promise(r=>setTimeout(r,900));
+    }
+
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'*Total: '+fmtR(total)+'*',tipo:'texto',vendedor_id:USER_ID});
+    showToast('Carrinho enviado ✅');
+    chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Não foi possível enviar o carrinho.',true);}
 }
 
