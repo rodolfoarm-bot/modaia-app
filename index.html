@@ -2816,9 +2816,9 @@ function renderChatFoot(modo){
     // Barra em dois estágios: ações em cima, digitação embaixo.
     // Ações que enviam direto (localização, Pix) pedem confirmação.
     foot.innerHTML=`
-      <input type="file" id="chat-anexo" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
+      <input type="file" id="chat-anexo" accept="image/*,video/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
       <div class="chat-acoes">
-        <button class="chat-act" onclick="document.getElementById('chat-anexo').click()" title="Foto ou PDF"><span>📷</span>Foto</button>
+        <button class="chat-act" onclick="document.getElementById('chat-anexo').click()" title="Foto ou PDF"><span>📷</span>Mídia</button>
         <button class="chat-act" onclick="enviarProdutoChat()" title="Produto do estoque"><span>📦</span>Produto</button>
         <button class="chat-act" onclick="iniciarGravacao()" title="Gravar áudio"><span>🎤</span>Áudio</button>
         <button class="chat-act" onclick="confirmarEnvio('localizacao')" title="Enviar localização"><span>📍</span>Local</button>
@@ -2956,6 +2956,10 @@ async function carregarMensagens(){
       conteudo=`<img src="${m.media_url}" onclick="ampliarMsg(${i})" style="max-width:200px;width:100%;border-radius:10px;cursor:pointer;display:block"/>`;
       if(m.texto&&m.texto!=='[imagem]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
       conteudo+=btnAnexar;
+    }else if(m.tipo==='video'&&m.media_url){
+      conteudo=`<video controls preload="metadata" src="${m.media_url}" style="max-width:220px;width:100%;border-radius:10px;display:block"></video>`;
+      if(m.texto&&m.texto!=='[vídeo]')conteudo+=`<div style="font-size:14px;line-height:1.35;margin-top:5px;white-space:pre-wrap;word-break:break-word">${(m.texto||'').replace(/</g,'&lt;')}</div>`;
+      conteudo+=btnAnexar;
     }else if(m.tipo==='audio'&&m.media_url){
       conteudo=`<audio controls preload="metadata" src="${m.media_url}" style="max-width:230px;height:40px"></audio>`;
       if(m.texto&&!['[áudio]','[audio]'].includes(m.texto))conteudo+=`<div style="font-size:12px;opacity:.85;margin-top:5px;font-style:italic">“${(m.texto||'').replace(/</g,'&lt;')}”</div>`;
@@ -3086,6 +3090,27 @@ async function enviarFotoChat(input){
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Erro ao enviar a foto',true);}
 }
+/* Vídeo: a Meta aceita MP4 até ~16MB. Vídeo de celular estoura fácil esse
+   limite, então avisamos antes em vez de deixar falhar no envio. */
+async function enviarVideoChat(input){
+  const file=input.files&&input.files[0]; if(!file||!chatTelefone){input.value='';return;}
+  input.value='';
+  const MAX=16*1024*1024;
+  if(file.size>MAX){
+    showToast('Vídeo muito grande ('+(file.size/1048576).toFixed(1)+' MB). O limite do WhatsApp é 16 MB.',true);
+    return;
+  }
+  try{
+    showToast('Enviando vídeo...');
+    const ext=((file.type||'video/mp4').split('/')[1]||'mp4').split(';')[0];
+    const nome='chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+    const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':file.type||'video/mp4'},body:file});
+    if(!up.ok)throw new Error('upload');
+    const url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'',tipo:'video',media_url:url,vendedor_id:USER_ID});
+    chatUltimoCount=-1; setTimeout(carregarMensagens,1200);
+  }catch(e){showToast('Erro ao enviar o vídeo',true);}
+}
 async function enviarArquivoChat(input){
   const file=input.files&&input.files[0]; if(!file||!chatTelefone){input.value='';return;}
   const fname=file.name||'documento.pdf';
@@ -3104,7 +3129,9 @@ async function enviarArquivoChat(input){
 async function enviarAnexoChat(input){
   const file=input.files&&input.files[0];
   if(!file){input.value='';return;}
-  if((file.type||'')==='application/pdf') return enviarArquivoChat(input);
+  const t=(file.type||'');
+  if(t==='application/pdf') return enviarArquivoChat(input);
+  if(t.startsWith('video/')) return enviarVideoChat(input);
   return enviarFotoChat(input);
 }
 // Gravação de áudio com prévia antes de enviar (estilo WhatsApp)
