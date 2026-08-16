@@ -2856,8 +2856,14 @@ async function enviarCarrinhoChat(){
     if(!itens.length){showToast('O carrinho ainda está vazio.',true);return;}
     showToast('Enviando carrinho...');
 
-    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'🛒 *Seu carrinho até agora:*',tipo:'texto',vendedor_id:USER_ID});
-    await new Promise(r=>setTimeout(r,700));
+    // O total vai JÁ na abertura: as fotos podem chegar fora de ordem e a
+    // cliente ficaria sem saber o valor até a última mensagem.
+    const totalPrev=itens.reduce((a,it)=>a+Number(it.preco_unitario||0)*Number(it.quantidade||1),0);
+    const qtdPecas=itens.reduce((a,it)=>a+Number(it.quantidade||1),0);
+    const abertura='🛒 *Seu carrinho até agora*\n'+qtdPecas+(qtdPecas>1?' peças':' peça')
+      +'\n*Total: '+fmtR(totalPrev)+'*\n\nVou te mandar as fotos de cada item 👇';
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:abertura,tipo:'texto',vendedor_id:USER_ID});
+    await new Promise(r=>setTimeout(r,900));
 
     let total=0;
     for(const it of itens){
@@ -2877,7 +2883,7 @@ async function enviarCarrinhoChat(){
       await new Promise(r=>setTimeout(r,900));
     }
 
-    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'*Total: '+fmtR(total)+'*',tipo:'texto',vendedor_id:USER_ID});
+    await relayEnviar({loja_id:LOJA_ID,telefone:chatTelefone,texto:'✅ *Total do carrinho: '+fmtR(total)+'*',tipo:'texto',vendedor_id:USER_ID});
     showToast('Carrinho enviado ✅');
     chatUltimoCount=-1; setTimeout(carregarMensagens,900);
   }catch(e){showToast('Não foi possível enviar o carrinho.',true);}
@@ -2944,6 +2950,10 @@ async function carregarMensagens(){
     return;
   }
   chatMsgs=msgs;
+  // posição de leitura antes do redesenho (para não arrastar a conversa)
+  const posAntes=cont.scrollTop;
+  const alturaAntes=cont.scrollHeight;
+  const estavaNoFim=(alturaAntes-posAntes-cont.clientHeight)<120 || alturaAntes<=cont.clientHeight;
   // Se a janela encheu, provavelmente há conversa mais antiga guardada.
   const btnAntigas=(msgs.length>=chatLimite)
     ? `<button onclick="carregarMaisAntigas()" style="align-self:center;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;border-radius:16px;padding:7px 14px;cursor:pointer;margin-bottom:4px">↑ Carregar mensagens anteriores</button>`
@@ -3007,15 +3017,23 @@ async function carregarMensagens(){
       <div style="font-size:10px;opacity:.7;margin-top:3px;text-align:right">${hora}</div>
     </div>`;
   }).join('');
+  // Só rola para o fim se a pessoa JÁ estava no fim (ou é a 1ª carga).
+  // Antes descíamos sempre, e a conversa "pulava" enquanto se lia algo acima.
   const irPraBaixo=()=>{cont.scrollTop=cont.scrollHeight;};
-  irPraBaixo();
-  requestAnimationFrame(irPraBaixo);
-  setTimeout(irPraBaixo,120); setTimeout(irPraBaixo,400);
-  // fotos/áudios só empurram a altura depois de carregar
-  cont.querySelectorAll('img,audio').forEach(el=>{
-    el.addEventListener('load',irPraBaixo,{once:true});
-    el.addEventListener('loadedmetadata',irPraBaixo,{once:true});
-  });
+  if(estavaNoFim){
+    irPraBaixo();
+    requestAnimationFrame(irPraBaixo);
+    setTimeout(irPraBaixo,120); setTimeout(irPraBaixo,400);
+    // fotos/áudios/vídeos só empurram a altura depois de carregar
+    cont.querySelectorAll('img,audio,video').forEach(el=>{
+      el.addEventListener('load',irPraBaixo,{once:true});
+      el.addEventListener('loadedmetadata',irPraBaixo,{once:true});
+    });
+  }else{
+    // mantém o ponto de leitura mesmo com conteúdo novo entrando
+    const delta=cont.scrollHeight-alturaAntes;
+    if(delta>0)cont.scrollTop=posAntes+delta;
+  }
 }
 /* Adiciona ao pedido aberto o produto que a cliente escolheu deslizando na
    foto. Usado no atendimento humano, em que a Sofia não monta o carrinho. */
