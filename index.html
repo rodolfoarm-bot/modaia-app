@@ -163,6 +163,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
 .chat-stop{border-radius:22px;padding:0 16px;height:42px;border:none;background:var(--danger);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
 .chat-ok{border-radius:22px;padding:0 18px;height:42px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.3)}
 #chat-input{border-radius:22px!important;padding:11px 16px!important}
+#chat-foot{flex-direction:column;align-items:stretch;gap:8px}
+.chat-acoes{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.chat-acoes::-webkit-scrollbar{display:none}
+.chat-act{flex:1;min-width:62px;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:7px 4px;font-size:10.5px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap}
+.chat-act span{font-size:17px;line-height:1}
+.chat-act:active{background:var(--accent-l);border-color:var(--accent);color:var(--accent)}
+.chat-linha{display:flex;align-items:flex-end;gap:8px}
 .fphoto{width:100%;aspect-ratio:16/9;background:var(--surface);border:2px dashed var(--border2);border-radius:var(--card-radius);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:8px;transition:all .2s;overflow:hidden;position:relative}
 .fphoto.done{border-style:solid;border-color:var(--info);background:var(--info-l)}
 .fphoto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -2736,7 +2743,7 @@ async function abrirChat(telefone,nome,pedidoId){
       <div class="ov-body" id="chat-msgs" style="display:flex;flex-direction:column;gap:8px;background:var(--bg)">
         <div class="loading-row" id="chat-loading"><span class="proc-dot"></span>Carregando conversa...</div>
       </div>
-      <div class="ov-foot" id="chat-foot" style="display:flex;gap:6px;align-items:flex-end"></div>
+      <div class="ov-foot" id="chat-foot"></div>
     </div>`;
   document.body.appendChild(ov);
   renderChatFoot('normal');
@@ -2794,26 +2801,46 @@ function renderChatFoot(modo){
   const foot=document.getElementById('chat-foot'); if(!foot)return;
   if(modo==='gravando'){
     foot.innerHTML=`
+      <div class="chat-linha">
       <button class="chat-ic" onclick="cancelarGravacao()" title="Cancelar">🗑</button>
       <div style="flex:1;display:flex;align-items:center;gap:8px;color:var(--danger);font-weight:700;font-size:14px;padding:0 6px"><span style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></span><span id="chat-rec-time">0:00</span> gravando…</div>
-      <button class="chat-stop" onclick="pararGravacao()">⏹ Parar</button>`;
+      <button class="chat-stop" onclick="pararGravacao()">⏹ Parar</button></div>`;
   }else if(modo==='preview'){
     const src=chatAudioPendente?URL.createObjectURL(chatAudioPendente):'';
     foot.innerHTML=`
+      <div class="chat-linha">
       <button class="chat-ic" onclick="descartarAudio()" title="Excluir">🗑</button>
       <audio controls src="${src}" style="flex:1;height:42px;min-width:0"></audio>
-      <button class="chat-ok" onclick="enviarAudioPendente()">Enviar</button>`;
+      <button class="chat-ok" onclick="enviarAudioPendente()">Enviar</button></div>`;
   }else{
+    // Barra em dois estágios: ações em cima, digitação embaixo.
+    // Ações que enviam direto (localização, Pix) pedem confirmação.
     foot.innerHTML=`
       <input type="file" id="chat-anexo" accept="image/*,application/pdf" style="display:none" onchange="enviarAnexoChat(this)"/>
-      <button class="chat-ic" onclick="abrirMenuAnexo()" title="Anexar">📎</button>
-      <button class="chat-ic" onclick="enviarProdutoChat()" title="Enviar produto do estoque">📦</button>
-      <button class="chat-ic" onclick="iniciarGravacao()" title="Gravar áudio">🎤</button>
-      <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
-      <button class="chat-send" onclick="enviarMensagemChat()" title="Enviar">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
-      </button>`;
+      <div class="chat-acoes">
+        <button class="chat-act" onclick="document.getElementById('chat-anexo').click()" title="Foto ou PDF"><span>📷</span>Foto</button>
+        <button class="chat-act" onclick="enviarProdutoChat()" title="Produto do estoque"><span>📦</span>Produto</button>
+        <button class="chat-act" onclick="iniciarGravacao()" title="Gravar áudio"><span>🎤</span>Áudio</button>
+        <button class="chat-act" onclick="confirmarEnvio('localizacao')" title="Enviar localização"><span>📍</span>Local</button>
+        <button class="chat-act" onclick="confirmarEnvio('pix')" title="Enviar chave Pix"><span>🔑</span>Pix</button>
+      </div>
+      <div class="chat-linha">
+        <textarea id="chat-input" class="finput" placeholder="Mensagem..." style="flex:1;min-height:44px;max-height:120px;resize:none"></textarea>
+        <button class="chat-send" onclick="enviarMensagemChat()" title="Enviar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
+        </button>
+      </div>`;
   }
+}
+/* Localização e chave Pix vão direto para a cliente — pedimos confirmação
+   para evitar envio por toque acidental. */
+function confirmarEnvio(tipo){
+  const cfg={
+    localizacao:{txt:'Enviar a localização da loja para a cliente?',fn:enviarLocalizacaoChat},
+    pix:{txt:'Enviar a chave Pix da loja para a cliente?',fn:enviarChavePix}
+  }[tipo];
+  if(!cfg)return;
+  if(confirm(cfg.txt))cfg.fn();
 }
 function abrirMenuAnexo(){
   const m=document.createElement('div'); m.id='menu-anexo';
@@ -2952,7 +2979,16 @@ async function addCarrinhoDaCitacao(produtoId){
       codigo_loja:prod.codigo_loja,caption:fichaProduto(prod)});
     await sbPatch('carrinhos_wpp','id=eq.'+chatPedidoId,{itens,atualizado_em:new Date().toISOString()});
     const p=PEDIDOS.find(x=>x.id===chatPedidoId); if(p)p.itens=itens;
-    showToast(qtd+'x '+(prod.tipo||'produto')+' no pedido ✅');
+    showToast(qtd+'x '+(prod.tipo||'produto')+' adicionado ao pedido ✅');
+    // aviso dentro do chat: o toast fica atrás da conversa e passa despercebido
+    const cont=document.getElementById('chat-msgs');
+    if(cont){
+      const av=document.createElement('div');
+      av.style.cssText='align-self:center;background:var(--success-l);color:var(--success);font-size:11.5px;font-weight:700;border-radius:14px;padding:6px 12px;margin:2px 0';
+      av.textContent='✅ '+qtd+'x '+(prod.tipo||'produto')+' adicionado ao pedido';
+      cont.appendChild(av);
+      cont.scrollTop=cont.scrollHeight;
+    }
     renderPedidos();
   }catch(e){showToast('Não foi possível adicionar.',true);}
 }
