@@ -1262,6 +1262,7 @@ function fecharAudioBanner(){const b=document.getElementById('audio-banner');if(
 
 /* ═══ FULLSCREEN IMAGE VIEWER (com pinch-to-zoom + double-tap + pan) ═══ */
 function abrirFotoFullscreen(url){
+  // data URL longa quebra alguns visualizadores: exibimos igual, sem link externo
   const ov=document.createElement('div');
   ov.className='fs-overlay';
   ov.id='fs-overlay';
@@ -2041,6 +2042,19 @@ async function anexoSelecionado(e){
 async function anexarDaConversa(i){
   const m=chatMsgs[i];
   if(!m||!m.media_url){showToast('Mídia indisponível.',true);return;}
+  if((m.media_url+'').startsWith('data:')){
+    // conteúdo embutido não é um link acessível: sobe para o Storage primeiro
+    showToast('Preparando anexo...');
+    try{
+      const resp=await fetch(m.media_url); const blob=await resp.blob();
+      const ext=(blob.type||'image/jpeg').split('/')[1].split(';')[0];
+      const nome='anexo_'+(chatPedidoId||'x')+'_'+Date.now()+'.'+ext;
+      const up=await fetch(SB_URL+'/storage/v1/object/fotos-produtos/'+nome,{method:'POST',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('sb_token')||SB_KEY),'Content-Type':blob.type||'image/jpeg'},body:blob});
+      if(!up.ok)throw new Error('upload');
+      m.media_url=SB_URL+'/storage/v1/object/public/fotos-produtos/'+nome;
+    }catch(e){showToast('Não foi possível preparar o anexo.',true);return;}
+  }
   if(!chatPedidoId){showToast('Abra a conversa a partir de uma venda para anexar.',true);return;}
   const anexo={media_url:m.media_url,tipo:m.tipo==='documento'?'documento':'imagem',nome_arquivo:(m.meta&&m.meta.nome_arquivo)||'',criado_em:new Date().toISOString()};
   const ok=await adicionarAnexo(chatPedidoId,anexo);
