@@ -971,6 +971,69 @@ html{visibility:visible}
       <div id="minhas-comissoes-lista"></div>
     </div>
 
+    <!-- ── FISCAL: dados da loja ── -->
+    <div class="perfil-card" data-cfg="fiscal">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🧾 Dados fiscais da loja</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Usados na emissão da nota. Confirme com seu contador antes de emitir de verdade.</div>
+
+      <label class="flabel">CNPJ</label>
+      <input class="finput" id="fis-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" style="margin-bottom:8px"/>
+      <label class="flabel">Inscrição Estadual</label>
+      <input class="finput" id="fis-ie" inputmode="numeric" style="margin-bottom:8px"/>
+      <label class="flabel">Razão social</label>
+      <input class="finput" id="fis-razao" style="margin-bottom:8px"/>
+
+      <label class="flabel">Regime tributário</label>
+      <select class="finput" id="fis-regime" style="margin-bottom:8px">
+        <option value="mei">MEI</option>
+        <option value="simples">Simples Nacional</option>
+        <option value="normal">Regime normal</option>
+      </select>
+      <label class="flabel">CSOSN</label>
+      <input class="finput" id="fis-csosn" placeholder="ex.: 102" style="margin-bottom:12px"/>
+
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">ENDEREÇO FISCAL</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="finput" id="fis-cep" inputmode="numeric" placeholder="CEP" style="flex:1"/>
+        <input class="finput" id="fis-uf" placeholder="UF" maxlength="2" style="width:70px;text-transform:uppercase"/>
+      </div>
+      <input class="finput" id="fis-logradouro" placeholder="Rua / Avenida" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="finput" id="fis-numero" placeholder="Número" style="width:110px"/>
+        <input class="finput" id="fis-complemento" placeholder="Complemento" style="flex:1"/>
+      </div>
+      <input class="finput" id="fis-bairro" placeholder="Bairro" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input class="finput" id="fis-municipio" placeholder="Município" style="flex:1"/>
+        <input class="finput" id="fis-codmun" inputmode="numeric" placeholder="Cód. IBGE" style="width:110px"/>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">NFC-e (VENDA A PESSOA FÍSICA)</div>
+      <label class="flabel">CSC — Código de Segurança do Contribuinte</label>
+      <input class="finput" id="fis-csc" style="margin-bottom:8px"/>
+      <label class="flabel">ID do CSC</label>
+      <input class="finput" id="fis-cscid" inputmode="numeric" style="margin-bottom:12px"/>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:12px">
+        <input type="checkbox" id="fis-emitenfe"/> Esta loja também vende para CNPJ (emite NF-e)
+      </label>
+
+      <label class="flabel">Ambiente</label>
+      <select class="finput" id="fis-ambiente" style="margin-bottom:14px">
+        <option value="homologacao">Homologação (teste — nota sem valor fiscal)</option>
+        <option value="producao">Produção (nota válida)</option>
+      </select>
+
+      <button class="fbtn" onclick="salvarFiscal()">Salvar dados fiscais</button>
+    </div>
+
+    <!-- ── FISCAL: confirmação de NCM ── -->
+    <div class="perfil-card" data-cfg="fiscal">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🏷️ Classificação fiscal (NCM)</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">A IA sugeriu um NCM para cada produto. Confira por grupo e confirme — leva poucos minutos.</div>
+      <div id="ncm-grupos"></div>
+    </div>
+
     <!-- ── COMISSÕES A PAGAR (dona) ── -->
     <div class="perfil-card" id="card-comissoes-admin" data-cfg="comissoes" data-role="admin">
       <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">💰 Comissões a pagar</div>
@@ -4937,7 +5000,7 @@ let cfgAbaAtual='';
 function renderCfgTabs(){
   const box=document.getElementById('cfg-tabs'); if(!box)return;
   const tabs = PAPEL==='admin'
-    ? [['loja','Loja'],['equipe','Equipe'],['comissoes','Comissões'],['login','Conta']]
+    ? [['loja','Loja'],['equipe','Equipe'],['fiscal','Fiscal'],['comissoes','Comissões'],['login','Conta']]
     : [['comissoes','Comissões'],['login','Conta']];
   box.innerHTML=tabs.map(([k,l])=>`<button class="cfg-tab" data-cfgtab="${k}" onclick="abrirCfgAba('${k}')">${l}</button>`).join('');
 }
@@ -4950,6 +5013,96 @@ function abrirCfgAba(aba){
   });
   document.querySelectorAll('#cfg-tabs [data-cfgtab]').forEach(b=>b.classList.toggle('on',b.dataset.cfgtab===aba));
   if(aba==='comissoes'){ if(PAPEL==='admin')renderComissoesAdmin(); else renderMinhasComissoes(); }
+  if(aba==='fiscal'&&PAPEL==='admin'){ carregarFiscal(); renderNcmGrupos(); }
+}
+
+/* ═══ FISCAL (só admin) ═══ */
+const FIS_CAMPOS=['cnpj','inscricao_estadual','razao_social','regime_tributario','csosn',
+  'cep','uf','logradouro','numero','complemento','bairro','municipio','cod_municipio',
+  'csc','csc_id','ambiente'];
+const FIS_MAP={cnpj:'fis-cnpj',inscricao_estadual:'fis-ie',razao_social:'fis-razao',
+  regime_tributario:'fis-regime',csosn:'fis-csosn',cep:'fis-cep',uf:'fis-uf',
+  logradouro:'fis-logradouro',numero:'fis-numero',complemento:'fis-complemento',
+  bairro:'fis-bairro',municipio:'fis-municipio',cod_municipio:'fis-codmun',
+  csc:'fis-csc',csc_id:'fis-cscid',ambiente:'fis-ambiente'};
+
+async function carregarFiscal(){
+  if(PAPEL!=='admin')return;
+  try{
+    const r=await sbGet('dados_fiscais_loja','loja_id=eq.'+LOJA_ID+'&limit=1');
+    const d=(r&&r[0])||{};
+    FIS_CAMPOS.forEach(k=>{const el=document.getElementById(FIS_MAP[k]);if(el&&d[k]!=null)el.value=d[k];});
+    const chk=document.getElementById('fis-emitenfe'); if(chk)chk.checked=d.emite_nfe===true;
+  }catch(e){}
+}
+async function salvarFiscal(){
+  if(PAPEL!=='admin'){showToast('Só a dona da loja pode alterar isso.',true);return;}
+  const body={loja_id:LOJA_ID,atualizado_em:new Date().toISOString()};
+  FIS_CAMPOS.forEach(k=>{const el=document.getElementById(FIS_MAP[k]);if(el)body[k]=(el.value||'').trim()||null;});
+  if(body.uf)body.uf=body.uf.toUpperCase();
+  const chk=document.getElementById('fis-emitenfe'); body.emite_nfe=chk?chk.checked:false;
+  // só marca como pronta quando o essencial estiver preenchido
+  body.ativo=!!(body.cnpj&&body.inscricao_estadual&&body.cod_municipio&&body.csc);
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/dados_fiscais_loja?on_conflict=loja_id',{method:'POST',
+      headers:{...getHDR(),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await r.text());
+    showToast(body.ativo?'Dados fiscais salvos ✅':'Salvo — ainda faltam campos para emitir');
+  }catch(e){showToast('Não foi possível salvar os dados fiscais.',true);}
+}
+
+/* Confirmação de NCM POR GRUPO: roupa infantil usa poucos NCMs, então
+   confirmar em lote transforma horas de trabalho em minutos. */
+async function renderNcmGrupos(){
+  const box=document.getElementById('ncm-grupos'); if(!box||PAPEL!=='admin')return;
+  box.innerHTML='<div class="loading-row"><span class="proc-dot"></span>Carregando...</div>';
+  let prods=[];
+  try{
+    prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select=id,tipo,tamanho,codigo_loja,ncm,ncm_confirmado&limit=1000')||[];
+  }catch(e){box.innerHTML='<div style="font-size:13px;color:var(--danger)">Não consegui carregar os produtos.</div>';return;}
+
+  const pend=prods.filter(p=>!p.ncm_confirmado);
+  const okQtd=prods.length-pend.length;
+  if(!pend.length){
+    box.innerHTML='<div style="background:var(--success-l);color:var(--success);font-size:13px;font-weight:700;border-radius:10px;padding:11px 12px">✅ Todos os '+prods.length+' produtos com NCM confirmado.</div>';
+    return;
+  }
+  const grupos={};
+  pend.forEach(p=>{const k=p.ncm||'(sem NCM)';(grupos[k]=grupos[k]||[]).push(p);});
+  const esc=x=>(x||'').replace(/</g,'&lt;');
+  const html=Object.entries(grupos).sort((a,b)=>b[1].length-a[1].length).map(([ncm,itens])=>{
+    const tipos=[...new Set(itens.map(i=>i.tipo).filter(Boolean))].slice(0,6).join(', ');
+    const lista=itens.map(i=>'• '+esc(i.tipo||'produto')+(i.codigo_loja?(' #'+String(i.codigo_loja).padStart(3,'0')):'')+(i.tamanho?(' · '+esc(i.tamanho)):'')).join('<br>');
+    const semNcm=ncm==='(sem NCM)';
+    return `<div style="border:1px solid ${semNcm?'var(--warning)':'var(--border)'};border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:15px;font-weight:800;color:var(--text1);font-family:monospace">${esc(ncm)}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px;white-space:nowrap">${itens.length} produto${itens.length>1?'s':''}</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:8px">${esc(tipos)}</div>
+      <details style="margin-bottom:8px"><summary style="font-size:11.5px;color:var(--accent);cursor:pointer">Ver produtos</summary>
+        <div style="font-size:11.5px;color:var(--text2);line-height:1.7;margin-top:6px">${lista}</div></details>
+      <div style="display:flex;gap:8px">
+        <input class="finput" id="ncm-edit-${esc(ncm)}" value="${semNcm?'':esc(ncm)}" inputmode="numeric" maxlength="8" placeholder="NCM (8 dígitos)" style="flex:1;font-family:monospace"/>
+        <button class="fbtn fbtn-success-soft" onclick="confirmarNcmGrupo('${esc(ncm)}')" style="max-width:130px;white-space:nowrap">✓ Confirmar</button>
+      </div>
+    </div>`;
+  }).join('');
+  box.innerHTML=(okQtd>0?`<div style="font-size:11.5px;color:var(--success);margin-bottom:10px">${okQtd} já confirmado${okQtd>1?'s':''} · ${pend.length} pendente${pend.length>1?'s':''}</div>`:'')+html;
+}
+
+async function confirmarNcmGrupo(ncmAtual){
+  const el=document.getElementById('ncm-edit-'+ncmAtual);
+  const novo=((el&&el.value)||'').replace(/\D/g,'');
+  if(novo.length!==8){showToast('O NCM precisa ter 8 dígitos.',true);return;}
+  try{
+    const filtro=ncmAtual==='(sem NCM)'
+      ? 'loja_id=eq.'+LOJA_ID+'&ncm=is.null&ncm_confirmado=is.false'
+      : 'loja_id=eq.'+LOJA_ID+'&ncm=eq.'+encodeURIComponent(ncmAtual)+'&ncm_confirmado=is.false';
+    await sbPatch(TABELA,filtro,{ncm:novo,ncm_confirmado:true});
+    showToast('NCM confirmado ✅');
+    renderNcmGrupos();
+  }catch(e){showToast('Não foi possível confirmar.',true);}
 }
 
 /* ═══ COMISSÕES A PAGAR (dona) — com filtro de período (semana/mês) ═══ */
@@ -5334,7 +5487,7 @@ async function carregarPerfil(){
     renderComissaoConfig();
     renderMinhasComissoes();
     renderCfgTabs();
-    const _abas=PAPEL==='admin'?['loja','equipe','comissoes','login']:['comissoes','login'];
+    const _abas=PAPEL==='admin'?['loja','equipe','fiscal','comissoes','login']:['comissoes','login'];
     abrirCfgAba(_abas.includes(cfgAbaAtual)?cfgAbaAtual:_abas[0]);
     // Carrega dados da loja (lojas_wpp)
     try{
