@@ -1159,9 +1159,10 @@ html{visibility:visible}
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="bnav-lb">Relatórios</span>
   </button>
-  <button class="bnav-item" data-sc="perfil" onclick="navTo('perfil')">
+  <button class="bnav-item" data-sc="perfil" onclick="navTo('perfil')" style="position:relative">
     <svg class="bnav-ic" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     <span class="bnav-lb">Config</span>
+    <span class="badge-fiscal" style="position:absolute;top:2px;right:10px;background:var(--danger);color:#fff;border-radius:10px;min-width:15px;height:15px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;display:none">0</span>
   </button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -1173,7 +1174,7 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI
 const TABELA = 'produtos_2';
 // Colunas da listagem — exclui embedding (vetor 1536) e texto_para_embedding,
 // que são pesados e só usados pela busca da Sofia, não pelo app. Carrega muito mais rápido.
-const PROD_COLS='id,loja_id,foto_url,tipo,subtipo,genero,faixa_etaria,faixa_etaria_secundaria,cores,material,ocasiao,estilo,estacao,tamanho,preco,quantidade,marca,marca_licenciada,descricao_semantica,tags_adicionais,referencias_culturais,descricao_estampa,tem_estampa,tipo_estampa,personagem,franquia,tem_manga,tipo_manga,tipo_fechamento,tem_acessorios,acessorios,detalhes_especiais,clima,categoria,codigo_loja,ativo,criado_em';
+const PROD_COLS='id,loja_id,foto_url,tipo,subtipo,genero,faixa_etaria,faixa_etaria_secundaria,cores,material,ocasiao,estilo,estacao,tamanho,preco,quantidade,marca,marca_licenciada,descricao_semantica,tags_adicionais,referencias_culturais,descricao_estampa,tem_estampa,tipo_estampa,personagem,franquia,tem_manga,tipo_manga,tipo_fechamento,tem_acessorios,acessorios,detalhes_especiais,clima,categoria,codigo_loja,ativo,criado_em,tipo_tecido,ncm,ncm_sugerido,ncm_confirmado,ncm_confianca,ncm_motivo';
 const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vendedor';
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 const N8N_RELAY = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/vendedor_envia';
@@ -1857,6 +1858,17 @@ async function salvarEdicao(id){
   }catch(e){showToast('Erro ao salvar as alterações',true);}
 }
 
+/* Botão de dados fiscais no card — só quando a loja tem cadastro fiscal.
+   O rótulo já mostra se foi preenchido, para não precisar abrir. */
+function btnFiscal(p){
+  if(!FISCAL_LOJA)return '';
+  const ok=!!p.dest_documento;
+  const rot=ok
+    ? ('🧾 '+(p.dest_tipo==='cnpj'?'CNPJ':'CPF')+' informado')
+    : '🧾 Dados da nota fiscal';
+  return `<button class="fbtn ${ok?'fbtn-success-soft':'fbtn-outline'}" onclick="abrirDadosFiscais('${p.id}')" style="font-size:12.5px">${rot}</button>`;
+}
+
 function renderPedidos(){
   const lista=document.getElementById('pedidos-list');
   const vazio=document.getElementById('pedidos-empty');
@@ -1978,6 +1990,7 @@ function renderPedidos(){
         acoes=`<div style="display:flex;flex-direction:column;gap:8px">
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
+          ${btnFiscal(p)}
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px" onchange="onPedPgto('${p.id}')">${opts}</select></div>
           <div style="display:flex;gap:6px;align-items:center">
             <span style="font-size:12px;color:var(--text2);white-space:nowrap">Desconto:</span>
@@ -2239,6 +2252,27 @@ async function marcarAtendido(id){
 
 /* Aviso de conferência fiscal no Estoque — é logo depois de cadastrar que a
    peça está fresca na cabeça, então é o melhor momento para conferir. */
+/* Ponto vermelho no acesso a Configurações quando há NCM pendente —
+   mesma linguagem do badge de pedidos, para a pendência não passar batida. */
+function atualizarBadgeFiscal(){
+  const pend=(PAPEL==='admin'&&Array.isArray(PRODS))
+    ? PRODS.filter(p=>p&&p.ativo!==false&&!p.ncm_confirmado).length : 0;
+  document.querySelectorAll('.badge-fiscal').forEach(el=>{
+    el.style.display=pend>0?'flex':'none';
+    el.textContent=pend>99?'99+':String(pend);
+  });
+  const aba=document.querySelector('.cfg-tab[data-cfgtab="fiscal"]');
+  if(aba){
+    aba.classList.toggle('tem-pend',pend>0);
+    const jaTem=aba.querySelector('.cfg-dot');
+    if(pend>0&&!jaTem){
+      const d=document.createElement('span'); d.className='cfg-dot';
+      d.style.cssText='display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:5px;vertical-align:middle';
+      aba.appendChild(d);
+    }else if(pend===0&&jaTem){ jaTem.remove(); }
+  }
+}
+
 function atualizarAvisoNcm(){
   const box=document.getElementById('ncm-aviso'); if(!box)return;
   if(PAPEL!=='admin'||!Array.isArray(PRODUTOS)){box.innerHTML='';return;}
@@ -2507,6 +2541,119 @@ async function registrarComissao(pedidoId, vendedorId, valorLiquido){
     const valor=Math.round(valorLiquido*(pct/100)*100)/100;
     await sbPost('comissoes',{loja_id:LOJA_ID,pedido_id:pedidoId||null,vendedor_id:vendedorId,base_valor:valorLiquido,pct,valor});
   }catch(e){console.warn('comissao',e);}
+}
+
+/* ═══ NF-3 · DADOS DO DESTINATÁRIO ═══
+   Capturados na conclusão da venda. CPF é opcional na NFC-e ("consumidor não
+   identificado"); CNPJ exige IE e endereço completo para a NF-e.
+   Só aparece quando a loja tem cadastro fiscal ativo. */
+let FISCAL_LOJA=null;
+async function carregarFiscalLoja(){
+  if(FISCAL_LOJA!==null)return FISCAL_LOJA;
+  try{
+    const r=await sbGet('dados_fiscais_loja','loja_id=eq.'+LOJA_ID+'&limit=1');
+    FISCAL_LOJA=(r&&r[0])||false;
+  }catch(e){FISCAL_LOJA=false;}
+  return FISCAL_LOJA;
+}
+const soDig=v=>String(v||'').replace(/\D/g,'');
+
+function abrirDadosFiscais(id){
+  const ped=PEDIDOS.find(p=>p.id===id); if(!ped)return;
+  const f=FISCAL_LOJA||{};
+  const v=(k,d)=>String(ped[k]==null?(d||''):ped[k]).replace(/"/g,'&quot;');
+  const ov=document.createElement('div'); ov.className='modal-overlay'; ov.id='ov-fiscal';
+  ov.innerHTML=`<div class="modal-sheet"><div class="modal-handle"></div><div class="modal-scroll" style="padding:16px">
+    <div style="font-size:16px;font-weight:800;color:var(--text1);margin-bottom:4px">Dados para a nota fiscal</div>
+    <div style="font-size:11.5px;color:var(--text3);margin-bottom:14px">Sem CPF a nota sai como consumidor não identificado — o que é permitido na venda a pessoa física.</div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="fbtn ${(ped.dest_tipo!=='cnpj')?'':'fbtn-outline'}" id="bt-dest-cpf" onclick="trocarDestTipo('cpf')">Pessoa física</button>
+      ${f.emite_nfe?`<button class="fbtn ${(ped.dest_tipo==='cnpj')?'':'fbtn-outline'}" id="bt-dest-cnpj" onclick="trocarDestTipo('cnpj')">Empresa (CNPJ)</button>`:''}
+    </div>
+
+    <label class="flabel">Nome ${ped.dest_tipo==='cnpj'?'/ Razão social':'completo'}</label>
+    <input class="finput" id="nf-nome" value="${v('dest_nome',ped.contato_nome)}" style="margin-bottom:8px"/>
+
+    <label class="flabel" id="lb-doc">CPF</label>
+    <input class="finput" id="nf-doc" inputmode="numeric" value="${v('dest_documento')}" placeholder="só números" style="margin-bottom:8px"/>
+
+    <div id="bloco-cnpj" style="display:${ped.dest_tipo==='cnpj'?'block':'none'}">
+      <label class="flabel">Inscrição Estadual</label>
+      <input class="finput" id="nf-ie" inputmode="numeric" value="${v('dest_ie')}" placeholder="ou ISENTO" style="margin-bottom:8px"/>
+    </div>
+
+    <label class="flabel">E-mail (recebe a nota)</label>
+    <input class="finput" id="nf-email" type="email" value="${v('dest_email')}" style="margin-bottom:12px"/>
+
+    <div id="bloco-endereco" style="display:${ped.dest_tipo==='cnpj'?'block':'none'}">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">ENDEREÇO (obrigatório para CNPJ)</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="finput" id="nf-cep" inputmode="numeric" value="${v('dest_cep')}" placeholder="CEP" style="flex:1" onblur="buscarCep()"/>
+        <input class="finput" id="nf-uf" maxlength="2" value="${v('dest_uf')}" placeholder="UF" style="width:70px;text-transform:uppercase"/>
+      </div>
+      <input class="finput" id="nf-logradouro" value="${v('dest_logradouro')}" placeholder="Rua / Avenida" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="finput" id="nf-numero" value="${v('dest_numero')}" placeholder="Número" style="width:110px"/>
+        <input class="finput" id="nf-complemento" value="${v('dest_complemento')}" placeholder="Complemento" style="flex:1"/>
+      </div>
+      <input class="finput" id="nf-bairro" value="${v('dest_bairro')}" placeholder="Bairro" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input class="finput" id="nf-municipio" value="${v('dest_municipio')}" placeholder="Município" style="flex:1"/>
+        <input class="finput" id="nf-codmun" inputmode="numeric" value="${v('dest_cod_municipio')}" placeholder="Cód. IBGE" style="width:110px"/>
+      </div>
+    </div>
+
+    <button class="fbtn" onclick="salvarDadosFiscais('${id}')" style="margin-bottom:8px">Salvar</button>
+    <button class="fbtn fbtn-outline" onclick="fecharOv('ov-fiscal')">Cancelar</button>
+  </div></div>`;
+  document.body.appendChild(ov);
+}
+function fecharOv(idOv){const el=document.getElementById(idOv);if(el)el.remove();}
+function trocarDestTipo(t){
+  const ehCnpj=t==='cnpj';
+  document.getElementById('lb-doc').textContent=ehCnpj?'CNPJ':'CPF';
+  document.getElementById('bloco-cnpj').style.display=ehCnpj?'block':'none';
+  document.getElementById('bloco-endereco').style.display=ehCnpj?'block':'none';
+  const a=document.getElementById('bt-dest-cpf'),b=document.getElementById('bt-dest-cnpj');
+  if(a)a.className='fbtn'+(ehCnpj?' fbtn-outline':'');
+  if(b)b.className='fbtn'+(ehCnpj?'':' fbtn-outline');
+  document.getElementById('ov-fiscal').dataset.tipo=t;
+}
+/* CEP preenche o endereço e o código IBGE — é o campo que ninguém sabe de cor */
+async function buscarCep(){
+  const cep=soDig(document.getElementById('nf-cep')?.value); if(cep.length!==8)return;
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+cep+'/json/');
+    const d=await r.json(); if(d.erro)return;
+    const set=(k,val)=>{const el=document.getElementById(k);if(el&&val&&!el.value)el.value=val;};
+    set('nf-logradouro',d.logradouro); set('nf-bairro',d.bairro);
+    set('nf-municipio',d.localidade); set('nf-uf',d.uf); set('nf-codmun',d.ibge);
+  }catch(e){}
+}
+async function salvarDadosFiscais(id){
+  const tipo=document.getElementById('ov-fiscal')?.dataset.tipo
+    || (document.getElementById('bloco-cnpj')?.style.display==='block'?'cnpj':'cpf');
+  const g=k=>(document.getElementById(k)?.value||'').trim();
+  const doc=soDig(g('nf-doc'));
+  if(tipo==='cnpj'){
+    if(doc.length!==14){showToast('CNPJ precisa ter 14 dígitos.',true);return;}
+    if(!g('nf-codmun')){showToast('Falta o código IBGE do município (preencha o CEP).',true);return;}
+  }else if(doc&&doc.length!==11){showToast('CPF precisa ter 11 dígitos.',true);return;}
+  const body={
+    dest_tipo:doc?tipo:'nao_identificado', dest_documento:doc||null,
+    dest_nome:g('nf-nome')||null, dest_ie:g('nf-ie')||null, dest_email:g('nf-email')||null,
+    dest_cep:soDig(g('nf-cep'))||null, dest_logradouro:g('nf-logradouro')||null,
+    dest_numero:g('nf-numero')||null, dest_complemento:g('nf-complemento')||null,
+    dest_bairro:g('nf-bairro')||null, dest_municipio:g('nf-municipio')||null,
+    dest_cod_municipio:g('nf-codmun')||null, dest_uf:(g('nf-uf')||'').toUpperCase()||null,
+    atualizado_em:new Date().toISOString(),
+  };
+  try{
+    await sbPatch('carrinhos_wpp','id=eq.'+id,body);
+    const ped=PEDIDOS.find(p=>p.id===id); if(ped)Object.assign(ped,body);
+    showToast('Dados fiscais salvos ✅'); fecharOv('ov-fiscal'); renderPedidos();
+  }catch(e){showToast('Não foi possível salvar.',true);}
 }
 
 async function concluirPedido(id,forcar){
@@ -3596,7 +3743,7 @@ function limparFiltros(){
   renderEstoque();
 }
 function renderEstoque(){
-  try{atualizarAvisoNcm();}catch(e){}
+  try{atualizarAvisoNcm();atualizarBadgeFiscal();}catch(e){}
   const list=filtrado();
   GRUPOS=agrupar(list);
   document.getElementById('tb-total-pecas').textContent=PRODS.length+' peças';
@@ -3647,7 +3794,7 @@ async function salvarNcmDetalhe(id){
     const alvo=(PRODS||[]).find(x=>x.id===id); if(alvo){alvo.ncm=v;alvo.ncm_confirmado=true;}
     const alvo2=(PRODUTOS||[]).find(x=>x.id===id); if(alvo2){alvo2.ncm=v;alvo2.ncm_confirmado=true;}
     showToast('NCM confirmado ✅');
-    try{atualizarAvisoNcm();}catch(e){}
+    try{atualizarAvisoNcm();atualizarBadgeFiscal();}catch(e){}
   }catch(e){
     const msg=String(e&&e.message||e);
     showToast(/bebe|86cm/i.test(msg)?'Esse NCM não vale para tamanho de bebê (use 6111 ou 6209).':'Não foi possível salvar o NCM.',true);
