@@ -666,6 +666,7 @@ html{visibility:visible}
       <div class="tb-actions"><span class="tb-vendedor-nome" style="font-size:11px;color:rgba(255,255,255,.65);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:4px"></span><span class="tb-badge" id="badge-alerta">0</span><button onclick="abrirNotificacoes()" title="Notificações" style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:16px;margin-right:6px">🔔<span class="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:10px;min-width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px">0</span></button><button class="theme-btn" onclick="toggleTheme()">🌙</button></div>
     </div>
     <div class="tb-sub" id="estoque-subtitle"></div>
+    <div id="ncm-aviso"></div>
     <div style="display:flex;gap:6px;margin-top:10px;background:rgba(0,0,0,.18);padding:3px;border-radius:10px">
       <button class="estq-tab" data-estqnav="produtos" onclick="irEstoque('produtos')">Produtos</button>
       <button class="estq-tab on" data-estqnav="geral" onclick="irEstoque('geral')">Visão Geral</button>
@@ -2236,6 +2237,30 @@ async function marcarAtendido(id){
   }catch(e){}
 }
 
+/* Aviso de conferência fiscal no Estoque — é logo depois de cadastrar que a
+   peça está fresca na cabeça, então é o melhor momento para conferir. */
+function atualizarAvisoNcm(){
+  const box=document.getElementById('ncm-aviso'); if(!box)return;
+  if(PAPEL!=='admin'||!Array.isArray(PRODUTOS)){box.innerHTML='';return;}
+  const pend=PRODUTOS.filter(p=>p&&p.ativo!==false&&!p.ncm_confirmado);
+  if(!pend.length){box.innerHTML='';return;}
+  const rev=pend.filter(p=>classificarNCM(p).confianca==='revisar').length;
+  box.innerHTML=`<div onclick="irConferirNcm()" style="margin-top:8px;background:rgba(255,255,255,.16);border-radius:10px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:9px">
+    <span style="font-size:16px">🏷️</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12.5px;font-weight:700;color:#fff">${pend.length} produto${pend.length>1?'s':''} aguardando conferência fiscal</div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,.75)">${rev?rev+' com classificação duvidosa · ':''}Toque para conferir o NCM</div>
+    </div>
+    <span style="color:rgba(255,255,255,.7);font-size:16px">›</span>
+  </div>`;
+}
+function irConferirNcm(){
+  irPara('perfil');
+  setTimeout(()=>{ abrirCfgAba('fiscal');
+    const el=document.getElementById('ncm-grupos');
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  },220);
+}
 function atualizarBadgePedidos(){
   if(pedidosSubAba!=='aberto')return; // só recalcula quando a lista de abertos está carregada
   const n=PEDIDOS.filter(p=>p.estado==='aguardando_pagamento').length;
@@ -3571,6 +3596,7 @@ function limparFiltros(){
   renderEstoque();
 }
 function renderEstoque(){
+  try{atualizarAvisoNcm();}catch(e){}
   const list=filtrado();
   GRUPOS=agrupar(list);
   document.getElementById('tb-total-pecas').textContent=PRODS.length+' peças';
@@ -5016,6 +5042,188 @@ function abrirCfgAba(aba){
   if(aba==='fiscal'&&PAPEL==='admin'){ carregarFiscal(); renderNcmGrupos(); }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   MOTOR DE NCM — vestuário infantil
+   Mesma lógica usada no app e no node de catalogação.
+
+   REGRA FISCAL CENTRAL:
+   Vestuário e acessórios PARA BEBÊS (estatura até 86 cm, ~24 meses)
+   têm posição própria e absorvem quase tudo:
+        malha .......... 6111
+        tecido plano ... 6209
+   Acima de 86 cm classifica-se por TIPO + GÊNERO + MATERIAL, com os
+   mesmos códigos do vestuário adulto (isso é correto na NCM).
+
+   Devolve { ncm, descricao, confianca, motivo }.
+   confianca: 'alta' | 'media' | 'revisar'
+   ════════════════════════════════════════════════════════════════ */
+
+const NCM_DESC = {
+  '61112000': 'Vestuário e acessórios de malha, para bebês, de algodão',
+  '61113000': 'Vestuário e acessórios de malha, para bebês, de fibras sintéticas',
+  '61119000': 'Vestuário e acessórios de malha, para bebês, de outras matérias',
+  '62092000': 'Vestuário e acessórios para bebês, de algodão (tecido plano)',
+  '62093000': 'Vestuário e acessórios para bebês, de fibras sintéticas (tecido plano)',
+  '61091000': 'T-shirts, camisetas e regatas, de malha de algodão',
+  '61099000': 'T-shirts e camisetas, de malha de outras matérias',
+  '61044200': 'Vestidos de malha de algodão, para meninas',
+  '61044400': 'Vestidos de malha de fibras artificiais, para meninas',
+  '61046200': 'Calças, bermudas e shorts de malha de algodão, para meninas',
+  '61034200': 'Calças, bermudas e shorts de malha de algodão, para meninos',
+  '61042200': 'Conjuntos de malha de algodão, para meninas',
+  '61032200': 'Conjuntos de malha de algodão, para meninos',
+  '61022000': 'Casacos, anoraques e blusões de malha de algodão, para meninas',
+  '61012000': 'Casacos, anoraques e blusões de malha de algodão, para meninos',
+  '61023000': 'Casacos e blusões de malha de fibras sintéticas, para meninas',
+  '61013000': 'Casacos e blusões de malha de fibras sintéticas, para meninos',
+  '61083100': 'Pijamas e camisolas de malha de algodão, para meninas',
+  '61072100': 'Pijamas de malha de algodão, para meninos',
+  '61142000': 'Outras vestimentas de malha de algodão (macacões, jardineiras)',
+  '61143000': 'Outras vestimentas de malha de fibras sintéticas',
+  '61159500': 'Meias de malha de algodão',
+  '61159600': 'Meias de malha de fibras sintéticas',
+  '61178000': 'Outros acessórios de vestuário, de malha (faixas, tiaras têxteis)',
+  '63026000': 'Toalhas de algodão atoalhado',
+  '63023100': 'Roupas de cama, de algodão',
+  '64029900': 'Calçados com sola e parte superior de borracha ou plástico',
+  '64041900': 'Calçados com parte superior de matéria têxtil',
+  '64039900': 'Calçados com parte superior de couro natural',
+  '95030099': 'Outros brinquedos',
+  '96151100': 'Pentes, travessas e artefatos semelhantes, de plástico',
+};
+
+/* Tamanhos até 86 cm — nesses, vale a posição de bebê */
+const TAM_BEBE = ['RN','PP','P','M','G','GG','0','1','2','U'];
+
+function _norm(v) {
+  return (v == null ? '' : String(v))
+    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+/* algodao | sintetico | outro | null(desconhecido) */
+function _material(p) {
+  const t = _norm([p.material, p.descricao_semantica, p.tags_adicionais, p.subtipo].join(' '));
+  if (/\b(algodao|cotton|malha fria|suedine|ribana|meia malha|plush de algodao)\b/.test(t)) return 'algodao';
+  if (/\b(poliester|poliamida|sintetic|nylon|elastano|lycra|acrilic|microfibr|fleece|soft|plush)\b/.test(t)) return 'sintetico';
+  if (/\b(la|lan|seda|linho|viscose|couro)\b/.test(t)) return 'outro';
+  return null;
+}
+
+/* malha | plano | null */
+function _tecido(p) {
+  const t = _norm([p.tipo_tecido, p.material, p.descricao_semantica, p.tags_adicionais].join(' '));
+  if (/\b(malha|tricot|tricotad|suedine|ribana|moletom|meia malha|plush)\b/.test(t)) return 'malha';
+  if (/\b(plano|tecido plano|sarja|jeans|denim|tricoline|popeline|cambraia|linho)\b/.test(t)) return 'plano';
+  return null;
+}
+
+/* feminino | masculino | null */
+function _genero(p) {
+  const g = _norm(p.genero);
+  if (/(_f|feminin|menina|girl)/.test(g)) return 'feminino';
+  if (/(_m|masculin|menino|boy)/.test(g)) return 'masculino';
+  return null;   // unissex / bebe => indefinido
+}
+
+/* true quando a peça cabe na posição de bebê (até 86 cm) */
+function _ehBebe(p) {
+  const tam = _norm(p.tamanho).toUpperCase();
+  const fx  = _norm(p.faixa_etaria);
+  if (/(\d+)\s*(a|ano)/.test(fx)) {
+    const anos = parseInt(RegExp.$1, 10);
+    if (anos >= 3) return false;
+  }
+  if (/mes/.test(fx)) return true;
+  const n = parseInt(tam, 10);
+  if (!isNaN(n) && String(n) === tam) return n <= 2;      // tamanhos 3+ não são bebê
+  return TAM_BEBE.includes(tam);
+}
+
+function classificarNCM(p) {
+  const cat  = _norm(p.categoria);
+  const tipo = _norm([p.tipo, p.subtipo].join(' '));
+  const mat  = _material(p);
+  const tec  = _tecido(p);
+  const gen  = _genero(p);
+  const bebe = _ehBebe(p);
+  const R = (ncm, confianca, motivo) => ({ ncm, descricao: NCM_DESC[ncm] || '', confianca, motivo });
+
+  // ── não vestuário ──────────────────────────────────────────────
+  if (cat === 'calcado' || /\b(sapato|tenis|sandalia|bota|chinelo|sapatilha|pantufa|sapatinho)\b/.test(tipo)) {
+    if (/couro/.test(_norm(p.material))) return R('64039900', 'media', 'calçado de couro');
+    if (/\b(tenis|sapatilha)\b/.test(tipo)) return R('64041900', 'media', 'calçado têxtil');
+    return R('64029900', 'media', 'calçado de plástico/borracha — confira o material da parte superior');
+  }
+  if (cat === 'brinquedo' || /\b(brinquedo|pelucia|boneca|chocalho|mordedor|naninha|movel|jogo)\b/.test(tipo)) {
+    if (/\b(mordedor|chocalho)\b/.test(tipo))
+      return R('95030099', 'revisar', 'mordedor/chocalho pode ser artigo de plástico (39.24) em vez de brinquedo — confirme com o contador');
+    return R('95030099', 'media', 'brinquedo');
+  }
+  if (cat === 'higiene') return R('', 'revisar', 'higiene não tem regra automática — classifique manualmente');
+  if (cat === 'enxoval' || /\b(toalha|manta|cobertor|lencol|fronha|cueiro|colcha|edredom)\b/.test(tipo)) {
+    if (/toalha/.test(tipo)) return R('63026000', 'media', 'toalha de algodão');
+    return R('63023100', 'media', 'roupa de cama de algodão');
+  }
+
+  // tipo não identificado: nem a posição de bebê salva — precisa de olho humano
+  const TIPOS_OK = /\b(body|bodie|macacao|macaquinho|calca|legging|bermuda|short|saia|vestido|blusa|camiseta|regata|conjunto|kit|casaco|jaqueta|moletom|agasalho|pijama|camisola|meia|meiao|babador|touca|gorro|luva|jardineira|tiara|faixa|laco|lacinho|presilha|saida|maternidade|pantufa)\b/;
+  if (!TIPOS_OK.test(tipo))
+    return R(bebe ? '61112000' : '', 'revisar', 'tipo "' + (p.tipo || '?') + '" não reconhecido — confirme a classificação');
+
+  // ── BEBÊ: posição própria, absorve roupa e acessório ───────────
+  if (bebe) {
+    if (tec === 'plano') {
+      return mat === 'sintetico'
+        ? R('62093000', 'alta', 'bebê até 86 cm, tecido plano sintético')
+        : R('62092000', mat ? 'alta' : 'media', 'bebê até 86 cm, tecido plano' + (mat ? '' : ' — material presumido algodão'));
+    }
+    if (mat === 'sintetico') return R('61113000', 'alta', 'bebê até 86 cm, malha sintética');
+    if (mat === 'outro')     return R('61119000', 'media', 'bebê até 86 cm, outras matérias');
+    return R('61112000', mat ? 'alta' : 'media',
+      'bebê até 86 cm, malha' + (mat ? ' de algodão' : ' — material presumido algodão'));
+  }
+
+  // ── ACIMA DE 86 cm: tipo + gênero + material ───────────────────
+  const sint = mat === 'sintetico';
+  const semGen = gen === null;
+  const cf = (base) => (semGen ? 'revisar' : base);
+  const motivoGen = semGen ? ' — gênero indefinido, confirme se é menina ou menino' : '';
+
+  if (/\b(meia|meiao)\b/.test(tipo))
+    return R(sint ? '61159600' : '61159500', mat ? 'alta' : 'media', 'meia' + (mat ? '' : ' — material presumido algodão'));
+
+  if (/\b(camiseta|t-shirt|regata|body|bodie)\b/.test(tipo))
+    return R(mat === 'algodao' || !mat ? '61091000' : '61099000', mat ? 'alta' : 'media', 'camiseta/body de malha');
+
+  if (/\b(vestido|vestidinho)\b/.test(tipo))
+    return R('61044200', mat ? 'alta' : 'media', 'vestido de malha de algodão');
+
+  if (/\b(pijama|camisola)\b/.test(tipo))
+    return R(gen === 'masculino' ? '61072100' : '61083100', cf('media'), 'pijama' + motivoGen);
+
+  if (/\b(casaco|jaqueta|blusa de frio|moletom|agasalho|blusao|anoraque)\b/.test(tipo)) {
+    if (gen === 'masculino') return R(sint ? '61013000' : '61012000', cf('media'), 'casaco masculino' + motivoGen);
+    return R(sint ? '61023000' : '61022000', cf('media'), 'casaco feminino' + motivoGen);
+  }
+
+  if (/\b(conjunto|kit)\b/.test(tipo))
+    return R(gen === 'masculino' ? '61032200' : '61042200', cf('media'), 'conjunto de malha' + motivoGen);
+
+  if (/\b(calca|legging|bermuda|short|jardineira|saia)\b/.test(tipo))
+    return R(gen === 'masculino' ? '61034200' : '61046200', cf('media'), 'calça/bermuda de malha' + motivoGen);
+
+  if (/\b(macacao|macaquinho|jardineira)\b/.test(tipo))
+    return R(sint ? '61143000' : '61142000', 'media', 'macacão — outras vestimentas de malha');
+
+  if (cat === 'acessorio' || /\b(tiara|faixa|laco|lacinho|presilha|touca|gorro|luva)\b/.test(tipo)) {
+    if (/\b(tiara|presilha|travessa)\b/.test(tipo)) return R('96151100', 'media', 'acessório de cabelo de plástico');
+    return R('61178000', 'revisar', 'acessório têxtil — confirme a matéria');
+  }
+
+  return R('', 'revisar', 'tipo não reconhecido — classifique manualmente');
+}
+
+
 /* ═══ FISCAL (só admin) ═══ */
 const FIS_CAMPOS=['cnpj','inscricao_estadual','razao_social','regime_tributario','csosn',
   'cep','uf','logradouro','numero','complemento','bairro','municipio','cod_municipio',
@@ -5051,14 +5259,16 @@ async function salvarFiscal(){
   }catch(e){showToast('Não foi possível salvar os dados fiscais.',true);}
 }
 
-/* Confirmação de NCM POR GRUPO: roupa infantil usa poucos NCMs, então
-   confirmar em lote transforma horas de trabalho em minutos. */
+/* Conferência de NCM com MINIATURA: ver a peça é o que torna a conferência
+   confiável — número sozinho não diz se está certo. Produtos que o motor
+   marcou como 'revisar' aparecem destacados e primeiro. */
+let NCM_PEND=[];
 async function renderNcmGrupos(){
   const box=document.getElementById('ncm-grupos'); if(!box||PAPEL!=='admin')return;
   box.innerHTML='<div class="loading-row"><span class="proc-dot"></span>Carregando...</div>';
   let prods=[];
   try{
-    prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select=id,tipo,tamanho,codigo_loja,ncm,ncm_confirmado&limit=1000')||[];
+    prods=await sbGet(TABELA,'loja_id=eq.'+LOJA_ID+'&ativo=neq.false&select=id,tipo,subtipo,tamanho,genero,categoria,material,faixa_etaria,descricao_semantica,tags_adicionais,codigo_loja,foto_url,ncm,ncm_confirmado&order=criado_em.desc&limit=500')||[];
   }catch(e){box.innerHTML='<div style="font-size:13px;color:var(--danger)">Não consegui carregar os produtos.</div>';return;}
 
   const pend=prods.filter(p=>!p.ncm_confirmado);
@@ -5067,42 +5277,64 @@ async function renderNcmGrupos(){
     box.innerHTML='<div style="background:var(--success-l);color:var(--success);font-size:13px;font-weight:700;border-radius:10px;padding:11px 12px">✅ Todos os '+prods.length+' produtos com NCM confirmado.</div>';
     return;
   }
-  const grupos={};
-  pend.forEach(p=>{const k=p.ncm||'(sem NCM)';(grupos[k]=grupos[k]||[]).push(p);});
-  const esc=x=>(x||'').replace(/</g,'&lt;');
-  const html=Object.entries(grupos).sort((a,b)=>b[1].length-a[1].length).map(([ncm,itens])=>{
-    const tipos=[...new Set(itens.map(i=>i.tipo).filter(Boolean))].slice(0,6).join(', ');
-    const lista=itens.map(i=>'• '+esc(i.tipo||'produto')+(i.codigo_loja?(' #'+String(i.codigo_loja).padStart(3,'0')):'')+(i.tamanho?(' · '+esc(i.tamanho)):'')).join('<br>');
-    const semNcm=ncm==='(sem NCM)';
-    return `<div style="border:1px solid ${semNcm?'var(--warning)':'var(--border)'};border-radius:12px;padding:12px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-size:15px;font-weight:800;color:var(--text1);font-family:monospace">${esc(ncm)}</span>
-        <span style="font-size:11px;font-weight:700;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:20px;white-space:nowrap">${itens.length} produto${itens.length>1?'s':''}</span>
-      </div>
-      <div style="font-size:11.5px;color:var(--text2);margin-bottom:8px">${esc(tipos)}</div>
-      <details style="margin-bottom:8px"><summary style="font-size:11.5px;color:var(--accent);cursor:pointer">Ver produtos</summary>
-        <div style="font-size:11.5px;color:var(--text2);line-height:1.7;margin-top:6px">${lista}</div></details>
-      <div style="display:flex;gap:8px">
-        <input class="finput" id="ncm-edit-${esc(ncm)}" value="${semNcm?'':esc(ncm)}" inputmode="numeric" maxlength="8" placeholder="NCM (8 dígitos)" style="flex:1;font-family:monospace"/>
-        <button class="fbtn fbtn-success-soft" onclick="confirmarNcmGrupo('${esc(ncm)}')" style="max-width:130px;white-space:nowrap">✓ Confirmar</button>
+  // recalcula pelo motor: o que está no banco pode ter vindo de regra antiga
+  NCM_PEND=pend.map(p=>{const r=classificarNCM(p);return {...p,_sug:r.ncm||p.ncm||'',_desc:r.descricao,_conf:r.confianca,_motivo:r.motivo};});
+  const ordem={revisar:0,media:1,alta:2};
+  NCM_PEND.sort((a,b)=>(ordem[a._conf]-ordem[b._conf])||String(a.tipo||'').localeCompare(String(b.tipo||'')));
+  const revisar=NCM_PEND.filter(p=>p._conf==='revisar').length;
+
+  const esc=x=>String(x==null?'':x).replace(/</g,'&lt;');
+  const linhas=NCM_PEND.map((p,i)=>{
+    const foto=p.foto_url?((p.foto_url+'').startsWith('http')?p.foto_url:SB_URL+'/storage/v1/object/public/fotos-produtos/'+p.foto_url):'';
+    const cod=p.codigo_loja?('#'+String(p.codigo_loja).padStart(3,'0')):'';
+    const alerta=p._conf==='revisar';
+    return `<div style="display:flex;gap:10px;padding:10px;border:1px solid ${alerta?'var(--warning)':'var(--border)'};border-radius:12px;margin-bottom:8px;background:${alerta?'var(--warning-l)':'transparent'}">
+      ${foto?`<img src="${foto}" onclick="abrirFotoFullscreen('${foto}')" style="width:64px;height:64px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:pointer"/>`:'<div style="width:64px;height:64px;border-radius:9px;background:var(--surface2);flex-shrink:0"></div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text1)">${esc(p.tipo||'produto')} ${cod}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${[p.tamanho?('Tam '+esc(p.tamanho)):'',esc(p.genero||''),esc(p.material||'')].filter(Boolean).join(' · ')}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="finput" id="ncm-i-${i}" value="${esc(p._sug)}" inputmode="numeric" maxlength="8" placeholder="8 dígitos" style="width:120px;font-family:monospace;padding:6px 9px;font-size:13px"/>
+          <button class="fbtn fbtn-success-soft" onclick="confirmarNcmItem(${i})" style="max-width:96px;padding:6px;font-size:12px">✓ Confirmar</button>
+        </div>
+        <div style="font-size:10.5px;color:${alerta?'var(--warning)':'var(--text3)'};margin-top:5px;line-height:1.35">${alerta?'⚠️ ':''}${esc(p._desc||p._motivo)}</div>
+        ${alerta?`<div style="font-size:10.5px;color:var(--warning);margin-top:2px">${esc(p._motivo)}</div>`:''}
       </div>
     </div>`;
   }).join('');
-  box.innerHTML=(okQtd>0?`<div style="font-size:11.5px;color:var(--success);margin-bottom:10px">${okQtd} já confirmado${okQtd>1?'s':''} · ${pend.length} pendente${pend.length>1?'s':''}</div>`:'')+html;
+
+  const iguais={};
+  NCM_PEND.forEach(p=>{if(p._conf!=='revisar'&&p._sug)iguais[p._sug]=(iguais[p._sug]||0)+1;});
+  const maior=Object.entries(iguais).sort((a,b)=>b[1]-a[1])[0];
+  const botaoLote=(maior&&maior[1]>1)
+    ? `<button class="fbtn" onclick="confirmarNcmEmLote('${maior[0]}')" style="margin-bottom:10px">✓ Confirmar os ${maior[1]} produtos com NCM ${maior[0]}</button>` : '';
+
+  box.innerHTML=
+    `<div style="font-size:11.5px;color:var(--text2);margin-bottom:8px">${okQtd} confirmado${okQtd!==1?'s':''} · <b>${pend.length} pendente${pend.length!==1?'s':''}</b>${revisar?` · <span style="color:var(--warning)">${revisar} precisa${revisar>1?'m':''} de atenção</span>`:''}</div>`
+    +botaoLote+linhas;
 }
 
-async function confirmarNcmGrupo(ncmAtual){
-  const el=document.getElementById('ncm-edit-'+ncmAtual);
-  const novo=((el&&el.value)||'').replace(/\D/g,'');
-  if(novo.length!==8){showToast('O NCM precisa ter 8 dígitos.',true);return;}
+async function confirmarNcmItem(i){
+  const p=NCM_PEND[i]; if(!p)return;
+  const el=document.getElementById('ncm-i-'+i);
+  const v=((el&&el.value)||'').replace(/\D/g,'');
+  if(v.length!==8){showToast('O NCM precisa ter 8 dígitos.',true);return;}
   try{
-    const filtro=ncmAtual==='(sem NCM)'
-      ? 'loja_id=eq.'+LOJA_ID+'&ncm=is.null&ncm_confirmado=is.false'
-      : 'loja_id=eq.'+LOJA_ID+'&ncm=eq.'+encodeURIComponent(ncmAtual)+'&ncm_confirmado=is.false';
-    await sbPatch(TABELA,filtro,{ncm:novo,ncm_confirmado:true});
-    showToast('NCM confirmado ✅');
-    renderNcmGrupos();
+    await sbPatch(TABELA,'id=eq.'+p.id,{ncm:v,ncm_sugerido:p._sug||null,ncm_confirmado:true});
+    showToast('NCM confirmado ✅'); renderNcmGrupos();
   }catch(e){showToast('Não foi possível confirmar.',true);}
+}
+
+async function confirmarNcmEmLote(ncm){
+  const alvo=NCM_PEND.filter(p=>p._conf!=='revisar'&&p._sug===ncm);
+  if(!alvo.length)return;
+  if(!confirm('Confirmar NCM '+ncm+' para '+alvo.length+' produtos?\n\n'+(NCM_DESC[ncm]||'')))return;
+  try{
+    for(const p of alvo){
+      await sbPatch(TABELA,'id=eq.'+p.id,{ncm,ncm_sugerido:ncm,ncm_confirmado:true});
+    }
+    showToast(alvo.length+' produtos confirmados ✅'); renderNcmGrupos();
+  }catch(e){showToast('Não foi possível confirmar em lote.',true);}
 }
 
 /* ═══ COMISSÕES A PAGAR (dona) — com filtro de período (semana/mês) ═══ */
