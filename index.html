@@ -1178,6 +1178,7 @@ const PROD_COLS='id,loja_id,foto_url,tipo,subtipo,genero,faixa_etaria,faixa_etar
 const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vendedor';
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 const N8N_RELAY = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/vendedor_envia';
+const N8N_EMITIR_NF = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/emitir_nf';
 const N8N_GESTAO = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/gestao_equipe';
 
 /* Toda chamada ao relay leva o token do usuário logado. O servidor valida
@@ -1991,6 +1992,7 @@ function renderPedidos(){
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
           ${btnFiscal(p)}
+          ${blocoNota(p)}
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px" onchange="onPedPgto('${p.id}')">${opts}</select></div>
           <div style="display:flex;gap:6px;align-items:center">
             <span style="font-size:12px;color:var(--text2);white-space:nowrap">Desconto:</span>
@@ -2541,6 +2543,102 @@ async function registrarComissao(pedidoId, vendedorId, valorLiquido){
     const valor=Math.round(valorLiquido*(pct/100)*100)/100;
     await sbPost('comissoes',{loja_id:LOJA_ID,pedido_id:pedidoId||null,vendedor_id:vendedorId,base_valor:valorLiquido,pct,valor});
   }catch(e){console.warn('comissao',e);}
+}
+
+/* ═══ NF-5 · EMISSÃO DA NOTA ═══
+   A emissão é assíncrona: aqui disparamos e acompanhamos o status. Quem
+   finaliza é o webhook de retorno do emissor. */
+let NOTAS={};                      // pedido_id -> nota
+async function carregarNotas(){
+  if(!FISCAL_LOJA)return;
+  try{
+    const r=await sbGet('notas_fiscais','loja_id=eq.'+LOJA_ID+'&order=criado_em.desc&limit=200')||[];
+    NOTAS={}; r.forEach(n=>{ if(n.pedido_id&&!NOTAS[n.pedido_id])NOTAS[n.pedido_id]=n; });
+  }catch(e){}
+}
+
+function blocoNota(p){
+  if(!FISCAL_LOJA)return '';
+  const n=NOTAS[p.id];
+  const esc=x=>String(x==null?'':x).replace(/</g,'&lt;');
+  if(!n){
+    const pronto=!!p.dest_documento||p.dest_tipo==='nao_identificado';
+    return `<button class="fbtn ${pronto?'':'fbtn-outline'}" onclick="emitirNota('${p.id}')" style="font-size:12.5px">🧾 Emitir nota fiscal</button>`;
+  }
+  if(n.status==='processando')
+    return `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:8px"><span class="proc-dot"></span>Emitindo nota… <button onclick="carregarNotasERender()" style="margin-left:auto;background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">atualizar</button></div>`;
+  if(n.status==='autorizada'){
+    const num=n.numero?('#'+n.numero):'';
+    return `<div style="background:var(--success-l);border-radius:9px;padding:9px 11px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--success);margin-bottom:${n.danfe_url?'7px':'0'}">✅ Nota ${esc(num)} autorizada${n.modelo==='55'?' (NF-e)':''}</div>
+      ${n.chave_acesso?`<div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-bottom:7px">${esc(n.chave_acesso)}</div>`:''}
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        ${n.danfe_url?`<button class="fbtn fbtn-outline" onclick="window.open('${esc(n.danfe_url)}','_blank','noopener')" style="font-size:11.5px;max-width:110px">📄 Ver DANFE</button>`:''}
+        ${n.danfe_url?`<button class="fbtn fbtn-outline" onclick="enviarDanfe('${p.id}')" style="font-size:11.5px;max-width:130px">Enviar ao cliente</button>`:''}
+        ${podeCancelarNota(n)?`<button class="fbtn fbtn-danger-outline" onclick="cancelarNota('${n.id}')" style="font-size:11.5px;max-width:96px">Cancelar</button>`:''}
+      </div>
+    </div>`;
+  }
+  if(n.status==='cancelada')
+    return `<div style="font-size:12px;color:var(--text3);background:var(--surface2);border-radius:9px;padding:9px 11px">🚫 Nota cancelada</div>`;
+  return `<div style="background:var(--danger-l,rgba(239,68,68,.12));border-radius:9px;padding:9px 11px">
+    <div style="font-size:12.5px;font-weight:700;color:var(--danger);margin-bottom:4px">⚠️ Nota rejeitada</div>
+    <div style="font-size:11.5px;color:var(--text2);line-height:1.4;margin-bottom:7px">${esc(n.motivo_erro||'Sem detalhe.')}</div>
+    <button class="fbtn fbtn-outline" onclick="emitirNota('${p.id}',true)" style="font-size:11.5px;max-width:130px">Tentar de novo</button>
+  </div>`;
+}
+
+/* Cancelamento de NFC-e/NF-e só dentro de 24h da autorização */
+function podeCancelarNota(n){
+  if(!n||n.status!=='autorizada'||!n.emitida_em)return false;
+  return (Date.now()-new Date(n.emitida_em).getTime())<24*3600*1000;
+}
+
+async function emitirNota(pedidoId,retentar){
+  const ped=PEDIDOS.find(x=>x.id===pedidoId); if(!ped)return;
+  if(!ped.dest_documento&&ped.dest_tipo!=='nao_identificado'){
+    if(!confirm('Nenhum CPF informado.\n\nEmitir como "consumidor não identificado"?'))
+      { abrirDadosFiscais(pedidoId); return; }
+  }
+  const tok=await tokenFresco();
+  if(!tok){showToast('Sua sessão expirou. Entre de novo.',true);return;}
+  showToast('Enviando para a SEFAZ...');
+  try{
+    const r=await fetch(N8N_EMITIR_NF,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({loja_id:LOJA_ID,pedido_id:pedidoId,token:tok,retentar:!!retentar})});
+    const d=await r.json().catch(()=>({}));
+    if(d&&d.ok===false){showToast(d.erro||'Não foi possível emitir.',true);}
+    else{showToast('Nota enviada — acompanhando o retorno da SEFAZ');}
+  }catch(e){showToast('Falha ao falar com o emissor.',true);}
+  setTimeout(carregarNotasERender,2500);
+  setTimeout(carregarNotasERender,9000);
+}
+
+async function carregarNotasERender(){ await carregarNotas(); renderPedidos(); }
+
+async function enviarDanfe(pedidoId){
+  const ped=PEDIDOS.find(x=>x.id===pedidoId), n=NOTAS[pedidoId];
+  if(!ped||!n||!n.danfe_url)return;
+  try{
+    await relayEnviar({loja_id:LOJA_ID,telefone:ped.telefone,
+      texto:'Segue a nota fiscal da sua compra 🧾\n'+n.danfe_url,tipo:'texto',vendedor_id:USER_ID});
+    showToast('Nota enviada ao cliente ✅');
+  }catch(e){showToast('Não foi possível enviar.',true);}
+}
+
+async function cancelarNota(notaId){
+  const motivo=prompt('Motivo do cancelamento (mínimo 15 caracteres — exigência da SEFAZ):','');
+  if(motivo===null)return;
+  if((motivo||'').trim().length<15){showToast('O motivo precisa de pelo menos 15 caracteres.',true);return;}
+  const tok=await tokenFresco(); if(!tok)return;
+  showToast('Cancelando...');
+  try{
+    const r=await fetch(N8N_EMITIR_NF,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({loja_id:LOJA_ID,nota_id:notaId,acao:'cancelar',motivo,token:tok})});
+    const d=await r.json().catch(()=>({}));
+    showToast(d&&d.ok===false?(d.erro||'Não foi possível cancelar.'):'Cancelamento enviado');
+  }catch(e){showToast('Falha ao cancelar.',true);}
+  setTimeout(carregarNotasERender,3000);
 }
 
 /* ═══ NF-3 · DADOS DO DESTINATÁRIO ═══
