@@ -3611,6 +3611,49 @@ function renderEstoque(){
 function mudarOrdem(v){sortMode=v;renderEstoque();}
 
 /* ═══ DETALHE COM VARIAÇÕES ═══ */
+/* Bloco fiscal no detalhe do produto: ver o NCM junto da peça é a forma mais
+   rápida de perceber que está errado. Editável e confirmável no mesmo lugar. */
+function blocoFiscalDetalhe(p){
+  if(PAPEL!=='admin')return '';
+  const r=(typeof classificarNCM==='function')?classificarNCM(p):{ncm:p.ncm,descricao:'',confianca:'media',motivo:''};
+  const atual=p.ncm||'';
+  const desc=(typeof NCM_DESC!=='undefined'&&NCM_DESC[atual])?NCM_DESC[atual]:(r.descricao||'');
+  const conf=p.ncm_confirmado===true;
+  const divergente=atual&&r.ncm&&atual!==r.ncm;
+  const alerta=!conf||divergente||r.confianca==='revisar';
+  const esc=x=>String(x==null?'':x).replace(/</g,'&lt;');
+  return `<div style="margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid ${alerta?'var(--warning)':'var(--border)'};background:${alerta?'var(--warning-l)':'var(--surface2)'}">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+      <span style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.3px">🏷️ CLASSIFICAÇÃO FISCAL</span>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;${conf?'background:var(--success-l);color:var(--success)':'background:var(--surface);color:var(--warning)'}">${conf?'confirmado':'a confirmar'}</span>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">
+      <input class="finput" id="det-ncm-${p.id}" value="${esc(atual)}" inputmode="numeric" maxlength="8" placeholder="NCM (8 dígitos)" style="flex:1;font-family:monospace;padding:7px 9px;font-size:14px"/>
+      <button class="fbtn fbtn-success-soft" onclick="salvarNcmDetalhe('${p.id}')" style="max-width:104px;padding:7px;font-size:12px">✓ Confirmar</button>
+    </div>
+    ${desc?`<div style="font-size:11px;color:var(--text2);line-height:1.4">${esc(desc)}</div>`:''}
+    ${divergente?`<div style="font-size:11px;color:var(--warning);margin-top:4px">⚠️ O sistema classificaria como <b>${esc(r.ncm)}</b> — ${esc(r.motivo)}</div>`:''}
+    ${(!divergente&&r.confianca==='revisar')?`<div style="font-size:11px;color:var(--warning);margin-top:4px">⚠️ ${esc(r.motivo)}</div>`:''}
+    ${(p.material||p.tipo_tecido)?`<div style="font-size:10.5px;color:var(--text3);margin-top:4px">${[p.material,p.tipo_tecido].filter(Boolean).map(esc).join(' · ')}</div>`:'<div style="font-size:10.5px;color:var(--text3);margin-top:4px">material não informado</div>'}
+  </div>`;
+}
+
+async function salvarNcmDetalhe(id){
+  const el=document.getElementById('det-ncm-'+id);
+  const v=((el&&el.value)||'').replace(/\D/g,'');
+  if(v.length!==8){showToast('O NCM precisa ter 8 dígitos.',true);return;}
+  try{
+    await sbPatch(TABELA,'id=eq.'+id,{ncm:v,ncm_confirmado:true});
+    const alvo=(PRODS||[]).find(x=>x.id===id); if(alvo){alvo.ncm=v;alvo.ncm_confirmado=true;}
+    const alvo2=(PRODUTOS||[]).find(x=>x.id===id); if(alvo2){alvo2.ncm=v;alvo2.ncm_confirmado=true;}
+    showToast('NCM confirmado ✅');
+    try{atualizarAvisoNcm();}catch(e){}
+  }catch(e){
+    const msg=String(e&&e.message||e);
+    showToast(/bebe|86cm/i.test(msg)?'Esse NCM não vale para tamanho de bebê (use 6111 ou 6209).':'Não foi possível salvar o NCM.',true);
+  }
+}
+
 function openDetalhe(key){
   const gr=GRUPOS.find(g=>g._key===key);if(!gr)return;
   const p=gr._vars[0];
@@ -3672,6 +3715,7 @@ function openDetalhe(key){
         </div>
         ${(()=>{const dv=descricaoVisivel(p);return dv?`<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:8px">${dv}</div>`:'';})()}
         ${p.criado_em?`<div style="font-size:11px;color:var(--text3);margin-top:4px">📅 Cadastrado em ${new Date(p.criado_em).toLocaleDateString('pt-BR')}</div>`:''}
+        ${blocoFiscalDetalhe(p)}
       </div>
       <div class="det-divider"></div>
       <div class="var-section">
