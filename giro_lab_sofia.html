@@ -54,6 +54,7 @@ textarea{min-height:220px;font-family:ui-monospace,monospace;font-size:11px}
 <div class="card" id="c-run" style="display:none">
   <label>Grupos</label><div id="chips"></div>
   <div class="row" style="margin-top:10px">
+    <button class="sec" onclick="testarConexao()" style="max-width:160px">Testar conexão</button>
     <button onclick="rodar()" id="bt-run">Rodar</button>
     <button class="sec" onclick="selTodos()" style="max-width:110px">Todos</button>
   </div>
@@ -75,7 +76,7 @@ textarea{min-height:220px;font-family:ui-monospace,monospace;font-size:11px}
 <script>
 const SB='https://warmbloodedmule-supabase.cloudfy.live';
 const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc3NTkzOTM4LCJleHAiOjE4MDkxMjk5Mzh9.UFGPqBWlRb3S0N5GV4Ldpzpok-cYHEtddgjRIHCB_iU';
-const WH='https://warmbloodedmule-n8n.cloudfy.live/webhook/wpp_entrada';
+const WH='https://warmbloodedmule-n8n.cloudfy.live/webhook/meta-entrada';
 const PHONE_ID='1211441432053211';
 let TOKEN=null,LOJA=null,RESULT=[],soFalhas=false;
 
@@ -481,6 +482,27 @@ function payload(de,texto,i){
   }}]}]};
 }
 
+/* Envia e devolve o resultado REAL. fetch nao da erro em 404, entao olhamos
+   o status; e erro de rede/CORS cai no catch. Nada de falha silenciosa. */
+async function enviar(de,txt,i){
+  try{
+    const r=await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload(de,txt,i))});
+    if(r.status>=200&&r.status<300)return{ok:true,status:r.status};
+    return{ok:false,motivo:'HTTP '+r.status+(r.status===404?' (caminho do webhook não existe ou workflow inativo)':'')};
+  }catch(e){
+    return{ok:false,motivo:'o navegador não conseguiu enviar ('+(e.message||e)+') — provável bloqueio de CORS ou rede'};
+  }
+}
+async function testarConexao(){
+  const de='5531'+String(8000000+Math.floor(Math.random()*999999)).slice(-7);
+  el('lg').textContent='enviando um "oi" de teste...';
+  const r=await enviar(de,'oi',0);
+  el('lg').textContent=r.ok
+    ?'Conexão ok (HTTP '+r.status+'). Confira a execução nova no n8n, no workflow wpp_entrada.'
+    :'Falhou: '+r.motivo;
+}
+
 async function rodar(){
   el('bt-run').disabled=true; RESULT=[]; el('c-res').style.display='none';
   const alvo=CENARIOS.filter(c=>SEL.has(c.grupo));
@@ -490,8 +512,18 @@ async function rodar(){
     const troca=[], marcos=[];
     for(let i=0;i<c.msgs.length;i++){
       const t0=Date.now();
-      try{await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload(de,c.msgs[i],i))});}catch(e){}
+      const envio=await enviar(de,c.msgs[i],i);
       troca.push({de:'cliente',txt:c.msgs[i]});
+      if(!envio.ok){
+        el('lg').textContent='ERRO ao enviar: '+envio.motivo;
+        if(RESULT.length===0&&i===0){
+          alert('Não consegui entregar a mensagem ao n8n.\n\n'+envio.motivo+'\n\nA rodada foi interrompida.');
+          el('bt-run').disabled=false; return;
+        }
+        troca.push({de:'sofia',txt:'(a mensagem não chegou ao n8n: '+envio.motivo+')',tipo:'texto'});
+        marcos.push(troca.length);
+        continue;
+      }
       el('lg').textContent=`[${k+1}/${alvo.length}] ${c.nome} · ${i+1}/${c.msgs.length}`;
       const r=await esperar(de,t0,24000);
       marcos.push(troca.length);
