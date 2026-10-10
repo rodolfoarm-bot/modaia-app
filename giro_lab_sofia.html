@@ -101,7 +101,7 @@ const RX={
   pedeIdade:/(quantos meses|qual a idade|que idade|\bidade (d|e)\b|quantos anos)/,   // \b: "unidade do" não é pedir idade
   pedeGenero:/(menino ou menina|é menina|é menino|gênero|genero)/,
   pedePeca:/(body|macac|vestido|conjunto|sa[ií]da maternidade|blusa|cal[çc]a|pijama|bermuda)/,
-  quantidade:/(quantas unidades|quantas voc|quantidade)/,
+  quantidade:/(quantas?\b|quantos?\b|quantidade)/,
   naoTem:/(n[ãa]o (tem|temos|trabalh\w*|vend\w*|encontrei|dispon\w*|possu\w*)|indispon[ií]vel|sem estoque|esgotad)/,
   handoff:/(atendente|uma pessoa da|vou (te )?passar|transferir|algu[ée]m da loja|equipe vai)/,
   pediatra:/(pediatra|m[ée]dic|profissional de sa[úu]de|posto de sa[úu]de)/,
@@ -256,6 +256,22 @@ const CENARIOS=[
   {t:'sinal',q:'Mostrou total ou nº do pedido',f:c=>RX.fechou.test(c.sofia)},
  ]},
 
+{id:'ca6',grupo:'Carrinho',nome:'Não vende além do estoque',
+ esp:'O body tem 1 unidade. Pedir de novo o mesmo body não pode somar 1+1: ela avisa que já está no carrinho',
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','quero o {{codigo:body}}','1'],
+ asserts:[
+  {t:'prova',q:'Carrinho com no máximo 1 unidade do body',f:c=>(c.carrinho||[]).reduce((t,i)=>t+Number(i.quantidade||0),0)<=1},
+  {t:'sinal',q:'Avisou que já tem tudo no carrinho',f:c=>/(j[áa] tem|tudo o que temos|em estoque|esgotad)/.test(c.ultima)},
+ ]},
+
+{id:'ca7',grupo:'Carrinho',nome:'"1" solto não fica no vácuo',
+ esp:'Número sem nada pendente: ela responde (pergunta o que a cliente quer) e não adiciona nada sozinha',
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','1'],
+ asserts:[
+  {t:'prova',q:'Respondeu ao "1" solto',f:c=>c.respostasFinais>=1},
+  {t:'prova',q:'Não adicionou nada sozinha (no máximo 1 unidade)',f:c=>(c.carrinho||[]).reduce((t,i)=>t+Number(i.quantidade||0),0)<=1},
+ ]},
+
 /* ── 5. TRAVAS DE PENDÊNCIA ─────────────────────────────────── */
 {id:'tr1',grupo:'Travas',nome:'Categoria no meio da quantidade',
  esp:'Deve repetir a pergunta da quantidade antes de trocar de assunto',
@@ -285,6 +301,8 @@ const CENARIOS=[
  msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','1','oi','1'],
  asserts:[
   {t:'prova',q:'Nenhuma fala repetida 3x',f:c=>{const m={};let mx=0;c.falas.forEach(f=>{const k=f.slice(0,60);m[k]=(m[k]||0)+1;mx=Math.max(mx,m[k]);});return mx<3;}},
+  {t:'prova',q:'Não vendeu além do estoque (body de teste: 1 unidade)',f:c=>(c.carrinho||[]).reduce((t,i)=>t+Number(i.quantidade||0),0)<=1},
+  {t:'prova',q:'Respondeu à última mensagem (não ficou em silêncio)',f:c=>c.respostasFinais>=1},
  ]},
 
 /* ── 6. ESTOQUE E HONESTIDADE ───────────────────────────────── */
@@ -518,7 +536,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v8 · silêncio esperado';
+const VERSAO_LAB='v9 · estoque no carrinho';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -733,6 +751,7 @@ async function montarCtx(de,troca,marcos){
     fotosDepoisDe:(n)=>{const idx=marcos[n]!=null?marcos[n]:0;
       return troca.slice(idx).filter(m=>m.de==='sofia'&&m.tipo==='imagem').length;},
     carrinho, carrinhoAberto:(pedido&&pedido.estado==='aberto')?carrinho:[], pedido,
+    respostasFinais:(()=>{const iu=troca.map(m=>m.de).lastIndexOf('cliente');return troca.slice(iu+1).filter(m=>m.de==='sofia'&&!m.sis).length;})(),
     fotosTipos:falasObj.filter(m=>m.tipo==='imagem').map(m=>norm(String(m.txt||'').split('\n')[0].split('·')[0])),
     tiposFotosDepoisDaMsg:(re)=>{const i=troca.findIndex(m=>m.de==='cliente'&&re.test(m.txt||''));if(i<0)return [];
       return troca.slice(i).filter(m=>m.de==='sofia'&&m.tipo==='imagem').map(m=>norm(String(m.txt||'').split('\n')[0].split('·')[0]));},
