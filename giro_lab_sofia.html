@@ -32,6 +32,8 @@ background:var(--surface2);color:var(--text2);margin:0 5px 5px 0;cursor:pointer;
 .msg.out{background:var(--surface2);margin-right:40px}
 .msg .who{font-size:9.5px;font-weight:700;opacity:.6;display:block;margin-bottom:1px}
 .as{font-size:12px;padding:5px 9px;border-radius:7px;margin-bottom:4px;display:flex;gap:7px;align-items:flex-start}
+.as.av{background:var(--warn-l);color:var(--warn)}
+.msg.lab{background:transparent;border:1px dashed var(--border);color:var(--text3);font-size:12px;margin:0 40px 5px}
 .as.ok{background:var(--ok-l);color:var(--ok)} .as.no{background:var(--bad-l);color:var(--bad)}
 .as .tp{font-size:9px;font-weight:700;opacity:.75;border:1px solid currentColor;border-radius:4px;padding:0 4px;flex-shrink:0;margin-top:2px}
 .log{font-size:12px;color:var(--text3);font-family:ui-monospace,monospace;max-height:110px;overflow:auto;margin-top:8px}
@@ -132,7 +134,7 @@ const CENARIOS=[
 
 {id:'f3',grupo:'Fundamentos',nome:'Compra completa',
  esp:'Escolhe, informa quantidade, fecha com número de pedido',
- msgs:['oi','menina de 4 meses','quero um body','1','pode fechar'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','pode fechar'],
  asserts:[
   {t:'prova',q:'Carrinho teve item',f:c=>c.carrinho.length>0||!!c.pedido?.numero_pedido},
   {t:'prova',q:'Pedido saiu do estado "aberto"',f:c=>!!c.pedido&&c.pedido.estado!=='aberto'},
@@ -175,7 +177,7 @@ const CENARIOS=[
 
 {id:'t2',grupo:'Perfil e tamanho',nome:'Perfil não se repete',
  esp:'Depois de informar, nunca mais perguntar idade/gênero',
- msgs:['oi','menino de 2 anos','quero uma camiseta','1','agora quero ver brinquedos'],
+ msgs:['oi','menino de 2 anos','quero uma camiseta','quero o {{codigo:camiseta}}','1','agora quero ver brinquedos'],
  asserts:[
   {t:'sinal',q:'Não pediu idade de novo',f:c=>!RX.pedeIdade.test(c.falas.slice(2).join(' '))},
   {t:'sinal',q:'Não pediu gênero de novo',f:c=>!RX.pedeGenero.test(c.falas.slice(2).join(' '))},
@@ -183,7 +185,7 @@ const CENARIOS=[
 
 {id:'t3',grupo:'Perfil e tamanho',nome:'Perfil sobrevive ao pedido fechado',
  esp:'Fechou um pedido, começou outro: perfil continua valendo',
- msgs:['oi','menina de 6 meses','quero um body','1','pode fechar','quero ver uma calça agora'],
+ msgs:['oi','menina de 6 meses','quero um body','quero o {{codigo:body}}','1','pode fechar','quero ver uma calça agora'],
  asserts:[
   {t:'sinal',q:'Não pediu idade/gênero depois de fechar',f:c=>!RX.pedeIdade.test(c.falas.slice(-2).join(' '))&&!RX.pedeGenero.test(c.falas.slice(-2).join(' '))},
  ]},
@@ -191,7 +193,7 @@ const CENARIOS=[
 /* ── 4. CARRINHO ────────────────────────────────────────────── */
 {id:'ca1',grupo:'Carrinho',nome:'Alterar quantidade',
  esp:'"muda pra 1" ajusta, não apaga',
- msgs:['oi','menina de 4 meses','quero um body','2','muda pra 1'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','2','muda pra 1'],
  asserts:[
   {t:'prova',q:'Carrinho continua com 1 item',f:c=>c.carrinho.length===1},
   {t:'prova',q:'Quantidade virou 1',f:c=>c.carrinho.length===1&&Number(c.carrinho[0].quantidade)===1},
@@ -199,7 +201,7 @@ const CENARIOS=[
 
 {id:'ca2',grupo:'Carrinho',nome:'Remover item ≠ limpar',
  esp:'Com 2 itens, "tira o body" deve deixar 1 — não zerar',
- msgs:['oi','menina de 4 meses','quero um body','1','quero uma calça também','1','tira o body'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','quero uma calça também','quero o {{codigo:calça}}','1','tira o body'],
  asserts:[
   {t:'prova',q:'Sobrou item no carrinho (não limpou tudo)',f:c=>c.carrinho.length>=1},
   {t:'prova',q:'Body saiu',f:c=>!c.carrinho.some(i=>/body/i.test(i.tipo||''))},
@@ -207,7 +209,7 @@ const CENARIOS=[
 
 {id:'ca3',grupo:'Carrinho',nome:'Limpar de verdade',
  esp:'"limpa o carrinho" esvazia mesmo',
- msgs:['oi','menina de 4 meses','quero um body','1','limpa o carrinho','o que tem no meu carrinho?'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','limpa o carrinho','o que tem no meu carrinho?'],
  asserts:[
   {t:'prova',q:'Carrinho ficou vazio',f:c=>c.carrinho.length===0},
   {t:'sinal',q:'Confirmou que esvaziou',f:c=>c.tem(/(limpei|esvazi|vazio)/)},
@@ -215,14 +217,14 @@ const CENARIOS=[
 
 {id:'ca4',grupo:'Carrinho',nome:'Ver carrinho',
  esp:'Lista itens e total',
- msgs:['oi','menina de 4 meses','quero um body','1','o que tem no meu carrinho?'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','o que tem no meu carrinho?'],
  asserts:[
   {t:'sinal',q:'Mostrou total em R$',f:c=>/r\$\s*\d/.test(c.ultima)},
  ]},
 
 {id:'ca5',grupo:'Carrinho',nome:'Encerrar com carrinho cheio',
  esp:'"é só isso" com itens = FECHAR, não despedir',
- msgs:['oi','menina de 1 ano','quero uma calça','1','não, é só isso'],
+ msgs:['oi','menina de 1 ano','quero uma calça','quero o {{codigo:calça}}','1','não, é só isso'],
  asserts:[
   {t:'prova',q:'Pedido foi fechado',f:c=>!!c.pedido&&c.pedido.estado!=='aberto'},
   {t:'sinal',q:'Mostrou total ou nº do pedido',f:c=>RX.fechou.test(c.sofia)},
@@ -231,22 +233,22 @@ const CENARIOS=[
 /* ── 5. TRAVAS DE PENDÊNCIA ─────────────────────────────────── */
 {id:'tr1',grupo:'Travas',nome:'Categoria no meio da quantidade',
  esp:'Deve repetir a pergunta da quantidade antes de trocar de assunto',
- msgs:['oi','menina de 6 meses','quero um vestido','quero ver brinquedos'],
+ msgs:['oi','menina de 6 meses','quero um vestido','quero o {{codigo:vestido}}','quero ver brinquedos'],
  asserts:[
   {t:'sinal',q:'Insistiu na quantidade',f:c=>RX.quantidade.test(c.ultima)},
-  {t:'prova',q:'Não buscou brinquedo ainda',f:c=>c.fotosDepoisDe(3)===0},
+  {t:'prova',q:'Não buscou brinquedo ainda',f:c=>c.fotosDepoisDaMsg(/brinquedos/)===0},
  ]},
 
 {id:'tr2',grupo:'Travas',nome:'Desistir do item pendente',
  esp:'"deixa pra lá" solta a pendência e segue',
- msgs:['oi','menina de 6 meses','quero um vestido','deixa pra lá, quero ver brinquedos'],
+ msgs:['oi','menina de 6 meses','quero um vestido','quero o {{codigo:vestido}}','deixa pra lá, quero ver brinquedos'],
  asserts:[
   {t:'sinal',q:'Não ficou presa na quantidade',f:c=>!RX.quantidade.test(c.ultima)},
  ]},
 
 {id:'tr3',grupo:'Travas',nome:'Atendente vence a trava',
  esp:'Mesmo com quantidade pendente, pedido de atendente passa',
- msgs:['oi','menina de 6 meses','quero um vestido','quero falar com uma atendente'],
+ msgs:['oi','menina de 6 meses','quero um vestido','quero o {{codigo:vestido}}','quero falar com uma atendente'],
  asserts:[
   {t:'prova',q:'Marcou atendimento humano',f:c=>!!c.pedido&&c.pedido.aguardando_humano===true},
   {t:'sinal',q:'Avisou da transferência',f:c=>RX.handoff.test(c.ultima)},
@@ -254,7 +256,7 @@ const CENARIOS=[
 
 {id:'tr4',grupo:'Travas',nome:'Sem loop',
  esp:'Nunca repetir a mesma frase 3x seguidas',
- msgs:['oi','menina de 4 meses','quero um body','1','1','oi','1'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','1','oi','1'],
  asserts:[
   {t:'prova',q:'Nenhuma fala repetida 3x',f:c=>{const m={};let mx=0;c.falas.forEach(f=>{const k=f.slice(0,60);m[k]=(m[k]||0)+1;mx=Math.max(mx,m[k]);});return mx<3;}},
  ]},
@@ -503,37 +505,86 @@ async function testarConexao(){
     :'Falhou: '+r.motivo;
 }
 
+const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const chave=m=>m.id!=null?String(m.id):(m.criado_em+'|'+(m.texto||''));
+
+/* {{codigo}} / {{codigo:tipo}} vira o #NNN de uma foto que a Sofia JÁ mostrou.
+   É o que permite escolher um produto de verdade, como a cliente faz. */
+function parseLote(imgs){
+  return imgs.map(m=>{
+    const t=String(m.texto||'');
+    const cod=(t.match(/#\s*(\d{1,4})/)||[])[1];
+    const tipo=norm((t.split('\n')[0]||'').split('·')[0]);
+    return cod?{tipo,codigo:'#'+String(cod).padStart(3,'0')}:null;
+  }).filter(Boolean);
+}
+function resolver(msg,lote){
+  const m=String(msg).match(/\{\{codigo(?::([^}]+))?\}\}/);
+  if(!m)return{ok:true,txt:msg};
+  const alvo=m[1]?norm(m[1]):null;
+  const achado=lote.find(p=>!alvo||p.tipo.startsWith(alvo));
+  if(!achado)return{ok:false,falta:m[1]?('um(a) '+m[1]):'um produto'};
+  return{ok:true,txt:String(msg).replace(m[0],achado.codigo)};
+}
+function rotulo(m){
+  if(m.de==='cliente')return 'Cliente';
+  if(m.de==='lab')return 'Laboratório';
+  return 'Sofia'+(m.tipo==='imagem'?' · foto':'')+(m.lat?(' · '+Math.round(m.lat/1000)+'s'):'');
+}
+function rotuloMd(m){
+  if(m.de==='cliente')return '**Cliente:** ';
+  if(m.de==='lab')return '_Laboratório:_ ';
+  return '**Sofia'+(m.tipo==='imagem'?' (foto)':'')+(m.lat?(' ['+Math.round(m.lat/1000)+'s]'):'')+':** ';
+}
+
 async function rodar(){
   el('bt-run').disabled=true; RESULT=[]; el('c-res').style.display='none';
   const alvo=CENARIOS.filter(c=>SEL.has(c.grupo));
-  const base=Date.now()%100000;
+  // telefone único por rodada e por cenário; 11 dígitos de propósito (a Meta recusa, ninguém real recebe)
+  const base=Math.floor(Date.now()/1000)%100000;
   for(let k=0;k<alvo.length;k++){
-    const c=alvo[k], de='5531'+String(9000000+base+k).slice(-7);
-    const troca=[], marcos=[];
+    const c=alvo[k], de='5531'+String(base*100+k).padStart(7,'0').slice(-7);
+    const troca=[], marcos=[], avisos=[], usados=new Set();
+    let lote=[];
     for(let i=0;i<c.msgs.length;i++){
-      const t0=Date.now();
-      const envio=await enviar(de,c.msgs[i],i);
-      troca.push({de:'cliente',txt:c.msgs[i]});
+      const rs=resolver(c.msgs[i],lote);
+      if(!rs.ok){
+        avisos.push('a busca anterior não trouxe '+rs.falta+'; passo "'+c.msgs[i]+'" não foi enviado');
+        troca.push({de:'lab',txt:'(passo ignorado: não havia '+rs.falta+' nos resultados da busca)',sis:true});
+        marcos.push(troca.length);
+        continue;
+      }
+      const txt=rs.txt, t0=Date.now();
+      const envio=await enviar(de,txt,i);
+      troca.push({de:'cliente',txt});
       if(!envio.ok){
         el('lg').textContent='ERRO ao enviar: '+envio.motivo;
         if(RESULT.length===0&&i===0){
           alert('Não consegui entregar a mensagem ao n8n.\n\n'+envio.motivo+'\n\nA rodada foi interrompida.');
           el('bt-run').disabled=false; return;
         }
-        troca.push({de:'sofia',txt:'(a mensagem não chegou ao n8n: '+envio.motivo+')',tipo:'texto'});
+        troca.push({de:'lab',txt:'(a mensagem não chegou ao n8n: '+envio.motivo+')',sis:true});
+        avisos.push('mensagem "'+txt.slice(0,30)+'" não chegou ao n8n');
         marcos.push(troca.length);
         continue;
       }
       el('lg').textContent=`[${k+1}/${alvo.length}] ${c.nome} · ${i+1}/${c.msgs.length}`;
-      const r=await esperar(de,t0,24000);
+      const r=await esperar(de,t0,usados);
       marcos.push(troca.length);
-      r.forEach(m=>troca.push({de:'sofia',txt:m.texto,tipo:m.tipo}));
-      if(!r.length)troca.push({de:'sofia',txt:'(sem resposta em 24s)',tipo:'texto'});
-      await sleep(900);
+      r.msgs.forEach((m,j)=>troca.push({de:'sofia',txt:m.texto,tipo:m.tipo,lat:j===0?r.lat:null}));
+      const imgs=r.msgs.filter(m=>m.tipo==='imagem');
+      if(imgs.length)lote=parseLote(imgs);
+      if(!r.msgs.length){
+        troca.push({de:'lab',txt:'(sem resposta em '+Math.round(r.espera/1000)+'s)',sis:true});
+        avisos.push('sem resposta para "'+txt.slice(0,30)+'" em '+Math.round(r.espera/1000)+'s');
+      }else if(r.lat>20000){
+        avisos.push('resposta lenta ('+Math.round(r.lat/1000)+'s) para "'+txt.slice(0,30)+'"');
+      }
+      await sleep(1200);
     }
     const ctx=await montarCtx(de,troca,marcos);
     const res=c.asserts.map(a=>{let ok=false,err=null;try{ok=!!a.f(ctx);}catch(e){err=String(e.message||e);}return{...a,ok,err};});
-    RESULT.push({...c,telefone:de,troca,res});
+    RESULT.push({...c,telefone:de,troca,res,avisos});
     render();
   }
   el('lg').textContent='concluído';
@@ -541,17 +592,35 @@ async function rodar(){
 }
 
 /* Lê as respostas direto do banco — por isso não precisamos do WhatsApp */
-async function esperar(de,desde,limite){
-  const iso=new Date(desde-1200).toISOString(), fim=Date.now()+limite;
-  let achadas=[],ultimo=Date.now();
-  while(Date.now()<fim){
+/* Espera a Sofia TERMINAR, não um tempo fixo.
+   - sem resposta nenhuma: até 90s (antes eram 24s e a resposta atrasada caía na mensagem errada)
+   - depois da primeira resposta: espera silêncio; mais longo quando ela anunciou fotos
+     (entre o texto e a primeira foto há pausa de ~3,5s de propósito)
+   - cada mensagem da Sofia só é atribuída uma vez ('usados') */
+async function esperar(de,desde,usados){
+  const iso=new Date(desde-1200).toISOString();
+  const SEM_RESPOSTA=90000, TOTAL=150000;
+  const inicio=Date.now();
+  let achadas=[], ultimoNovo=Date.now(), lat=null;
+  while(true){
     await sleep(1500);
-    const r=await sbGet('mensagens_wpp','loja_id=eq.'+LOJA+'&telefone=eq.'+de+
-      '&direcao=eq.out&criado_em=gte.'+encodeURIComponent(iso)+'&order=criado_em.asc&limit=25');
-    if(r.length>achadas.length){achadas=r;ultimo=Date.now();}
-    if(achadas.length&&Date.now()-ultimo>4200)break;
+    const agora=Date.now();
+    const rows=(await sbGet('mensagens_wpp','loja_id=eq.'+LOJA+'&telefone=eq.'+de+
+      '&direcao=eq.out&criado_em=gte.'+encodeURIComponent(iso)+'&order=criado_em.asc&limit=40'))
+      .filter(m=>!usados.has(chave(m)));
+    if(rows.length>achadas.length){achadas=rows;ultimoNovo=agora;if(lat===null)lat=agora-desde;}
+    if(!achadas.length&&agora-inicio>SEM_RESPOSTA)break;
+    if(achadas.length){
+      const ult=achadas[achadas.length-1];
+      const txt=String(ult.texto||'').toLowerCase();
+      const anunciouFotos=ult.tipo!=='imagem'&&/(👇|fotos|te mando|vou mostrar|te mostrar)/.test(txt);
+      const quieto=ult.tipo==='imagem'?7000:(anunciouFotos?13000:4500);
+      if(agora-ultimoNovo>quieto)break;
+    }
+    if(agora-inicio>TOTAL)break;
   }
-  return achadas.map(m=>({texto:m.texto||'',tipo:m.tipo||'texto'}));
+  achadas.forEach(m=>usados.add(chave(m)));
+  return{msgs:achadas.map(m=>({texto:m.texto||'',tipo:m.tipo||'texto'})),lat:lat||0,espera:Date.now()-inicio};
 }
 
 /* Contexto das assertivas: texto + ESTADO REAL do banco */
@@ -561,12 +630,14 @@ async function montarCtx(de,troca,marcos){
     const r=await sbGet('carrinhos_wpp','loja_id=eq.'+LOJA+'&telefone=eq.'+de+'&order=criado_em.desc&limit=1');
     if(r&&r[0]){pedido=r[0];carrinho=Array.isArray(r[0].itens)?r[0].itens:[];}
   }catch(e){}
-  const falasObj=troca.filter(m=>m.de==='sofia');
+  const falasObj=troca.filter(m=>m.de==='sofia'&&!m.sis);
   const falas=falasObj.map(m=>(m.txt||'').toLowerCase());
   const sofia=falas.join(' \n ');
   return {
-    sofia, falas, ultima:falas[falas.length-1]||'',
+    sofia, falas, ultima:(falasObj.filter(m=>m.tipo!=='imagem').map(m=>(m.txt||'').toLowerCase()).pop()||''),
     fotos:falasObj.filter(m=>m.tipo==='imagem').length,
+    fotosDepoisDaMsg:(re)=>{const i=troca.findIndex(m=>m.de==='cliente'&&re.test(m.txt||''));
+      if(i<0)return 0;return troca.slice(i).filter(m=>m.de==='sofia'&&m.tipo==='imagem').length;},
     fotosDepoisDe:(n)=>{const idx=marcos[n]!=null?marcos[n]:0;
       return troca.slice(idx).filter(m=>m.de==='sofia'&&m.tipo==='imagem').length;},
     carrinho, pedido, tem:(re)=>re.test(sofia),
@@ -577,8 +648,9 @@ function render(){
   const tot=RESULT.reduce((a,c)=>a+c.res.length,0);
   const ok=RESULT.reduce((a,c)=>a+c.res.filter(r=>r.ok).length,0);
   const cf=RESULT.filter(c=>c.res.some(r=>!r.ok)).length;
+  const inc=RESULT.filter(c=>(c.avisos||[]).length).length;
   el('sum').innerHTML=`<div><b>${RESULT.length}</b>cenários</div><div><b style="color:var(--ok)">${ok}</b>assertivas ok</div>
-    <div><b style="color:var(--bad)">${tot-ok}</b>falharam</div><div><b style="color:var(--warn)">${cf}</b>cenários c/ falha</div>`;
+    <div><b style="color:var(--bad)">${tot-ok}</b>falharam</div><div><b style="color:var(--warn)">${cf}</b>cenários c/ falha</div><div><b>${inc}</b>com avisos do lab</div>`;
   el('bt-f').textContent=soFalhas?'Mostrar tudo':'Só as falhas';
   const lista=soFalhas?RESULT.filter(c=>c.res.some(r=>!r.ok)):RESULT;
   el('res').innerHTML=lista.map(c=>{
@@ -587,7 +659,7 @@ function render(){
       <h3>${esc(c.grupo)} › ${esc(c.nome)}</h3>
       <div class="esp">${esc(c.esp)}</div>
       ${c.res.map(r=>`<div class="as ${r.ok?'ok':'no'}"><span class="tp">${r.t}</span><span>${r.ok?'✓':'✗'} ${esc(r.q)}${r.err?' · erro: '+esc(r.err):''}</span></div>`).join('')}
-      <div style="margin-top:9px">${c.troca.map(m=>`<div class="msg ${m.de==='cliente'?'in':'out'}"><span class="who">${m.de==='cliente'?'Cliente':'Sofia'}${m.tipo==='imagem'?' · foto':''}</span>${esc(m.txt)}</div>`).join('')}</div>
+      ${(c.avisos||[]).map(a=>`<div class="as av"><span class="tp">lab</span><span>⚠ ${esc(a)}</span></div>`).join('')}<div style="margin-top:9px">${c.troca.map(m=>`<div class="msg ${m.de==='cliente'?'in':(m.de==='lab'?'lab':'out')}"><span class="who">${rotulo(m)}</span>${esc(m.txt)}</div>`).join('')}</div>
     </div>`;}).join('');
 }
 
@@ -597,16 +669,18 @@ function gerar(){
   const ok=RESULT.reduce((a,c)=>a+c.res.filter(r=>r.ok).length,0);
   t+=`${RESULT.length} cenários · ${ok}/${tot} assertivas passaram\n\n`;
   const falhos=RESULT.filter(c=>c.res.some(r=>!r.ok));
+  const _incs=RESULT.filter(c=>(c.avisos||[]).length);
   t+='## Resumo das falhas\n\n';
   if(!falhos.length)t+='Nenhuma falha.\n\n';
   falhos.forEach(c=>{t+=`- **${c.grupo} › ${c.nome}**: `+c.res.filter(r=>!r.ok).map(r=>r.q).join(' · ')+'\n';});
+  if(_incs.length){t+='\n## Avisos do laboratório (o cenário pode estar inconclusivo)\n\n';_incs.forEach(c=>{t+='- **'+c.grupo+' › '+c.nome+'**: '+c.avisos.join(' · ')+'\n';});}
   t+='\n---\n\n## Detalhe\n\n';
   RESULT.forEach(c=>{
     const falhou=c.res.some(r=>!r.ok);
     t+=`### ${falhou?'❌':'✅'} ${c.grupo} › ${c.nome}\n*Esperado: ${c.esp}*\n\n`;
-    c.res.forEach(r=>{t+=`- ${r.ok?'✓':'✗'} [${r.t}] ${r.q}\n`;});
+    (c.avisos||[]).forEach(a=>{t+='- ⚠ [lab] '+a+'\n';});c.res.forEach(r=>{t+=`- ${r.ok?'✓':'✗'} [${r.t}] ${r.q}\n`;});
     t+='\n';
-    c.troca.forEach(m=>{t+=(m.de==='cliente'?'**Cliente:** ':('**Sofia'+(m.tipo==='imagem'?' (foto)':'')+':** '))+String(m.txt||'').replace(/\n/g,' ')+'\n\n';});
+    c.troca.forEach(m=>{t+=rotuloMd(m)+String(m.txt||'').replace(/\n/g,' ')+'\n\n';});
     t+='\n';
   });
   el('rel').value=t;
