@@ -441,10 +441,12 @@ const CENARIOS=[
  ]},
 
 {id:'b4',grupo:'Busca',nome:'Dois tipos de uma vez',
- esp:'Busca o primeiro e guarda o segundo',
+ esp:'"roupinhas e brinquedos": roupinha é genérico, então pergunta a PEÇA — e já avisa que mostra os brinquedos depois',
  msgs:['oi','menina de 4 meses','quero roupinhas e brinquedos'],
  asserts:[
-  {t:'sinal',q:'Não ignorou o segundo tipo',f:c=>/brinquedo/.test(c.sofia)},
+  {t:'prova',q:'Não buscou roupa genérica (sem fotos ainda)',f:c=>c.fotos===0},
+  {t:'sinal',q:'Perguntou qual peça de roupa',f:c=>RX.pedePeca.test(c.ultima)&&RX.pergunta.test(c.ultima)},
+  {t:'sinal',q:'Não esqueceu os brinquedos',f:c=>/brinquedo/.test(c.ultima)},
  ]},
 
 {id:'b5',grupo:'Busca',nome:'Só o tipo pedido',
@@ -471,6 +473,14 @@ const CENARIOS=[
   {t:'prova',q:'Depois do aceite, mostrou fotos',f:c=>c.tiposFotosDepoisDaMsg(/parecidas/).length>0},
   {t:'sinal',q:'Não escreveu a palavra-sinal "similares" para a cliente',f:c=>!/similares/.test(c.sofia)},
  ]},
+
+{id:'b8',grupo:'Busca',nome:'Dois tipos: oferece o segundo depois',
+ esp:'Depois de comprar a peça de roupa, oferece os brinquedos que ela tinha pedido',
+ msgs:['oi','menina de 4 meses','quero roupinhas e brinquedos','quero um body','quero o {{codigo:body}}','1'],
+ asserts:[
+  {t:'prova',q:'Body entrou no carrinho',f:c=>c.carrinho.length>0},
+  {t:'sinal',q:'Ofereceu os brinquedos depois de adicionar',f:c=>/brinquedo/.test(c.ultima)},
+ ]},
 ];
 
 
@@ -478,7 +488,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v3 · busca por tipo';
+const VERSAO_LAB='v4 · tipo e tamanho';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
