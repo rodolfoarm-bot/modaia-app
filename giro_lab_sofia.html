@@ -98,7 +98,7 @@ let TOKEN=null,LOJA=null,RESULT=[],soFalhas=false;
    ══════════════════════════════════════════════════════════════ */
 const RX={
   pergunta:/\?/,
-  pedeIdade:/(quantos meses|qual a idade|que idade|idade (d|e)|quantos anos)/,
+  pedeIdade:/(quantos meses|qual a idade|que idade|\bidade (d|e)\b|quantos anos)/,   // \b: "unidade do" não é pedir idade
   pedeGenero:/(menino ou menina|é menina|é menino|gênero|genero)/,
   pedePeca:/(body|macac|vestido|conjunto|sa[ií]da maternidade|blusa|cal[çc]a|pijama|bermuda)/,
   quantidade:/(quantas unidades|quantas voc|quantidade)/,
@@ -512,7 +512,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v5 · tamanho único';
+const VERSAO_LAB='v6 · mais opções corrigido';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
