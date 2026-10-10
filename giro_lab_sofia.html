@@ -191,6 +191,30 @@ const CENARIOS=[
   {t:'sinal',q:'Não pediu idade/gênero depois de fechar',f:c=>!RX.pedeIdade.test(c.falas.slice(-2).join(' '))&&!RX.pedeGenero.test(c.falas.slice(-2).join(' '))},
  ]},
 
+{id:'t4',grupo:'Perfil e tamanho',nome:'"1 ano" é tamanho 1',
+ esp:'Idade no limite entre faixas entra na maior: 12 meses = tamanho 1 (antes variava entre 1 e GG)',
+ msgs:['oi','menina de 1 ano','quero uma blusa'],
+ asserts:[
+  {t:'sinal',q:'Buscou no tamanho 1 (fotos ou aviso citando o 1)',f:c=>/tamanho 1\b/.test(c.sofia)},
+  {t:'sinal',q:'Não usou GG',f:c=>!/tamanho gg\b/.test(c.sofia)},
+ ]},
+
+{id:'t5',grupo:'Perfil e tamanho',nome:'"1 ano e 3 meses" soma os dois',
+ esp:'15 meses = tamanho 1 (antes só os "3 meses" eram lidos)',
+ msgs:['oi','minha filha tem 1 ano e 3 meses','quero uma blusa'],
+ asserts:[
+  {t:'sinal',q:'Buscou no tamanho 1',f:c=>/tamanho 1\b/.test(c.sofia)},
+  {t:'sinal',q:'Não usou P nem M (leria só os 3 meses)',f:c=>!/tamanho (p|m)\b/.test(c.sofia)},
+ ]},
+
+{id:'t6',grupo:'Perfil e tamanho',nome:'"3 meses" é tamanho M',
+ esp:'Idade no limite entre P (1-3m) e M (3-6m) entra na maior: M (antes: P)',
+ msgs:['oi','menina de 3 meses','quero um body'],
+ asserts:[
+  {t:'sinal',q:'Buscou no tamanho M',f:c=>/tamanho m\b/.test(c.sofia)},
+  {t:'sinal',q:'Não usou P',f:c=>!/tamanho p\b/.test(c.sofia)},
+ ]},
+
 /* ── 4. CARRINHO ────────────────────────────────────────────── */
 {id:'ca1',grupo:'Carrinho',nome:'Alterar quantidade',
  esp:'"muda pra 1" ajusta, não apaga',
@@ -488,7 +512,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v4 · tipo e tamanho';
+const VERSAO_LAB='v5 · tamanho único';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
