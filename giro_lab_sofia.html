@@ -120,6 +120,7 @@ const CENARIOS=[
  asserts:[
   {t:'sinal',q:'Diz que é assistente virtual / IA',f:c=>c.tem(/(assistente virtual|sou uma ia|intelig[êe]ncia artificial|assistente da)/)},
   {t:'sinal',q:'Faz pergunta',f:c=>RX.pergunta.test(c.sofia)},
+  {t:'sinal',q:'Pergunta idade ou gênero (regra do primeiro contato)',f:c=>/(idade|g[êe]nero|meses|anos)/.test(c.sofia)},
   {t:'prova',q:'Não buscou produtos ainda',f:c=>c.fotos===0},
   {t:'sinal',q:'Respondeu em 1 mensagem (não fragmentou)',f:c=>c.falas.length<=2},
  ]},
@@ -160,24 +161,24 @@ const CENARIOS=[
  ]},
 
 {id:'p3',grupo:'Perguntar antes',nome:'Peça específica vai direto',
- esp:'Com peça nomeada, não deve perguntar mais nada',
+ esp:'Com a peça nomeada não pergunta mais nada: mostra fotos ou avisa que não há no tamanho',
  msgs:['oi','quero um vestido para menina de 2 anos'],
  asserts:[
-  {t:'prova',q:'Buscou',f:c=>c.fotos>0},
+  {t:'sinal',q:'Foi direto à busca (fotos ou aviso de falta)',f:c=>c.fotos>0||/n[ãa]o (encontrei|tenho|temos)|no momento n[ãa]o/.test(c.sofia)},
+  {t:'sinal',q:'Não voltou a perguntar o tipo',f:c=>!/(qual pe[çc]a|o que voc[êe] (procura|est[áa] procurando))/.test(c.ultima)},
  ]},
 
 /* ── 3. PERFIL E TAMANHO ────────────────────────────────────── */
 {id:'t1',grupo:'Perfil e tamanho',nome:'Tamanho informado vence a idade',
- esp:'"4 meses mas veste G" → buscar G, não M',
+ esp:'"4 meses mas veste G" → procura G, não M (se não houver G, ela cita o G no aviso)',
  msgs:['oi','minha afilhada tem 4 meses mas já veste G','quero um macacão'],
  asserts:[
-  {t:'prova',q:'Buscou',f:c=>c.fotos>0},
-  {t:'sinal',q:'Mencionou G (e não M)',f:c=>/tamanho g\b|\bg\b/.test(c.sofia)&&!/tamanho m\b/.test(c.sofia)},
+  {t:'sinal',q:'Buscou no tamanho G (fotos G ou aviso citando G)',f:c=>/tamanho g\b/.test(c.sofia)},
  ]},
 
 {id:'t2',grupo:'Perfil e tamanho',nome:'Perfil não se repete',
  esp:'Depois de informar, nunca mais perguntar idade/gênero',
- msgs:['oi','menino de 2 anos','quero uma camiseta','quero o {{codigo:camiseta}}','1','agora quero ver brinquedos'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','agora quero ver brinquedos'],
  asserts:[
   {t:'sinal',q:'Não pediu idade de novo',f:c=>!RX.pedeIdade.test(c.falas.slice(2).join(' '))},
   {t:'sinal',q:'Não pediu gênero de novo',f:c=>!RX.pedeGenero.test(c.falas.slice(2).join(' '))},
@@ -193,7 +194,7 @@ const CENARIOS=[
 /* ── 4. CARRINHO ────────────────────────────────────────────── */
 {id:'ca1',grupo:'Carrinho',nome:'Alterar quantidade',
  esp:'"muda pra 1" ajusta, não apaga',
- msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','2','muda pra 1'],
+ msgs:['oi','menina de 4 meses','quero uma calça','quero o {{codigo:calça:2+}}','2','muda pra 1'],
  asserts:[
   {t:'prova',q:'Carrinho continua com 1 item',f:c=>c.carrinho.length===1},
   {t:'prova',q:'Quantidade virou 1',f:c=>c.carrinho.length===1&&Number(c.carrinho[0].quantidade)===1},
@@ -211,7 +212,8 @@ const CENARIOS=[
  esp:'"limpa o carrinho" esvazia mesmo',
  msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','limpa o carrinho','o que tem no meu carrinho?'],
  asserts:[
-  {t:'prova',q:'Carrinho ficou vazio',f:c=>c.carrinho.length===0},
+  {t:'prova',q:'Carrinho aberto ficou vazio',f:c=>c.carrinhoAberto.length===0},
+  {t:'prova',q:'Pedido foi cancelado (não só esvaziado na conversa)',f:c=>!!c.pedido&&c.pedido.estado==='cancelado'},
   {t:'sinal',q:'Confirmou que esvaziou',f:c=>c.tem(/(limpei|esvazi|vazio)/)},
  ]},
 
@@ -224,7 +226,7 @@ const CENARIOS=[
 
 {id:'ca5',grupo:'Carrinho',nome:'Encerrar com carrinho cheio',
  esp:'"é só isso" com itens = FECHAR, não despedir',
- msgs:['oi','menina de 1 ano','quero uma calça','quero o {{codigo:calça}}','1','não, é só isso'],
+ msgs:['oi','menina de 4 meses','quero uma calça','quero o {{codigo:calça}}','1','não, é só isso'],
  asserts:[
   {t:'prova',q:'Pedido foi fechado',f:c=>!!c.pedido&&c.pedido.estado!=='aberto'},
   {t:'sinal',q:'Mostrou total ou nº do pedido',f:c=>RX.fechou.test(c.sofia)},
@@ -413,27 +415,29 @@ const CENARIOS=[
  ]},
 
 /* ── 11. BUSCA ──────────────────────────────────────────────── */
-{id:'b1',grupo:'Busca',nome:'Mais opções mantém categoria',
- esp:'"mais opções" sem nomear nada = mesma categoria',
- msgs:['oi','menina de 4 meses','quero um body','quero ver mais opções'],
+{id:'b1',grupo:'Busca',nome:'Mais opções mantém o tipo',
+ esp:'"mais opções" continua em calça: mostra as que faltam ou avisa que já mostrou todas',
+ msgs:['oi','menina de 4 meses','quero uma calça','quero ver mais opções'],
  asserts:[
-  {t:'prova',q:'Buscou de novo',f:c=>c.fotos>0},
-  {t:'sinal',q:'Não pediu idade/gênero de novo',f:c=>!RX.pedeIdade.test(c.ultima)},
+  {t:'prova',q:'Mostrou calças na primeira busca',f:c=>c.fotosTipos.some(t=>/^(calca|legging)/.test(t))},
+  {t:'prova',q:'Depois de "mais opções" não mostrou outro tipo',f:c=>c.tiposFotosDepoisDaMsg(/mais op/).every(t=>/^(calca|legging)/.test(t))},
+  {t:'sinal',q:'Não pediu idade de novo',f:c=>!RX.pedeIdade.test(c.ultima)},
  ]},
 
 {id:'b2',grupo:'Busca',nome:'Mais opções com outra categoria',
- esp:'Se nomear outra peça, troca de categoria',
+ esp:'Se nomear outra peça, troca: mostra bermuda ou avisa o que falta dela',
  msgs:['oi','menina de 4 meses','quero um body','quero ver mais opções, tem bermuda?'],
  asserts:[
-  {t:'prova',q:'Buscou',f:c=>c.fotos>0},
+  {t:'sinal',q:'Tratou de bermuda (fotos de bermuda ou aviso)',f:c=>c.tiposFotosDepoisDaMsg(/bermuda/).some(t=>/^(bermuda|short)/.test(t))||/bermuda/.test(c.ultima)},
  ]},
 
 {id:'b3',grupo:'Busca',nome:'Não repete produto',
- esp:'Buscas seguidas não devem mostrar a mesma peça',
- msgs:['oi','menina de 4 meses','quero um body','mais opções','mais opções ainda'],
+ esp:'Quando as peças do tipo acabam, avisa em vez de repetir fotos',
+ msgs:['oi','menina de 4 meses','quero uma calça','mais opções','mais opções ainda'],
  asserts:[
-  {t:'prova',q:'Mostrou produtos nas duas rodadas',f:c=>c.fotos>=2},
+  {t:'prova',q:'Mostrou fotos na primeira busca',f:c=>c.fotos>=1},
   {t:'prova',q:'Sem código repetido entre as fotos',f:c=>{const cods=(c.sofia.match(/#\d{3}/g)||[]);return cods.length===new Set(cods).size;}},
+  {t:'sinal',q:'Avisou que já mostrou todas',f:c=>/j[áa] te mostrei|todas as|n[ãa]o tenho mais|s[óo] tenho mais/.test(c.sofia)},
  ]},
 
 {id:'b4',grupo:'Busca',nome:'Dois tipos de uma vez',
@@ -441,6 +445,31 @@ const CENARIOS=[
  msgs:['oi','menina de 4 meses','quero roupinhas e brinquedos'],
  asserts:[
   {t:'sinal',q:'Não ignorou o segundo tipo',f:c=>/brinquedo/.test(c.sofia)},
+ ]},
+
+{id:'b5',grupo:'Busca',nome:'Só o tipo pedido',
+ esp:'"quero um body" mostra SÓ body e avisa quantos há — não completa com calças ou macacões',
+ msgs:['oi','menina de 4 meses','quero um body'],
+ asserts:[
+  {t:'prova',q:'Todas as fotos são de body',f:c=>c.fotosTipos.length>0&&c.fotosTipos.every(t=>/^bod/.test(t))},
+  {t:'sinal',q:'Avisou quantos há (quando são poucos)',f:c=>c.fotosTipos.length>=3||/s[óo] (temos|tenho)/.test(c.sofia)},
+ ]},
+
+{id:'b6',grupo:'Busca',nome:'Tipo em falta no tamanho',
+ esp:'Sem calça no tamanho 1: diz que não há e oferece peças parecidas — não manda blusa em silêncio',
+ msgs:['oi','menina de 1 ano','quero uma calça'],
+ asserts:[
+  {t:'prova',q:'Não mandou foto de outro tipo',f:c=>c.fotosTipos.every(t=>/^(calca|legging)/.test(t))},
+  {t:'sinal',q:'Se não achou, avisou o que falta',f:c=>c.fotos>0||/n[ãa]o (encontrei|tenho|temos)|no momento n[ãa]o/.test(c.sofia)},
+  {t:'sinal',q:'Se não achou, ofereceu peças parecidas',f:c=>c.fotos>0||/parecidas/.test(c.sofia)},
+ ]},
+
+{id:'b7',grupo:'Busca',nome:'Peças parecidas sob pedido',
+ esp:'Ao aceitar a oferta, mostra peças de outros tipos no tamanho certo (sinal "similares")',
+ msgs:['oi','menina de 1 ano','quero uma calça','sim, quero ver peças parecidas'],
+ asserts:[
+  {t:'prova',q:'Depois do aceite, mostrou fotos',f:c=>c.tiposFotosDepoisDaMsg(/parecidas/).length>0},
+  {t:'sinal',q:'Não escreveu a palavra-sinal "similares" para a cliente',f:c=>!/similares/.test(c.sofia)},
  ]},
 ];
 
@@ -515,15 +544,21 @@ function parseLote(imgs){
     const t=String(m.texto||'');
     const cod=(t.match(/#\s*(\d{1,4})/)||[])[1];
     const tipo=norm((t.split('\n')[0]||'').split('·')[0]);
-    return cod?{tipo,codigo:'#'+String(cod).padStart(3,'0')}:null;
+    let estoque=99;                                   // sem aviso na legenda = mais de 3
+    if(/[úu]ltima unidade/i.test(t))estoque=1;
+    const mm=t.match(/[úu]ltimas\s+(\d+)\s+unidades/i); if(mm)estoque=parseInt(mm[1],10);
+    return cod?{tipo,codigo:'#'+String(cod).padStart(3,'0'),estoque}:null;
   }).filter(Boolean);
 }
+/* {{codigo}} · {{codigo:tipo}} · {{codigo:tipo:2+}} (mínimo de unidades em estoque).
+   Procura primeiro na busca mais recente, depois nas anteriores: a cliente pode
+   escolher uma peça que já apareceu antes. */
 function resolver(msg,lote){
-  const m=String(msg).match(/\{\{codigo(?::([^}]+))?\}\}/);
+  const m=String(msg).match(/\{\{codigo(?::([^:}]+))?(?::(\d+)\+)?\}\}/);
   if(!m)return{ok:true,txt:msg};
-  const alvo=m[1]?norm(m[1]):null;
-  const achado=lote.find(p=>!alvo||p.tipo.startsWith(alvo));
-  if(!achado)return{ok:false,falta:m[1]?('um(a) '+m[1]):'um produto'};
+  const alvo=m[1]?norm(m[1]):null, minimo=m[2]?parseInt(m[2],10):1;
+  const achado=lote.find(p=>(!alvo||p.tipo.startsWith(alvo))&&p.estoque>=minimo);
+  if(!achado)return{ok:false,falta:(m[1]?('um(a) '+m[1]):'um produto')+(minimo>1?(' com '+minimo+'+ unidades em estoque'):'')};
   return{ok:true,txt:String(msg).replace(m[0],achado.codigo)};
 }
 function rotulo(m){
@@ -545,10 +580,18 @@ async function rodar(){
   for(let k=0;k<alvo.length;k++){
     const c=alvo[k], de='5531'+String(base*100+k).padStart(7,'0').slice(-7);
     const troca=[], marcos=[], avisos=[], usados=new Set();
-    let lote=[];
+    let lote=[], pularNumeros=false;
     for(let i=0;i<c.msgs.length;i++){
+      const ehNumero=/^\d+$/.test(String(c.msgs[i]).trim());
+      if(pularNumeros&&ehNumero){
+        troca.push({de:'lab',txt:'(passo ignorado: "'+c.msgs[i]+'" dependia de uma escolha que não foi feita)',sis:true});
+        marcos.push(troca.length);
+        continue;
+      }
+      if(!ehNumero)pularNumeros=false;
       const rs=resolver(c.msgs[i],lote);
       if(!rs.ok){
+        pularNumeros=true;
         avisos.push('a busca anterior não trouxe '+rs.falta+'; passo "'+c.msgs[i]+'" não foi enviado');
         troca.push({de:'lab',txt:'(passo ignorado: não havia '+rs.falta+' nos resultados da busca)',sis:true});
         marcos.push(troca.length);
@@ -573,7 +616,7 @@ async function rodar(){
       marcos.push(troca.length);
       r.msgs.forEach((m,j)=>troca.push({de:'sofia',txt:m.texto,tipo:m.tipo,lat:j===0?r.lat:null}));
       const imgs=r.msgs.filter(m=>m.tipo==='imagem');
-      if(imgs.length)lote=parseLote(imgs);
+      if(imgs.length)lote=parseLote(imgs).concat(lote);
       if(!r.msgs.length){
         troca.push({de:'lab',txt:'(sem resposta em '+Math.round(r.espera/1000)+'s)',sis:true});
         avisos.push('sem resposta para "'+txt.slice(0,30)+'" em '+Math.round(r.espera/1000)+'s');
@@ -640,7 +683,11 @@ async function montarCtx(de,troca,marcos){
       if(i<0)return 0;return troca.slice(i).filter(m=>m.de==='sofia'&&m.tipo==='imagem').length;},
     fotosDepoisDe:(n)=>{const idx=marcos[n]!=null?marcos[n]:0;
       return troca.slice(idx).filter(m=>m.de==='sofia'&&m.tipo==='imagem').length;},
-    carrinho, pedido, tem:(re)=>re.test(sofia),
+    carrinho, carrinhoAberto:(pedido&&pedido.estado==='aberto')?carrinho:[], pedido,
+    fotosTipos:falasObj.filter(m=>m.tipo==='imagem').map(m=>norm(String(m.txt||'').split('\n')[0].split('·')[0])),
+    tiposFotosDepoisDaMsg:(re)=>{const i=troca.findIndex(m=>m.de==='cliente'&&re.test(m.txt||''));if(i<0)return [];
+      return troca.slice(i).filter(m=>m.de==='sofia'&&m.tipo==='imagem').map(m=>norm(String(m.txt||'').split('\n')[0].split('·')[0]));},
+    tem:(re)=>re.test(sofia),
   };
 }
 
