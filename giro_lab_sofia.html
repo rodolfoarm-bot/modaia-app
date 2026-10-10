@@ -44,7 +44,7 @@ textarea{min-height:220px;font-family:ui-monospace,monospace;font-size:11px}
 </style></head><body>
 
 <h1>Laboratório da Sofia</h1>
-<div class="sub">41 cenários · conversa pelo webhook, sem WhatsApp. Mostra o diálogo e o resultado de cada assertiva.</div>
+<div class="sub"><span id="cnt"></span> · conversa pelo webhook, sem WhatsApp. Mostra o diálogo e o resultado de cada assertiva.</div>
 
 <div class="card" id="c-login">
   <label>Usuário do Giro</label><input id="u" placeholder="rodolfo" autocapitalize="off"/>
@@ -476,6 +476,10 @@ const CENARIOS=[
 
 const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
+// Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
+// e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
+const VERSAO_LAB='v3 · busca por tipo';
+document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=t=>String(t==null?'':t).replace(/</g,'&lt;');
@@ -711,7 +715,7 @@ function render(){
 }
 
 function gerar(){
-  let t='# Laboratório da Sofia — '+new Date().toLocaleString('pt-BR')+'\n\n';
+  let t='# Laboratório da Sofia — '+new Date().toLocaleString('pt-BR')+' · '+VERSAO_LAB+'\n\n';
   const tot=RESULT.reduce((a,c)=>a+c.res.length,0);
   const ok=RESULT.reduce((a,c)=>a+c.res.filter(r=>r.ok).length,0);
   t+=`${RESULT.length} cenários · ${ok}/${tot} assertivas passaram\n\n`;
