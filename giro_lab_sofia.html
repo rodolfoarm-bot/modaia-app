@@ -536,7 +536,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v11 · sem silêncio';
+const VERSAO_LAB='v12 · seleção por código';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -653,6 +653,16 @@ function avaliarExtras(c,troca,ctx){
     const aviso=seg.some(x=>x.de==='sofia'&&AVISO_SISTEMA.test(x.txt||''));
     extra.push({t:'prova',q:'"'+String(m.txt).slice(0,30)+'" → fotos ou aviso do sistema (sem perguntar nem inventar)',ok:fotos||aviso});
   });
+  // código sozinho ("quero o #016") → pergunta de quantidade, ou o aviso de que já está todo no carrinho / esgotou
+  const REQ_CODIGO=/^\s*(quero\s+)?(o\s+|a\s+)?#\s*\d{1,4}\s*$/i;
+  const RESP_CODIGO=/(quantas?\b|quantos?\b|quantidade|j[áa] tem|esgotad)/i;
+  troca.forEach((m,k)=>{
+    if(m.de!=='cliente'||!REQ_CODIGO.test(m.txt||''))return;
+    const seg=[];for(let j=k+1;j<troca.length&&troca[j].de!=='cliente';j++)seg.push(troca[j]);
+    const ok=seg.some(x=>x.de==='sofia'&&x.tipo!=='imagem'&&RESP_CODIGO.test(x.txt||''));
+    extra.push({t:'prova',q:'"'+String(m.txt).slice(0,18)+'" → pergunta de quantidade (ou aviso de que já está no carrinho/esgotado)',ok});
+  });
+
   // a cliente NUNCA fica sem resposta (só as mensagens marcadas como silêncio esperado, ex.: depois do handoff)
   troca.forEach((m,k)=>{
     if(m.de!=='cliente'||m.silencio)return;
