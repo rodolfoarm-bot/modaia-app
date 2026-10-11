@@ -205,6 +205,7 @@ const CENARIOS=[
  asserts:[
   {t:'sinal',q:'Buscou no tamanho 1',f:c=>/tamanho 1\b/.test(c.sofia)},
   {t:'sinal',q:'Não usou P nem M (leria só os 3 meses)',f:c=>!/tamanho (p|m)\b/.test(c.sofia)},
+  {t:'sinal',q:'Não perguntou o gênero (a cliente disse "minha filha")',f:c=>!RX.pedeGenero.test(c.falasTexto[1]||'')},
  ]},
 
 {id:'t6',grupo:'Perfil e tamanho',nome:'"3 meses" é tamanho M',
@@ -329,6 +330,7 @@ const CENARIOS=[
  asserts:[
   {t:'sinal',q:'Respondeu algo concreto',f:c=>c.ultima.length>25},
   {t:'prova',q:'Não transferiu para atendente',f:c=>!c.pedido||c.pedido.aguardando_humano!==true},
+  {t:'sinal',q:'Deu o endereço de verdade (rua/avenida…), não uma recusa',f:c=>/(rua |avenida|av\.|alameda|travessa|pra[çc]a|rodovia|estrada)/.test(c.falasTexto[1]||'')},
  ]},
 
 {id:'l2',grupo:'Dados da loja',nome:'Pagamento e troca',
@@ -536,7 +538,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v12 · seleção por código';
+const VERSAO_LAB='v13 · rede de segurança útil';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -732,6 +734,10 @@ async function rodar(){
     }
     const ctx=await montarCtx(de,troca,marcos);
     const res=c.asserts.map(a=>{let ok=false,err=null;try{ok=!!a.f(ctx);}catch(e){err=String(e.message||e);}return{...a,ok,err};});
+    // a rede de segurança do Parsear GPT-4o respondeu no lugar de um handoff indevido: não é falha
+    // (a cliente foi bem atendida), mas mostra quantas vezes o modelo ainda tenta transferir à toa
+    troca.forEach(m=>{ if(m.de==='sofia'&&/isso eu n[ãa]o consigo resolver por aqui/i.test(m.txt||''))
+      avisos.push('rede de segurança acionada: o modelo tentou transferir sem motivo'); });
     avaliarExtras(c,troca,ctx).forEach(e=>res.push({t:e.t,q:e.q,ok:e.ok,err:null}));
     RESULT.push({...c,telefone:de,troca,res,avisos});
     render();
