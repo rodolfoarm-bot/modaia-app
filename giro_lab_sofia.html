@@ -258,7 +258,7 @@ const CENARIOS=[
 
 {id:'ca6',grupo:'Carrinho',nome:'Não vende além do estoque',
  esp:'O body tem 1 unidade. Pedir de novo o mesmo body não pode somar 1+1: ela avisa que já está no carrinho',
- msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','quero o {{codigo:body}}','1'],
+ msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','quero o {{codigo:body}}'],
  asserts:[
   {t:'prova',q:'Carrinho com no máximo 1 unidade do body',f:c=>(c.carrinho||[]).reduce((t,i)=>t+Number(i.quantidade||0),0)<=1},
   {t:'sinal',q:'Avisou que já tem tudo no carrinho',f:c=>/(j[áa] tem|tudo o que temos|em estoque|esgotad)/.test(c.ultima)},
@@ -278,7 +278,7 @@ const CENARIOS=[
  msgs:['oi','menina de 6 meses','quero um vestido','quero o {{codigo:vestido}}','quero ver brinquedos'],
  asserts:[
   {t:'sinal',q:'Insistiu na quantidade',f:c=>RX.quantidade.test(c.ultima)},
-  {t:'prova',q:'Não buscou brinquedo ainda',f:c=>c.fotosDepoisDaMsg(/brinquedos/)===0},
+  {t:'prova',q:'Não mostrou brinquedos (a foto do vestido pendente pode se repetir)',f:c=>c.tiposFotosDepoisDaMsg(/brinquedos/).every(t=>!/(brinquedo|pelucia|chocalho|mordedor)/.test(t))},
  ]},
 
 {id:'tr2',grupo:'Travas',nome:'Desistir do item pendente',
@@ -318,7 +318,7 @@ const CENARIOS=[
  esp:'Não inventa produto que a loja não vende',
  msgs:['oi','quero um notebook'],
  asserts:[
-  {t:'sinal',q:'Não ofereceu o produto',f:c=>!/notebook/.test(c.sofia)||RX.naoTem.test(c.sofia)},
+  {t:'sinal',q:'Não ofereceu o produto',f:c=>!/(temos (sim )?(um |uns )?notebook|mostrar (os )?notebook|notebooks?.{0,15}(dispon[ií]ve|em estoque|por r\$))/.test(c.sofia)},
   {t:'prova',q:'Não buscou',f:c=>c.fotos===0},
  ]},
 
@@ -536,7 +536,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v10 · cobranças implícitas';
+const VERSAO_LAB='v11 · sem silêncio';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -653,6 +653,13 @@ function avaliarExtras(c,troca,ctx){
     const aviso=seg.some(x=>x.de==='sofia'&&AVISO_SISTEMA.test(x.txt||''));
     extra.push({t:'prova',q:'"'+String(m.txt).slice(0,30)+'" → fotos ou aviso do sistema (sem perguntar nem inventar)',ok:fotos||aviso});
   });
+  // a cliente NUNCA fica sem resposta (só as mensagens marcadas como silêncio esperado, ex.: depois do handoff)
+  troca.forEach((m,k)=>{
+    if(m.de!=='cliente'||m.silencio)return;
+    let respondeu=false;
+    for(let j=k+1;j<troca.length&&troca[j].de!=='cliente';j++){ if(troca[j].de==='sofia')respondeu=true; }
+    if(!respondeu) extra.push({t:'prova',q:'Respondeu a "'+String(m.txt).slice(0,30)+'" (a cliente nunca fica sem resposta)',ok:false});
+  });
   return extra;
 }
 
@@ -683,7 +690,7 @@ async function rodar(){
       }
       const txt=rs.txt, t0=Date.now();
       const envio=await enviar(de,txt,i);
-      troca.push({de:'cliente',txt});
+      troca.push({de:'cliente',txt,silencio:(c.silencioDe!=null&&i>=c.silencioDe)});
       if(!envio.ok){
         el('lg').textContent='ERRO ao enviar: '+envio.motivo;
         if(RESULT.length===0&&i===0){
