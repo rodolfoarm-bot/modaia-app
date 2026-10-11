@@ -300,7 +300,7 @@ const CENARIOS=[
  esp:'Nunca repetir a mesma frase 3x seguidas',
  msgs:['oi','menina de 4 meses','quero um body','quero o {{codigo:body}}','1','1','oi','1'],
  asserts:[
-  {t:'prova',q:'Nenhuma fala repetida 3x',f:c=>{const m={};let mx=0;c.falas.forEach(f=>{const k=f.slice(0,60);m[k]=(m[k]||0)+1;mx=Math.max(mx,m[k]);});return mx<3;}},
+  {t:'prova',q:'Nenhuma fala repetida 3x',f:c=>{const m={};let mx=0;c.falasTexto.forEach(f=>{const k=f.slice(0,60);m[k]=(m[k]||0)+1;mx=Math.max(mx,m[k]);});return mx<3;}},
   {t:'prova',q:'Não vendeu além do estoque (body de teste: 1 unidade)',f:c=>(c.carrinho||[]).reduce((t,i)=>t+Number(i.quantidade||0),0)<=1},
   {t:'prova',q:'Respondeu à última mensagem (não ficou em silêncio)',f:c=>c.respostasFinais>=1},
  ]},
@@ -536,7 +536,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v9 · estoque no carrinho';
+const VERSAO_LAB='v10 · cobranças implícitas';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -634,6 +634,28 @@ function rotuloMd(m){
   return '**Sofia'+(m.tipo==='imagem'?' (foto)':'')+(m.lat?(' ['+Math.round(m.lat/1000)+'s]'):'')+':** ';
 }
 
+/* Cobranças IMPLÍCITAS (valem para todos os cenários, sem depender de cada assertiva lembrar):
+   - não transferir para atendente quando nada pedia isso (o mini transferia endereço, "notebook",
+     febre do bebê... e como a assertiva do cenário não olhava isso, passava);
+   - pedido de PEÇA específica recebe foto ou o aviso do sistema ("Só temos 1...", "Não encontrei
+     ... agora") — nunca uma pergunta de tamanho/subtipo nem um "não está disponível" inventado. */
+const ESPERA_HANDOFF=['tr3','h2','h5','h6','s4'];
+const REQ_PECA=/^\s*quero (ver )?(um|uma|uns|umas)?\s*(body|bodie|macac\w*|vestido|conjunt\w*|blusa|cal[çc]a|bermuda|camiseta|pijama|saia|casaco|jaqueta|short|legging)/i;
+const AVISO_SISTEMA=/(n[ãa]o encontrei .{0,40}agora|no momento n[ãa]o temos .{0,40}dispon[ií]veis|j[áa] te mostrei|s[óo] temos \d|s[óo] tenho mais)/i;
+function avaliarExtras(c,troca,ctx){
+  const extra=[];
+  if(!ESPERA_HANDOFF.includes(c.id))
+    extra.push({t:'prova',q:'Não transferiu para atendente (nada na conversa pedia isso)',ok:!(ctx.pedido&&ctx.pedido.aguardando_humano===true)});
+  troca.forEach((m,k)=>{
+    if(m.de!=='cliente'||!REQ_PECA.test(m.txt||''))return;
+    const seg=[];for(let j=k+1;j<troca.length&&troca[j].de!=='cliente';j++)seg.push(troca[j]);
+    const fotos=seg.some(x=>x.de==='sofia'&&x.tipo==='imagem');
+    const aviso=seg.some(x=>x.de==='sofia'&&AVISO_SISTEMA.test(x.txt||''));
+    extra.push({t:'prova',q:'"'+String(m.txt).slice(0,30)+'" → fotos ou aviso do sistema (sem perguntar nem inventar)',ok:fotos||aviso});
+  });
+  return extra;
+}
+
 async function rodar(){
   el('bt-run').disabled=true; RESULT=[]; el('c-res').style.display='none';
   const alvo=CENARIOS.filter(c=>SEL.has(c.grupo));
@@ -693,6 +715,7 @@ async function rodar(){
     }
     const ctx=await montarCtx(de,troca,marcos);
     const res=c.asserts.map(a=>{let ok=false,err=null;try{ok=!!a.f(ctx);}catch(e){err=String(e.message||e);}return{...a,ok,err};});
+    avaliarExtras(c,troca,ctx).forEach(e=>res.push({t:e.t,q:e.q,ok:e.ok,err:null}));
     RESULT.push({...c,telefone:de,troca,res,avisos});
     render();
   }
@@ -751,6 +774,7 @@ async function montarCtx(de,troca,marcos){
     fotosDepoisDe:(n)=>{const idx=marcos[n]!=null?marcos[n]:0;
       return troca.slice(idx).filter(m=>m.de==='sofia'&&m.tipo==='imagem').length;},
     carrinho, carrinhoAberto:(pedido&&pedido.estado==='aberto')?carrinho:[], pedido,
+    falasTexto:falasObj.filter(m=>m.tipo!=='imagem').map(m=>(m.txt||'').toLowerCase()),
     respostasFinais:(()=>{const iu=troca.map(m=>m.de).lastIndexOf('cliente');return troca.slice(iu+1).filter(m=>m.de==='sofia'&&!m.sis).length;})(),
     fotosTipos:falasObj.filter(m=>m.tipo==='imagem').map(m=>norm(String(m.txt||'').split('\n')[0].split('·')[0])),
     tiposFotosDepoisDaMsg:(re)=>{const i=troca.findIndex(m=>m.de==='cliente'&&re.test(m.txt||''));if(i<0)return [];
