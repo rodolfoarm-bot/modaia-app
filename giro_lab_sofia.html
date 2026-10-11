@@ -538,7 +538,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v13 · rede de segurança útil';
+const VERSAO_LAB='v14 · tamanho da escolha';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -664,6 +664,21 @@ function avaliarExtras(c,troca,ctx){
     const ok=seg.some(x=>x.de==='sofia'&&x.tipo!=='imagem'&&RESP_CODIGO.test(x.txt||''));
     extra.push({t:'prova',q:'"'+String(m.txt).slice(0,18)+'" → pergunta de quantidade (ou aviso de que já está no carrinho/esgotado)',ok});
   });
+
+  // a foto da ESCOLHA por código tem o mesmo tamanho da foto que a cliente viu na busca. A lojista pode
+  // cadastrar dois tamanhos da mesma peça com o mesmo número (ex.: #036 em M e em G); escolher o errado
+  // vende o tamanho errado.
+  {
+    const tamDe=t=>((String(t||'').match(/Tamanho\s+(\S+)/i)||[])[1]||'').toUpperCase();
+    const codDe=t=>((String(t||'').match(/#\s*(\d{1,4})/)||[])[1]||'');
+    troca.forEach((m,k)=>{
+      if(m.de!=='cliente'||!REQ_CODIGO.test(m.txt||''))return;
+      const cd=codDe(m.txt); let antes=null, depois=null;
+      for(let j=k-1;j>=0;j--){ if(troca[j].de==='sofia'&&troca[j].tipo==='imagem'&&codDe(troca[j].txt)===cd){antes=troca[j];break;} }
+      for(let j=k+1;j<troca.length&&troca[j].de!=='cliente';j++){ if(troca[j].de==='sofia'&&troca[j].tipo==='imagem'&&codDe(troca[j].txt)===cd){depois=troca[j];break;} }
+      if(antes&&depois) extra.push({t:'prova',q:'#'+cd+': a foto da escolha tem o MESMO tamanho da mostrada na busca ('+tamDe(antes.txt)+')',ok:tamDe(antes.txt)===tamDe(depois.txt)});
+    });
+  }
 
   // a cliente NUNCA fica sem resposta (só as mensagens marcadas como silêncio esperado, ex.: depois do handoff)
   troca.forEach((m,k)=>{
