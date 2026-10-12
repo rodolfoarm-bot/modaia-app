@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Giro · Laboratório de Catalogação</title>
+<style>
+:root{--bg:#0f1115;--surface:#171a21;--surface2:#1f232c;--border:#2a2f3a;
+--text1:#e8eaf0;--text2:#a8b0c0;--text3:#6b7488;--accent:#7C3AED;--accent-l:rgba(124,58,237,.16);
+--ok:#22c55e;--ok-l:rgba(34,197,94,.13);--warn:#f59e0b;--warn-l:rgba(245,158,11,.13);
+--bad:#ef4444;--bad-l:rgba(239,68,68,.13);}
+*{box-sizing:border-box}
+body{margin:0 auto;background:var(--bg);color:var(--text1);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:18px;max-width:980px}
+h1{font-size:19px;margin:0 0 3px} h2{font-size:15px;margin:16px 0 8px}
+.sub{font-size:12.5px;color:var(--text3);margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px;letter-spacing:.3px}
+input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text1);border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit;margin-bottom:9px}
+input[type=checkbox]{width:auto;margin:0 7px 0 0;vertical-align:middle}
+.ck{display:flex;align-items:center;font-size:13px;color:var(--text2);margin-bottom:7px;cursor:pointer}
+button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer;width:100%}
+button.sec{background:var(--surface2);color:var(--text1);border:1px solid var(--border)}
+button.bad{background:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:9px;flex-wrap:wrap} .row>*{flex:1;min-width:130px}
+.col2{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media(max-width:640px){.col2{grid-template-columns:1fr}}
+.mod{border:1px solid var(--border);border-radius:12px;padding:11px}
+.mod h3{margin:0 0 8px;font-size:13px;color:var(--accent-l);color:#c4a7ff}
+.log{font-size:12px;color:var(--text3);font-family:ui-monospace,monospace;max-height:150px;overflow:auto;margin-top:8px;white-space:pre-wrap}
+.note{font-size:12px;color:var(--text3);margin:4px 0 10px}
+.warn{background:var(--warn-l);color:var(--warn);border-radius:9px;padding:8px 10px;font-size:12.5px;margin-bottom:10px}
+table.tb{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px}
+.tb th,.tb td{border-bottom:1px solid var(--border);padding:6px 8px;text-align:left;vertical-align:top}
+.tb th{font-size:11px;color:var(--text2);letter-spacing:.3px}
+.tb td.n{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:20px;border:1px solid currentColor;margin-left:6px;vertical-align:middle}
+.pill.fiscal{color:var(--warn)} .pill.geral{color:var(--text3)} .pill.cores{color:var(--text3)}
+.prod{border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:12px;display:flex;gap:12px}
+.prod img{width:150px;height:150px;object-fit:cover;border-radius:10px;cursor:pointer;flex-shrink:0;background:var(--surface2)}
+.prod .corpo{flex:1;min-width:0}
+.prod .tit{font-size:13px;font-weight:700;margin-bottom:6px}
+.dv{border-top:1px dashed var(--border);padding:8px 0}
+.dv .h{font-size:12.5px;font-weight:700;margin-bottom:5px}
+.opt{font-size:13px;padding:5px 9px;border-radius:7px;background:var(--surface2);margin-bottom:4px;word-break:break-word}
+.cad{font-size:11.5px;color:var(--text3);margin:2px 0 6px}
+.jb{display:flex;gap:6px;flex-wrap:wrap} .jb button{width:auto;flex:1;min-width:84px;padding:7px 9px;font-size:12px}
+.jb button.sel{background:var(--ok);color:#06210f}
+.ver{border-radius:12px;padding:12px;font-size:13.5px;margin:10px 0}
+.ver.ok{background:var(--ok-l);border:1px solid var(--ok)} .ver.no{background:var(--bad-l);border:1px solid var(--bad)} .ver.in{background:var(--warn-l);border:1px solid var(--warn)}
+textarea{min-height:230px;font-family:ui-monospace,monospace;font-size:11px}
+</style></head><body>
+
+<h1>Laboratório de Catalogação por foto</h1>
+<div class="sub">Roda dois modelos de visão nos produtos já cadastrados, com o <b>mesmo prompt e o mesmo motor de NCM da produção</b>, e mostra só onde eles divergem para você julgar. Nada é gravado no banco.</div>
+
+<div class="card" id="c-login">
+  <label>Usuário do Giro</label><input id="u" placeholder="rodolfo" autocapitalize="off"/>
+  <label>Senha</label><input id="p" type="password"/>
+  <button onclick="entrar()">Entrar</button>
+  <div class="log" id="lg-login"></div>
+</div>
+
+<div class="card" id="c-run" style="display:none">
+  <label>Chave da OpenAI (fica só na memória desta página; não é salva em lugar nenhum)</label>
+  <input id="key" type="password" autocomplete="off" placeholder="sk-..."/>
+  <div class="note">Use uma chave criada só para este teste, com limite de gasto, e apague-a depois. A página chama a OpenAI direto do seu navegador.</div>
+
+  <div class="col2">
+    <div class="mod"><h3>Modelo A (o de hoje)</h3>
+      <label>Modelo</label><input id="a-id" value="gpt-4o"/>
+      <label>Esforço de raciocínio</label>
+      <select id="a-ef"><option value="omitir" selected>omitir (modelo sem raciocínio)</option><option>none</option><option>minimal</option><option>low</option><option>medium</option><option>high</option></select>
+      <div class="row"><div><label>US$ entrada / 1M</label><input id="a-pin" value="2.50"/></div><div><label>US$ saída / 1M</label><input id="a-pout" value="10.00"/></div></div>
+    </div>
+    <div class="mod"><h3>Modelo B (o candidato)</h3>
+      <label>Modelo</label><input id="b-id" value="gpt-5-mini"/>
+      <label>Esforço de raciocínio</label>
+      <select id="b-ef"><option value="omitir">omitir</option><option>none</option><option selected>minimal</option><option>low</option><option>medium</option><option>high</option></select>
+      <div class="row"><div><label>US$ entrada / 1M</label><input id="b-pin" value="0.25"/></div><div><label>US$ saída / 1M</label><input id="b-pout" value="2.00"/></div></div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <div><label>Quantos produtos</label><input id="n" value="24" oninput="atualizaEstim()"/></div>
+    <div><label>Parar se o gasto passar de (US$)</label><input id="teto" value="2.00"/></div>
+  </div>
+  <label class="ck"><input type="checkbox" id="estrat" checked/> Variar os tipos (body, calça, vestido…) em vez de sortear às cegas</label>
+  <label class="ck"><input type="checkbox" id="soconf" checked/> Só produtos com NCM já confirmado pela lojista (referência mais confiável)</label>
+  <label class="ck"><input type="checkbox" id="cego" checked/> Julgamento cego (as respostas aparecem embaralhadas, sem dizer de qual modelo)</label>
+  <div class="note" id="estim"></div>
+  <div class="row">
+    <button class="sec" id="bt-test" onclick="testarConexao()" style="max-width:170px">Testar conexão</button>
+    <button id="bt-run" onclick="rodar()">Rodar comparação</button>
+    <button class="bad" id="bt-stop" onclick="PARAR=true" style="display:none;max-width:120px">Parar</button>
+  </div>
+  <div class="log" id="lg"></div>
+</div>
+
+<div class="card" id="c-res" style="display:none">
+  <h2>1 · Custo e velocidade (medidos nesta rodada)</h2>
+  <div id="res-resumo"></div>
+  <h2>2 · Quanto os dois modelos concordam</h2>
+  <div class="note">“Cadastro” é o que está no banco hoje. Atenção: a maior parte dele foi gerada pelo próprio modelo A, então concordar com o cadastro favorece o A. Use só como referência.</div>
+  <div id="res-conc"></div>
+  <h2>3 · Julgue as divergências</h2>
+  <label class="ck"><input type="checkbox" id="inc-cores" onchange="renderJulgamento()"/> Incluir divergências de cor (mais julgamentos; as cores quase não afetam a fiscalização)</label>
+  <div id="placar"></div>
+  <div id="res-jul"></div>
+  <h2>4 · Relatório para colar no chat</h2>
+  <div class="row" style="margin-bottom:8px"><button class="sec" onclick="copiar()">Copiar relatório</button></div>
+  <textarea id="rel" readonly></textarea>
+</div>
+
+<script>
+const SB='https://warmbloodedmule-supabase.cloudfy.live';
+const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc3NTkzOTM4LCJleHAiOjE4MDkxMjk5Mzh9.UFGPqBWlRb3S0N5GV4Ldpzpok-cYHEtddgjRIHCB_iU';
+const PROMPT="Voc\u00ea \u00e9 um assistente especialista em cataloga\u00e7\u00e3o de produtos infantis para uma loja brasileira. Sua tarefa \u00e9 analisar a foto de um produto (roupa, acess\u00f3rio, cal\u00e7ado ou brinquedo) e gerar um JSON estruturado com informa\u00e7\u00f5es precisas e factuais \u2014 pensando que m\u00e3es (p\u00fablico-alvo) usar\u00e3o essas descri\u00e7\u00f5es para encontrar o produto via busca por texto ou voz.\n\nREGRAS GERAIS:\n- Responda SEMPRE em portugu\u00eas do Brasil.\n- Use linguagem natural mas FACTUAL \u2014 descreva o que a pe\u00e7a \u00c9, n\u00e3o o que ela \"representa\" ou \"transmite\".\n- EVITE adjetivos l\u00fadicos ou subjetivos como \"encantador\", \"delicado\", \"alegre\", \"sonhador\", \"fof\u00edssimo\", \"perfeito para meninas que adoram...\", \"ideal para princesas\", \"estilo apaixonante\".\n- PERMITIDOS apenas adjetivos descritivos objetivos: \"quentinho\", \"leve\", \"confort\u00e1vel\", \"pr\u00e1tico\", \"estampado\", \"liso\", \"rodado\", \"antiderrapante\", \"macio\".\n- N\u00c3O estime tamanho \u2014 o tamanho \u00e9 informado manualmente pelo lojista no cadastro.\n- Se algum campo n\u00e3o for identific\u00e1vel na foto com seguran\u00e7a, retorne string vazia \"\" ou array vazio [].\n- Retorne APENAS o JSON, sem texto antes ou depois, sem markdown, sem ```json.\n\nREGRA DE KIT E CONJUNTO (CR\u00cdTICO):\n- Se a foto mostrar 2 ou mais pe\u00e7as do MESMO tipo (ex: duas cal\u00e7as, duas meias, dois bodies): tipo = \"kit\" e subtipo = \"kit de [tipo]\". Ex: subtipo = \"kit de cal\u00e7as\", \"kit de meias\", \"kit de bodies\".\n- Se a foto mostrar 2 ou mais pe\u00e7as de tipos DIFERENTES entre si (ex: body + cal\u00e7a, camiseta + bermuda): tipo = \"conjunto\" e subtipo descreve as pe\u00e7as. Ex: subtipo = \"body e cal\u00e7a\", \"camiseta e bermuda\".\n- Se a foto mostrar 2 ou mais ACESS\u00d3RIOS (tiaras, la\u00e7os, presilhas, meias): tipo = \"kit\" e subtipo = \"kit de [acess\u00f3rio]\". Ex: subtipo = \"kit de tiaras\", \"kit de la\u00e7os\".\n- Para kits e conjuntos, a descricao_semantica deve descrever TODAS as pe\u00e7as.\n- S\u00f3 use \"kit\" ou \"conjunto\" se houver claramente mais de uma pe\u00e7a vis\u00edvel na foto. Se houver d\u00favida, trate como pe\u00e7a \u00fanica.\n\nESTRUTURA DO JSON DE RESPOSTA:\n\n{\n  \"tipo\": \"string\",\n  \"categoria\": \"string\",\n  \"subtipo\": \"string\",\n  \"genero\": \"string\",\n  \"faixa_etaria_principal\": \"string\",\n  \"faixa_etaria_secundaria\": \"string\",\n  \"cores_predominantes\": [\"cor1\", \"cor2\", \"cor3\"],\n  \"material\": \"string\",\n  \"tipo_tecido\": \"string\",\n  \"tem_manga\": boolean,\n  \"tipo_manga\": \"string\",\n  \"tipo_fechamento\": \"string\",\n  \"tem_estampa\": boolean,\n  \"tipo_estampa\": \"string\",\n  \"descricao_estampa\": \"string\",\n  \"personagem\": \"string\",\n  \"franquia\": \"string\",\n  \"marca_licenciada\": \"string\",\n  \"tem_acessorios\": boolean,\n  \"acessorios\": \"string\",\n  \"detalhes_especiais\": [\"detalhe1\", \"detalhe2\"],\n  \"clima_indicado\": \"string\",\n  \"estacoes\": [\"estacao1\"],\n  \"ocasiao\": \"string\",\n  \"estilo\": \"string\",\n  \"descricao_semantica\": \"string\",\n  \"tags_adicionais\": \"string\",\n  \"referencias_culturais\": \"string\"\n}\n\nDETALHAMENTO DOS CAMPOS:\n\n1. tipo (obrigat\u00f3rio):\n   ROUPAS: \"vestido\", \"macac\u00e3o\", \"macaquinho\", \"body\", \"camiseta\", \"blusa\", \"blusa de frio\", \"moletom\", \"casaco\", \"jaqueta\", \"cal\u00e7a\", \"legging\", \"bermuda\", \"shorts\", \"saia\", \"saia-short\", \"pijama\", \"camisola\", \"roup\u00e3o\", \"manta\", \"vestido de festa\", \"fantasia\".\n   AGRUPAMENTOS: \"conjunto\" (pe\u00e7as diferentes juntas), \"kit\" (pe\u00e7as iguais ou acess\u00f3rios agrupados), \"kit maternidade\".\n   MEIAS E ACESS\u00d3RIOS DE CABE\u00c7A: \"meia\", \"gorro\", \"touca\", \"luva\", \"cachecol\".\n   ACESS\u00d3RIOS: \"tiara\", \"faixa de cabelo\", \"la\u00e7o de cabelo\", \"scrunchie\", \"presilha\", \"colar\", \"pulseira\", \"mochila\", \"bolsa\", \"porta-chupeta\".\n   CAL\u00c7ADOS: \"sapatinho\", \"t\u00eanis\", \"sand\u00e1lia\", \"bota\", \"pantufa\".\n   BRINQUEDOS E ENXOVAL: \"chocalho\", \"mordedor\", \"m\u00f3bile\", \"naninha\", \"pel\u00facia\", \"babador\".\n   Se n\u00e3o se encaixar em nenhum: \"outros\".\n\n1b. categoria (obrigat\u00f3rio) \u2014 classifica\u00e7\u00e3o ampla do produto para filtros de busca. Use EXATAMENTE um destes 7 valores (min\u00fasculo, sem acento):\n   - \"roupa\" \u2014 qualquer pe\u00e7a de vestir: vestido, macac\u00e3o, macaquinho, body, camiseta, blusa, blusa de frio, moletom, casaco, jaqueta, cal\u00e7a, legging, bermuda, shorts, saia, pijama, camisola, roup\u00e3o, conjunto, kit de roupas, kit maternidade, sa\u00edda de maternidade, fantasia.\n   - \"calcado\" \u2014 sapatinho, t\u00eanis, sand\u00e1lia, bota, pantufa, chinelo, sapatilha.\n   - \"meia\" \u2014 meia, mei\u00e3o.\n   - \"brinquedo\" \u2014 chocalho, mordedor, m\u00f3bile, naninha, pel\u00facia, boneca, boneco, carrinho, jogo, quebra-cabe\u00e7a e brinquedos em geral.\n   - \"enxoval\" \u2014 itens t\u00eaxteis de cama e banho n\u00e3o vest\u00edveis: len\u00e7ol, fronha, coberta, cobertor, manta, cueiro, toalha, trocador de tecido, protetor de ber\u00e7o.\n   - \"acessorio\" \u2014 adornos e vest\u00edveis pequenos: tiara, faixa de cabelo, la\u00e7o, presilha, touca, gorro, luva, cachecol, babador, mochila, bolsa, porta-chupeta, colar, pulseira.\n   - \"higiene\" \u2014 itens de cuidado e banho n\u00e3o t\u00eaxteis: banheira, kit higiene, term\u00f4metro, aspirador nasal, porta-fraldas, cotonete.\n   REGRA: se tiver d\u00favida sobre a categoria, use \"roupa\". A categoria deve ser coerente com o tipo. Ex: tipo \"chocalho\" \u2192 categoria \"brinquedo\"; tipo \"len\u00e7ol\" \u2192 categoria \"enxoval\"; tipo \"tiara\" \u2192 categoria \"acessorio\".\n\n2. subtipo (obrigat\u00f3rio para kit e conjunto, opcional para demais):\n   Para conjunto: descreve as pe\u00e7as. Ex: \"body e cal\u00e7a\", \"camiseta e bermuda\", \"vestido e calcinha\".\n   Para kit de roupas iguais: \"kit de bodies\", \"kit de cal\u00e7as\", \"kit de macac\u00f5es\".\n   Para kit de acess\u00f3rios: \"kit de tiaras\", \"kit de la\u00e7os\", \"kit de meias\".\n   Para demais: refinamento do tipo. Ex: \"vestido god\u00ea\", \"macac\u00e3o curto\", \"jardineira\", \"chocalho de pel\u00facia\".\n\n3. genero:\n   \"infantil_f\" \u2014 menina (rosa, roxo, lil\u00e1s, vestidos, saias, princesas, flores, bailarinas, la\u00e7os)\n   \"infantil_m\" \u2014 menino (azul, verde, cinza escuro, super-her\u00f3is, dinossauros, carros)\n   \"unissex\" \u2014 cores neutras (branco, bege, amarelo, verde menta) sem marcadores de g\u00eanero\n   ATEN\u00c7\u00c3O: NUNCA use \"bebe\" como g\u00eanero. Beb\u00eas tamb\u00e9m s\u00e3o classificados como infantil_f, infantil_m ou unissex.\n   Em caso de d\u00favida entre menina/unissex, prefira menina se houver QUALQUER elemento feminino (la\u00e7o, rosa, floral).\n   Em caso de d\u00favida entre menino/unissex, prefira menino se houver elemento masculino claro.\n   Para produtos sem marcador de g\u00eanero (meias lisas, brinquedos neutros, acess\u00f3rios de enxoval), use \"unissex\".\n\n4. faixa_etaria_principal e faixa_etaria_secundaria:\n   SEMPRE retorne DUAS faixas em sequ\u00eancia para cobrir incerteza visual.\n   Categorias: \"rn\" (0-3m), \"bebe_pequeno\" (3-12m), \"bebe\" (1-2a), \"infantil_pequeno\" (3-5a), \"infantil_medio\" (6-9a), \"infantil_grande\" (10-14a).\n\n5. cores_predominantes (array, 1 a 3 cores):\n   Da mais para a menos predominante. Use:\n   \"branco\", \"preto\", \"cinza\", \"rosa\", \"rosa claro\", \"rosa pink\", \"azul\", \"azul marinho\", \"azul claro\", \"azul beb\u00ea\", \"verde\", \"verde menta\", \"verde \u00e1gua\", \"amarelo\", \"vermelho\", \"roxo\", \"lil\u00e1s\", \"laranja\", \"marrom\", \"bege\", \"creme\", \"off-white\", \"dourado\", \"prateado\", \"vinho\", \"salm\u00e3o\", \"coral\", \"turquesa\", \"nude\".\n\n6. material:\n   Informe a FIBRA predominante \u2014 n\u00e3o o nome comercial do tecido.\n   Isso \u00e9 usado na classifica\u00e7\u00e3o fiscal (NCM), ent\u00e3o precis\u00e3o importa.\n   FIBRAS: \"algod\u00e3o\", \"poli\u00e9ster\", \"poliamida\", \"viscose\", \"linho\", \"l\u00e3\",\n           \"elastano\", \"acr\u00edlico\", \"seda\".\n   N\u00c3O T\u00caXTEIS: \"pel\u00facia\", \"borracha\", \"silicone\", \"pl\u00e1stico\",\n                \"couro\", \"couro sint\u00e9tico\", \"neoprene\".\n   Se a etiqueta aparecer na foto, use o que ela diz.\n   Se n\u00e3o der para identificar com seguran\u00e7a, retorne \"\" (vazio).\n   NUNCA invente: vazio \u00e9 melhor que errado \u2014 o sistema sinaliza para revis\u00e3o.\n\n   Refer\u00eancia pr\u00e1tica do que costuma ser cada fibra:\n   - suedine, ribana, meia-malha, malha fria, tricoline \u2192 normalmente algod\u00e3o\n   - plush, soft, fleece, microfibra, tule, cetim, organza \u2192 normalmente poli\u00e9ster\n   - jeans, sarja \u2192 normalmente algod\u00e3o\n   - moletom \u2192 algod\u00e3o ou mistura com poli\u00e9ster; escolha o que predominar\n\n7. tipo_tecido:\n   Exatamente UMA destas duas palavras, ou \"\" se n\u00e3o der para decidir:\n\n   \"malha\" \u2192 tecido que ESTICA, feito de la\u00e7adas. \u00c9 a maioria da roupa\n             infantil: body, camiseta, macac\u00e3o, moletom, legging, meia,\n             suedine, ribana, plush, tric\u00f4.\n   \"plano\" \u2192 tecido que N\u00c3O estica, feito de trama cruzada: jeans, sarja,\n             tricoline, popeline, cambraia, linho, tule, cetim, organza.\n\n   Dica visual: pe\u00e7a de beb\u00ea com acabamento em ribana no punho/gola \u00e9 malha.\n   Camisa com bot\u00f5es, saia rodada estruturada e jeans costumam ser plano.\n   Na d\u00favida real, retorne \"\" \u2014 o sistema marca para revis\u00e3o.\n\n8. tem_manga (boolean) e tipo_manga:\n   Para produtos que n\u00e3o s\u00e3o roupas, use false e \"\".\n   Tipos: \"manga curta\", \"manga 3/4\", \"manga longa\", \"manga raglan\", \"manga bufante\", \"regata\", \"al\u00e7a fina\", \"al\u00e7a larga\", \"frente \u00fanica\".\n\n9. tipo_fechamento:\n   \"\" (sem fechamento aparente ou n\u00e3o aplic\u00e1vel), \"bot\u00e3o\", \"bot\u00e3o de press\u00e3o\", \"z\u00edper\", \"velcro\", \"la\u00e7o\", \"amarra\u00e7\u00e3o\", \"el\u00e1stico\", \"fechamento de gancho\", \"abertura nas pernas com bot\u00e3o\", \"vestir pela cabe\u00e7a\".\n\n10. tem_estampa (boolean) e tipo_estampa:\n   \"lisa\", \"listrada\", \"xadrez\", \"po\u00e1\", \"floral\", \"geom\u00e9trica\", \"animal print\", \"personagem\", \"frase/texto\", \"abstrata\", \"tie-dye\", \"camuflada\", \"color-block\".\n\n11. descricao_estampa (CR\u00cdTICO \u2014 campo mais importante para busca):\n    Descreva pelo SIGNIFICADO, n\u00e3o pelos elementos visuais.\n    \u274c ERRADO: \"c\u00edrculos amarelos com p\u00e9talas brancas ao redor\"\n    \u2705 CERTO: \"flores de margarida amarelas e brancas\"\n    \u274c ERRADO: \"figura de homem azul com teia\"\n    \u2705 CERTO: \"Homem-Aranha em pose de combate\"\n    Se for estampa lisa ou produto sem estampa, retorne \"\".\n\n12. personagem, franquia, marca_licenciada:\n    - personagem: nome espec\u00edfico (\"Homem-Aranha\", \"Elsa\", \"Mickey Mouse\", \"Bluey\", \"Stitch\")\n    - franquia: nome da obra (\"Marvel\", \"Frozen\", \"Disney Cl\u00e1ssicos\", \"Patrulha Canina\")\n    - marca_licenciada: detentora (\"Marvel\", \"Disney\", \"Pixar\", \"DC\", \"Nickelodeon\", \"Cartoon Network\")\n    Se n\u00e3o houver personagem, retorne \"\" para os tr\u00eas.\n\n13. tem_acessorios (boolean) e acessorios:\n    Itens extras que V\u00caM com o produto. Ex: \"la\u00e7o de cabelo combinando\", \"tiara\", \"cinto\", \"suspens\u00f3rio destac\u00e1vel\".\n    N\u00e3o confunda com as pr\u00f3prias pe\u00e7as de um kit ou conjunto.\n\n14. detalhes_especiais (array):\n    Para roupas: [\"plissado\", \"glitter\", \"brilho\", \"lantejoulas\", \"pedrarias\", \"babado\", \"renda\", \"bordado\", \"aplica\u00e7\u00e3o\", \"capuz\", \"bolsos frontais\", \"punho ribana\", \"barra ribana\", \"saia rodada\"].\n    Para acess\u00f3rios/brinquedos: [\"antiderrapante\", \"mordedor embutido\", \"anel de denti\u00e7\u00e3o\", \"chocalho embutido\", \"luz\", \"som\", \"textura\", \"peso leve\"].\n\n15. clima_indicado:\n    \"quente\" \u2014 ver\u00e3o, pe\u00e7as leves, manga curta, tecidos finos\n    \"fresco\" \u2014 meia-esta\u00e7\u00e3o, manga longa leve\n    \"frio\" \u2014 inverno, moletom, tric\u00f4, casaco\n    \"muito frio\" \u2014 plush, l\u00e3 grossa, forradas\n    \"todas\" \u2014 para brinquedos, acess\u00f3rios e produtos independentes de clima\n\n16. estacoes (array):\n    [\"ver\u00e3o\"], [\"primavera\", \"ver\u00e3o\"], [\"primavera\", \"outono\"], [\"outono\", \"inverno\"], [\"inverno\"], [\"todas\"].\n    Para brinquedos e acess\u00f3rios que n\u00e3o dependem de clima, use [\"todas\"].\n\n17. ocasiao:\n    \"casual\", \"escolar\", \"festa\", \"festa luxo\", \"passeio\", \"praia/piscina\", \"dormir\", \"esporte\", \"frio\", \"fantasia\", \"presente\", \"enxoval\".\n\n18. estilo:\n    \"casual\", \"esportivo\", \"rom\u00e2ntico\", \"princesa\", \"elegante\", \"moderno\", \"cl\u00e1ssico\", \"fofinho/baby\", \"descolado\", \"b\u00e1sico\", \"divertido\".\n\n19. descricao_semantica (texto factual em portugu\u00eas natural):\n    - M\u00ednimo 3 frases, m\u00e1ximo 5 frases.\n    - Separe frases por ponto final (.) \u2014 N\u00c3O use ponto e v\u00edrgula.\n    - Para roupas individuais: inclua tipo, cor, material, manga, fechamento, estampa/personagem, ocasi\u00e3o, clima.\n    - Para conjuntos e kits: descreva TODAS as pe\u00e7as, mencione que \u00e9 um conjunto/kit.\n    - Para acess\u00f3rios/brinquedos: inclua tipo, material, cor, fun\u00e7\u00e3o, faixa et\u00e1ria, ocasi\u00e3o.\n    - PROIBIDO: adjetivos subjetivos, frases sobre \"estilo de vida\", opini\u00f5es.\n\n    EXEMPLO ROUPA:\n    \"Vestido rosa com saia rodada e detalhes em glitter dourado. Tem manga curta bufante e la\u00e7o nas costas. Tecido de malha com sobreposi\u00e7\u00e3o de tule na saia. Indicado para festas de anivers\u00e1rio. Adequado para clima quente.\"\n\n    EXEMPLO CONJUNTO:\n    \"Conjunto composto por body branco de manga longa e cal\u00e7a legging estampada em listras coloridas. O body tem fechamento por bot\u00e3o de press\u00e3o na virilha. Tecido de algod\u00e3o macio. Indicado para uso casual e passeios. Adequado para clima fresco.\"\n\n    EXEMPLO KIT:\n    \"Kit com tr\u00eas bodies de manga curta em cores sortidas: branco, amarelo e verde menta. Todos com fechamento por bot\u00e3o de press\u00e3o na virilha. Tecido de algod\u00e3o. Indicados para uso casual do dia a dia. Adequados para clima quente.\"\n\n    EXEMPLO BRINQUEDO:\n    \"Chocalho de pel\u00facia em formato de animal com cores roxas e rosas. Possui anel de pl\u00e1stico transparente com esferas coloridas para estimula\u00e7\u00e3o sonora. Material macio e seguro para beb\u00eas. Indicado para estimula\u00e7\u00e3o sensorial. Adequado para beb\u00eas pequenos.\"\n\n    EXEMPLO ACESS\u00d3RIO:\n    \"Tiara infantil com la\u00e7o de cetim rosa e detalhes em glitter dourado. Material leve para uso di\u00e1rio. Indicada para festas e passeios.\"\n\n20. tags_adicionais (string, 15 a 20 palavras-chave separadas por v\u00edrgula):\n    Inclua sin\u00f4nimos, termos regionais, fun\u00e7\u00e3o, material, ocasi\u00e3o.\n    Para kits: inclua \"kit\", quantidade de pe\u00e7as se vis\u00edvel, o tipo de pe\u00e7a.\n    Para conjuntos: inclua \"conjunto\", os tipos de pe\u00e7as separados, \"combinando\".\n    Para brinquedos: inclua \"brinquedo\", \"presente\", \"estimula\u00e7\u00e3o\", o nome espec\u00edfico.\n    Para acess\u00f3rios: inclua o nome espec\u00edfico, \"acess\u00f3rio\", fun\u00e7\u00e3o, ocasi\u00e3o.\n\n21. referencias_culturais:\n    Lista separada por v\u00edrgula de personagens, filmes, desenhos, obras culturais associadas.\n    Se n\u00e3o houver, retorne \"\".\n\nIMPORTANTE:\n- Para pe\u00e7as de beb\u00ea (0-2 anos), destaque conforto, maciez, fechamentos pr\u00e1ticos.\n- Para meninas, identifique elementos femininos mesmo quando sutis.\n- Para meninos, identifique super-her\u00f3is e franquias com precis\u00e3o.\n- Para meias: use clima_indicado \"todas\" se for meia fina, \"frio\" se for meia grossa/t\u00e9rmica.\n- Para cal\u00e7ados: inclua \"antiderrapante\" em detalhes_especiais se a sola for antiderrapante.\n- NUNCA use \"bebe\" como valor do campo genero. Use sempre \"infantil_f\", \"infantil_m\" ou \"unissex\".\n\nAgora analise a foto enviada e retorne APENAS o JSON.";
+
+// Mesmo motor de NCM da produção (app + node de catalogação): um único critério.
+const MOTOR=(function(){
+/* ════════════════════════════════════════════════════════════════
+   MOTOR DE NCM — vestuário infantil
+   Mesma lógica usada no app e no node de catalogação.
+
+   REGRA FISCAL CENTRAL:
+   Vestuário e acessórios PARA BEBÊS (estatura até 86 cm, ~24 meses)
+   têm posição própria e absorvem quase tudo:
+        malha .......... 6111
+        tecido plano ... 6209
+   Acima de 86 cm classifica-se por TIPO + GÊNERO + MATERIAL, com os
+   mesmos códigos do vestuário adulto (isso é correto na NCM).
+
+   Devolve { ncm, descricao, confianca, motivo }.
+   confianca: 'alta' | 'media' | 'revisar'
+   ════════════════════════════════════════════════════════════════ */
+
+const NCM_DESC = {
+  '61112000': 'Vestuário e acessórios de malha, para bebês, de algodão',
+  '61113000': 'Vestuário e acessórios de malha, para bebês, de fibras sintéticas',
+  '61119000': 'Vestuário e acessórios de malha, para bebês, de outras matérias',
+  '62092000': 'Vestuário e acessórios para bebês, de algodão (tecido plano)',
+  '62093000': 'Vestuário e acessórios para bebês, de fibras sintéticas (tecido plano)',
+  '61091000': 'T-shirts, camisetas e regatas, de malha de algodão',
+  '61099000': 'T-shirts e camisetas, de malha de outras matérias',
+  '61044200': 'Vestidos de malha de algodão, para meninas',
+  '61044400': 'Vestidos de malha de fibras artificiais, para meninas',
+  '61046200': 'Calças, bermudas e shorts de malha de algodão, para meninas',
+  '61034200': 'Calças, bermudas e shorts de malha de algodão, para meninos',
+  '61042200': 'Conjuntos de malha de algodão, para meninas',
+  '61032200': 'Conjuntos de malha de algodão, para meninos',
+  '61022000': 'Casacos, anoraques e blusões de malha de algodão, para meninas',
+  '61012000': 'Casacos, anoraques e blusões de malha de algodão, para meninos',
+  '61023000': 'Casacos e blusões de malha de fibras sintéticas, para meninas',
+  '61013000': 'Casacos e blusões de malha de fibras sintéticas, para meninos',
+  '61083100': 'Pijamas e camisolas de malha de algodão, para meninas',
+  '61072100': 'Pijamas de malha de algodão, para meninos',
+  '61142000': 'Outras vestimentas de malha de algodão (macacões, jardineiras)',
+  '61143000': 'Outras vestimentas de malha de fibras sintéticas',
+  '61159500': 'Meias de malha de algodão',
+  '61159600': 'Meias de malha de fibras sintéticas',
+  '61178000': 'Outros acessórios de vestuário, de malha (faixas, tiaras têxteis)',
+  '63026000': 'Toalhas de algodão atoalhado',
+  '63023100': 'Roupas de cama, de algodão',
+  '64029900': 'Calçados com sola e parte superior de borracha ou plástico',
+  '64041900': 'Calçados com parte superior de matéria têxtil',
+  '64039900': 'Calçados com parte superior de couro natural',
+  '95030099': 'Outros brinquedos',
+  '96151100': 'Pentes, travessas e artefatos semelhantes, de plástico',
+};
+
+/* Tamanhos até 86 cm — nesses, vale a posição de bebê */
+const TAM_BEBE = ['RN','PP','P','M','G','GG','0','1','2','U'];
+
+function _norm(v) {
+  return (v == null ? '' : String(v))
+    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+/* algodao | sintetico | outro | null(desconhecido) */
+function _material(p) {
+  const t = _norm([p.material, p.descricao_semantica, p.tags_adicionais, p.subtipo].join(' '));
+  if (/\b(algodao|cotton|malha fria|suedine|ribana|meia malha|plush de algodao)\b/.test(t)) return 'algodao';
+  if (/\b(poliester|poliamida|sintetic|nylon|elastano|lycra|acrilic|microfibr|fleece|soft|plush)\b/.test(t)) return 'sintetico';
+  if (/\b(la|lan|seda|linho|viscose|couro)\b/.test(t)) return 'outro';
+  return null;
+}
+
+/* malha | plano | null */
+function _tecido(p) {
+  const t = _norm([p.tipo_tecido, p.material, p.descricao_semantica, p.tags_adicionais].join(' '));
+  if (/\b(malha|tricot|tricotad|suedine|ribana|moletom|meia malha|plush)\b/.test(t)) return 'malha';
+  if (/\b(plano|tecido plano|sarja|jeans|denim|tricoline|popeline|cambraia|linho)\b/.test(t)) return 'plano';
+  return null;
+}
+
+/* feminino | masculino | null */
+function _genero(p) {
+  const g = _norm(p.genero);
+  if (/(_f|feminin|menina|girl)/.test(g)) return 'feminino';
+  if (/(_m|masculin|menino|boy)/.test(g)) return 'masculino';
+  return null;   // unissex / bebe => indefinido
+}
+
+/* true quando a peça cabe na posição de bebê (até 86 cm) */
+function _ehBebe(p) {
+  const tam = _norm(p.tamanho).toUpperCase();
+  const fx  = _norm(p.faixa_etaria);
+  if (/(\d+)\s*(a|ano)/.test(fx)) {
+    const anos = parseInt(RegExp.$1, 10);
+    if (anos >= 3) return false;
+  }
+  if (/mes/.test(fx)) return true;
+  const n = parseInt(tam, 10);
+  if (!isNaN(n) && String(n) === tam) return n <= 2;      // tamanhos 3+ não são bebê
+  return TAM_BEBE.includes(tam);
+}
+
+function classificarNCM(p) {
+  const cat  = _norm(p.categoria);
+  const tipo = _norm([p.tipo, p.subtipo].join(' '));
+  const mat  = _material(p);
+  const tec  = _tecido(p);
+  const gen  = _genero(p);
+  const bebe = _ehBebe(p);
+  const R = (ncm, confianca, motivo) => ({ ncm, descricao: NCM_DESC[ncm] || '', confianca, motivo });
+
+  // ── não vestuário ──────────────────────────────────────────────
+  if (cat === 'calcado' || /\b(sapato|tenis|sandalia|bota|chinelo|sapatilha|pantufa|sapatinho)\b/.test(tipo)) {
+    if (/couro/.test(_norm(p.material))) return R('64039900', 'media', 'calçado de couro');
+    if (/\b(tenis|sapatilha)\b/.test(tipo)) return R('64041900', 'media', 'calçado têxtil');
+    return R('64029900', 'media', 'calçado de plástico/borracha — confira o material da parte superior');
+  }
+  if (cat === 'brinquedo' || /\b(brinquedo|pelucia|boneca|chocalho|mordedor|naninha|movel|jogo)\b/.test(tipo)) {
+    if (/\b(mordedor|chocalho)\b/.test(tipo))
+      return R('95030099', 'revisar', 'mordedor/chocalho pode ser artigo de plástico (39.24) em vez de brinquedo — confirme com o contador');
+    return R('95030099', 'media', 'brinquedo');
+  }
+  if (cat === 'higiene') return R('', 'revisar', 'higiene não tem regra automática — classifique manualmente');
+  if (cat === 'enxoval' || /\b(toalha|manta|cobertor|lencol|fronha|cueiro|colcha|edredom)\b/.test(tipo)) {
+    if (/toalha/.test(tipo)) return R('63026000', 'media', 'toalha de algodão');
+    return R('63023100', 'media', 'roupa de cama de algodão');
+  }
+
+  // tipo não identificado: nem a posição de bebê salva — precisa de olho humano
+  const TIPOS_OK = /\b(body|bodie|macacao|macaquinho|calca|legging|bermuda|short|saia|vestido|blusa|camiseta|regata|conjunto|kit|casaco|jaqueta|moletom|agasalho|pijama|camisola|meia|meiao|babador|touca|gorro|luva|jardineira|tiara|faixa|laco|lacinho|presilha|saida|maternidade|pantufa)\b/;
+  if (!TIPOS_OK.test(tipo))
+    return R(bebe ? '61112000' : '', 'revisar', 'tipo "' + (p.tipo || '?') + '" não reconhecido — confirme a classificação');
+
+  // ── BEBÊ: posição própria, absorve roupa e acessório ───────────
+  if (bebe) {
+    if (tec === 'plano') {
+      return mat === 'sintetico'
+        ? R('62093000', 'alta', 'bebê até 86 cm, tecido plano sintético')
+        : R('62092000', mat ? 'alta' : 'media', 'bebê até 86 cm, tecido plano' + (mat ? '' : ' — material presumido algodão'));
+    }
+    if (mat === 'sintetico') return R('61113000', 'alta', 'bebê até 86 cm, malha sintética');
+    if (mat === 'outro')     return R('61119000', 'media', 'bebê até 86 cm, outras matérias');
+    return R('61112000', mat ? 'alta' : 'media',
+      'bebê até 86 cm, malha' + (mat ? ' de algodão' : ' — material presumido algodão'));
+  }
+
+  // ── ACIMA DE 86 cm: tipo + gênero + material ───────────────────
+  const sint = mat === 'sintetico';
+  const semGen = gen === null;
+  const cf = (base) => (semGen ? 'revisar' : base);
+  const motivoGen = semGen ? ' — gênero indefinido, confirme se é menina ou menino' : '';
+
+  if (/\b(meia|meiao)\b/.test(tipo))
+    return R(sint ? '61159600' : '61159500', mat ? 'alta' : 'media', 'meia' + (mat ? '' : ' — material presumido algodão'));
+
+  if (/\b(camiseta|t-shirt|regata|body|bodie)\b/.test(tipo))
+    return R(mat === 'algodao' || !mat ? '61091000' : '61099000', mat ? 'alta' : 'media', 'camiseta/body de malha');
+
+  if (/\b(vestido|vestidinho)\b/.test(tipo))
+    return R('61044200', mat ? 'alta' : 'media', 'vestido de malha de algodão');
+
+  if (/\b(pijama|camisola)\b/.test(tipo))
+    return R(gen === 'masculino' ? '61072100' : '61083100', cf('media'), 'pijama' + motivoGen);
+
+  if (/\b(casaco|jaqueta|blusa de frio|moletom|agasalho|blusao|anoraque)\b/.test(tipo)) {
+    if (gen === 'masculino') return R(sint ? '61013000' : '61012000', cf('media'), 'casaco masculino' + motivoGen);
+    return R(sint ? '61023000' : '61022000', cf('media'), 'casaco feminino' + motivoGen);
+  }
+
+  if (/\b(conjunto|kit)\b/.test(tipo))
+    return R(gen === 'masculino' ? '61032200' : '61042200', cf('media'), 'conjunto de malha' + motivoGen);
+
+  if (/\b(calca|legging|bermuda|short|jardineira|saia)\b/.test(tipo))
+    return R(gen === 'masculino' ? '61034200' : '61046200', cf('media'), 'calça/bermuda de malha' + motivoGen);
+
+  if (/\b(macacao|macaquinho|jardineira)\b/.test(tipo))
+    return R(sint ? '61143000' : '61142000', 'media', 'macacão — outras vestimentas de malha');
+
+  if (cat === 'acessorio' || /\b(tiara|faixa|laco|lacinho|presilha|touca|gorro|luva)\b/.test(tipo)) {
+    if (/\b(tiara|presilha|travessa)\b/.test(tipo)) return R('96151100', 'media', 'acessório de cabelo de plástico');
+    return R('61178000', 'revisar', 'acessório têxtil — confirme a matéria');
+  }
+
+  return R('', 'revisar', 'tipo não reconhecido — classifique manualmente');
+}
+
+return {classificarNCM:classificarNCM,_material:_material,_tecido:_tecido};
+})();
+
+const el=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const S=v=>v==null?'':(Array.isArray(v)?v.join(', '):String(v));
+const norm=v=>S(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const setCores=v=>[...new Set(S(v).split(/[,;\/]| e /).map(norm).filter(Boolean))].sort().join('|');
+const fmtNcm=n=>{const d=S(n).replace(/\D/g,'');return d.length===8?d.slice(0,4)+'.'+d.slice(4,6)+'.'+d.slice(6):(d||'—');};
+const usd=v=>'US$ '+v.toFixed(v<0.1?4:3), brl=v=>'R$ '+(v*5.5).toFixed(v*5.5<0.1?4:3);
+
+let TOKEN=null,LOJA=null,KEY='',PARAR=false,RODANDO=false,FATAL='';
+let AMOSTRA=[],R=[],JULG={},CFG=null;
+
+function lg(t){const d=el('lg');d.textContent=((d.textContent?d.textContent+'\n':'')+t).split('\n').slice(-16).join('\n');d.scrollTop=1e9;}
+
+// ── Supabase ─────────────────────────────────────────────────────────────────
+async function sbGet(t,q){
+  const r=await fetch(SB+'/rest/v1/'+t+'?'+q,{headers:{apikey:ANON,Authorization:'Bearer '+TOKEN}});
+  const d=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error((d&&(d.message||d.hint))||('HTTP '+r.status));
+  return d;
+}
+async function entrar(){
+  const u=el('u').value.trim(),p=el('p').value; if(!u||!p)return;
+  el('lg-login').textContent='entrando...';
+  try{
+    const r=await fetch(SB+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},
+      body:JSON.stringify({email:u.includes('@')?u:(u+'@giro.app'),password:p})});
+    const d=await r.json();
+    if(!d.access_token)throw new Error(d.error_description||d.msg||'login inválido');
+    TOKEN=d.access_token;
+    const v=await sbGet('usuarios_lojas','user_id=eq.'+d.user.id+'&select=loja_id&limit=1');
+    LOJA=v&&v[0]&&v[0].loja_id; if(!LOJA)throw new Error('usuário sem loja');
+    el('c-login').style.display='none'; el('c-run').style.display='block'; atualizaEstim();
+  }catch(e){el('lg-login').textContent='erro: '+(e.message||e);}
+}
+
+// ── Configuração ─────────────────────────────────────────────────────────────
+function lerCfg(){
+  const m=p=>({id:el(p+'-id').value.trim(),effort:el(p+'-ef').value,pin:parseFloat(el(p+'-pin').value)||0,pout:parseFloat(el(p+'-pout').value)||0});
+  return {A:m('a'),B:m('b'),n:Math.max(2,Math.min(200,parseInt(el('n').value)||24)),estrat:el('estrat').checked,soConf:el('soconf').checked,
+          cego:el('cego').checked,teto:parseFloat(el('teto').value)||2};
+}
+const REAS={omitir:0,none:0,minimal:100,low:300,medium:1200,high:3000};
+function custoEst(m,img){const ent=3950+img,sai=350+(REAS[m.effort]||0);return (ent*m.pin+sai*m.pout)/1e6;}
+function atualizaEstim(){
+  const c=lerCfg(),t=c.n*(custoEst(c.A,765)+custoEst(c.B,2352));
+  el('estim').textContent='Estimativa do teste: ≈ '+usd(t)+' (≈ '+brl(t)+') para '+c.n+' produtos × 2 modelos. É uma estimativa; o gasto real aparece durante a rodada.';
+}
+
+// ── Produtos ─────────────────────────────────────────────────────────────────
+async function carregarProdutos(c){
+  const cols='id,codigo_loja,foto_url,tipo,subtipo,categoria,genero,cores,material,tipo_tecido,tamanho,faixa_etaria,descricao_semantica,ncm,ncm_confirmado,ncm_confianca';
+  let q='select='+cols+'&loja_id=eq.'+LOJA+'&foto_url=not.is.null&limit=500';
+  if(c.soConf)q+='&ncm_confirmado=eq.true';
+  let rows;
+  try{rows=await sbGet('produtos_2',q);}
+  catch(e){lg('aviso: '+e.message+' — tentando com menos colunas');
+    rows=await sbGet('produtos_2','select=id,codigo_loja,foto_url,tipo,genero,cores,tamanho&loja_id=eq.'+LOJA+'&foto_url=not.is.null&limit=500');}
+  return rows||[];
+}
+function embaralhar(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function amostrar(rows,n,estrat){
+  rows=embaralhar(rows.filter(p=>/^https?:\/\//.test(p.foto_url||'')));
+  if(!estrat)return rows.slice(0,n);
+  const g={};rows.forEach(p=>{const k=norm(p.tipo)||'?';(g[k]=g[k]||[]).push(p);});
+  const ks=Object.keys(g),out=[];
+  for(let i=0;out.length<n;i++){let achou=false;for(const k of ks){if(g[k][i]){out.push(g[k][i]);achou=true;if(out.length>=n)break;}}if(!achou)break;}
+  return out;
+}
+
+// ── OpenAI (Responses API: a mesma que o node "Message a model" usa) ─────────
+function corpo(m,url){
+  const c={model:m.id,input:[{role:'system',content:PROMPT},{role:'user',content:[{type:'input_image',image_url:url}]}],max_output_tokens:4000};
+  if(m.effort&&m.effort!=='omitir')c.reasoning={effort:m.effort};
+  return c;
+}
+async function postOpenAI(body){
+  const TENT=3;
+  for(let t=0;t<TENT;t++){
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),150000);
+    let resp;
+    try{resp=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal});}
+    catch(e){clearTimeout(to);if(t===TENT-1)throw new Error('rede/tempo esgotado: '+(e.message||e));await sleep(1500*(t+1));continue;}
+    clearTimeout(to);
+    if(resp.status===429||resp.status>=500){const ra=parseFloat(resp.headers.get('retry-after'))||2*(t+1);if(t===TENT-1){const e=new Error('HTTP '+resp.status+' (limite/instabilidade da OpenAI)');e.status=resp.status;throw e;}await sleep(Math.min(ra,20)*1000);continue;}
+    const d=await resp.json().catch(()=>({}));
+    if(!resp.ok){const e=new Error((d.error&&d.error.message)||('HTTP '+resp.status));e.status=resp.status;throw e;}
+    return d;
+  }
+  throw new Error('limite de tentativas');
+}
+async function dataUrl(url){
+  const r=await fetch(url);if(!r.ok)throw new Error('não consegui baixar a imagem (HTTP '+r.status+')');
+  const b=await r.blob();
+  return await new Promise((res,rej)=>{const f=new FileReader();f.onload=()=>res(f.result);f.onerror=()=>rej(new Error('leitura da imagem'));f.readAsDataURL(b);});
+}
+// Mesma extração do node de catalogação: o texto está no item type:'message' (modelos de raciocínio
+// devolvem antes um item type:'reasoning' sem texto).
+function extrairTexto(d){
+  const it=Array.isArray(d.output)?d.output.find(o=>o&&o.type==='message'&&Array.isArray(o.content)):null;
+  const tx=it&&(it.content.find(c=>c&&typeof c.text==='string')||{}).text;
+  if(tx)return tx;
+  if(typeof d.output_text==='string'&&d.output_text)return d.output_text;
+  if(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)return d.choices[0].message.content;
+  return '';
+}
+function lerJson(raw){
+  const cleaned=String(raw).trim().replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```\s*$/,'');
+  try{return JSON.parse(cleaned);}catch(e){const m=cleaned.match(/\{[\s\S]*\}/);if(m){try{return JSON.parse(m[0]);}catch(e2){}}throw new Error('JSON inválido: '+cleaned.slice(0,120));}
+}
+async function chamar(m,url){
+  const t0=performance.now(); let d=null, uso={ent:0,sai:0,reas:0,cache:0};
+  const fim=extra=>Object.assign({ms:Math.round(performance.now()-t0),uso,custo:(uso.ent*m.pin+uso.sai*m.pout)/1e6},extra);
+  try{
+    try{d=await postOpenAI(corpo(m,url));}
+    catch(e){if(e.status===400&&/image|url|download|fetch|timeout/i.test(e.message))d=await postOpenAI(corpo(m,await dataUrl(url)));else throw e;}
+    const u=d.usage||{};
+    uso={ent:u.input_tokens||0,sai:u.output_tokens||0,reas:(u.output_tokens_details||{}).reasoning_tokens||0,cache:(u.input_tokens_details||{}).cached_tokens||0};
+    // "leitura" = o modelo respondeu mas a resposta não serve (conta contra ele). "chamada" = rede, limite, chave (não conta).
+    if(d.status==='incomplete')return fim({erro:'resposta incompleta (bateu o limite de tokens, provavelmente raciocínio demais)',tipoErro:'leitura'});
+    const raw=extrairTexto(d); if(!raw)return fim({erro:'a resposta veio sem texto',tipoErro:'leitura'});
+    try{return fim({ia:lerJson(raw)});}catch(e){return fim({erro:e.message||String(e),tipoErro:'leitura'});}
+  }catch(e){
+    if(e.status===401){PARAR=true;FATAL='chave da OpenAI recusada (401)';}
+    if(e.status===404){PARAR=true;FATAL='modelo "'+m.id+'" indisponível para esta chave (404)';}
+    return fim({erro:e.message||String(e),tipoErro:'chamada'});
+  }
+}
+
+// ── Comparação ───────────────────────────────────────────────────────────────
+const classeMat=o=>MOTOR._material({material:S(o.material),descricao_semantica:S(o.descricao),tags_adicionais:'',subtipo:S(o.subtipo)})||'?';
+const classeTec=o=>MOTOR._tecido({tipo_tecido:S(o.tipo_tecido),material:S(o.material),descricao_semantica:S(o.descricao),tags_adicionais:''})||'?';
+const CAMPOS=[
+ {k:'tipo',rot:'Tipo',nivel:'geral',cmp:o=>norm(o.tipo),show:o=>S(o.tipo)||'—'},
+ {k:'genero',rot:'Gênero',nivel:'geral',cmp:o=>norm(o.genero),show:o=>S(o.genero)||'—'},
+ {k:'material',rot:'Material',nivel:'fiscal',cmp:classeMat,show:o=>(S(o.material)||'—')+'  →  classe: '+classeMat(o)},
+ {k:'tipo_tecido',rot:'Tipo de tecido',nivel:'fiscal',cmp:classeTec,show:o=>(S(o.tipo_tecido)||'—')+'  →  classe: '+classeTec(o)},
+ {k:'ncm',rot:'NCM resultante',nivel:'fiscal',cmp:o=>S(o.ncm).replace(/\D/g,''),show:o=>fmtNcm(o.ncm)+(o.conf?'  (confiança '+o.conf+')':'')},
+ {k:'cores',rot:'Cores',nivel:'cores',cmp:o=>setCores(o.cores),show:o=>S(o.cores)||'—'},
+ {k:'subtipo',rot:'Subtipo',nivel:'info',cmp:o=>norm(o.subtipo),show:o=>S(o.subtipo)||'—'},
+ {k:'faixa',rot:'Faixa etária',nivel:'info',cmp:o=>norm(o.faixa),show:o=>S(o.faixa)||'—'},
+ {k:'tem_estampa',rot:'Estampa',nivel:'info',semDB:true,cmp:o=>{const v=norm(o.tem_estampa);return v==='true'||v==='sim'?'sim':(v==='false'||v==='nao'?'nao':v);},show:o=>S(o.tem_estampa)||'—'},
+];
+function ncmDe(ia,p){
+  try{return MOTOR.classificarNCM({tipo:S(ia.tipo),subtipo:S(ia.subtipo),categoria:S(ia.categoria),tamanho:p.tamanho||S(ia.tamanho),genero:S(ia.genero),
+    material:S(ia.material),tipo_tecido:S(ia.tipo_tecido),faixa_etaria:S(ia.faixa_etaria_principal)||S(ia.faixa_etaria),descricao_semantica:S(ia.descricao_semantica)});}
+  catch(e){return {ncm:null,confianca:'erro',motivo:e.message};}
+}
+const padIA=(ia,f)=>({tipo:ia.tipo,genero:ia.genero,material:ia.material,tipo_tecido:ia.tipo_tecido,cores:S(ia.cores_predominantes)||S(ia.cores),subtipo:ia.subtipo,
+  faixa:ia.faixa_etaria_principal||ia.faixa_etaria,tem_estampa:ia.tem_estampa,descricao:ia.descricao_semantica,ncm:f.ncm,conf:f.confianca});
+const padDB=p=>({tipo:p.tipo,genero:p.genero,material:p.material,tipo_tecido:p.tipo_tecido,cores:p.cores,subtipo:p.subtipo,faixa:p.faixa_etaria,
+  descricao:p.descricao_semantica,ncm:p.ncm,conf:p.ncm_confianca});
+
+async function processar(p,i){
+  const ordem=Math.random()<0.5?'AB':'BA';
+  const [a,b]=await Promise.all([chamar(CFG.A,p.foto_url),chamar(CFG.B,p.foto_url)]);
+  [a,b].forEach(x=>{if(x.ia){x.fiscal=ncmDe(x.ia,p);x.o=padIA(x.ia,x.fiscal);}});
+  return {i,prod:p,A:a,B:b,ordem,db:padDB(p)};
+}
+async function testarConexao(){
+  KEY=el('key').value.trim(); if(!KEY){lg('cole a chave da OpenAI primeiro');return;}
+  const c=lerCfg();
+  for(const m of [c.A,c.B]){
+    try{const r=await fetch('https://api.openai.com/v1/models/'+encodeURIComponent(m.id),{headers:{Authorization:'Bearer '+KEY}});
+      lg((r.ok?'✓ ':'✗ ')+m.id+(r.ok?' disponível':' → HTTP '+r.status+(r.status===404?' (a chave não tem acesso a este modelo)':r.status===401?' (chave recusada)':'')));}
+    catch(e){lg('✗ '+m.id+' → '+(e.message||e));}
+  }
+  try{const rows=await carregarProdutos(c);lg('✓ banco: '+rows.length+' produtos com foto'+(c.soConf?' e NCM confirmado':''));}catch(e){lg('✗ banco: '+e.message);}
+}
+async function rodar(){
+  if(RODANDO)return;
+  CFG=lerCfg();KEY=el('key').value.trim();
+  if(!KEY){alert('Cole a chave da OpenAI.');return;}
+  RODANDO=true;PARAR=false;FATAL='';R=[];JULG={};
+  el('bt-run').disabled=true;el('bt-stop').style.display='block';el('c-res').style.display='none';
+  try{
+    lg('carregando produtos…');
+    const rows=await carregarProdutos(CFG);
+    AMOSTRA=amostrar(rows,CFG.n,CFG.estrat);
+    if(!AMOSTRA.length)throw new Error('nenhum produto com foto'+(CFG.soConf?' e NCM confirmado':'')+' (tente desmarcar "só confirmados")');
+    if(AMOSTRA.length<CFG.n)lg('aviso: só há '+AMOSTRA.length+' produtos elegíveis');
+    lg(AMOSTRA.length+' produtos na amostra');
+    let gasto=0,feitos=0,idx=0;
+    const worker=async()=>{
+      while(!PARAR){
+        const i=idx++;if(i>=AMOSTRA.length)return;
+        const r=await processar(AMOSTRA[i],i);
+        R.push(r);gasto+=(r.A.custo||0)+(r.B.custo||0);feitos++;
+        lg(feitos+'/'+AMOSTRA.length+' · #'+(AMOSTRA[i].codigo_loja||'?')+(r.A.erro?' · A: '+r.A.erro.slice(0,50):'')+(r.B.erro?' · B: '+r.B.erro.slice(0,50):'')+' · gasto '+usd(gasto));
+        if(gasto>CFG.teto){PARAR=true;lg('⚠ teto de gasto atingido, parando');}
+      }
+    };
+    await Promise.all([worker(),worker()]);
+  }catch(e){lg('erro: '+(e.message||e));}
+  if(FATAL)lg('⛔ '+FATAL);
+  RODANDO=false;el('bt-run').disabled=false;el('bt-stop').style.display='none';
+  R.sort((a,b)=>a.i-b.i);
+  if(R.length)render();
+}
+
+// ── Resultados ───────────────────────────────────────────────────────────────
+function stats(k){
+  const xs=R.map(r=>r[k]),med=f=>xs.length?xs.reduce((s,x)=>s+f(x),0)/xs.length:0;
+  return {n:xs.length,falhas:xs.filter(x=>x.erro&&x.tipoErro==='leitura').length,chamada:xs.filter(x=>x.erro&&x.tipoErro==='chamada').length,ms:med(x=>x.ms||0),ent:med(x=>x.uso.ent),sai:med(x=>x.uso.sai),reas:med(x=>x.uso.reas),cache:med(x=>x.uso.cache),
+          custo:med(x=>x.custo||0),total:xs.reduce((s,x)=>s+(x.custo||0),0)};
+}
+function renderResumo(){
+  const a=stats('A'),b=stats('B'),nome=m=>esc(m.id)+(m.effort&&m.effort!=='omitir'?' <span class="pill geral">'+esc(m.effort)+'</span>':'');
+  const lin=(rot,fa,fb)=>'<tr><td>'+rot+'</td><td class="n">'+fa+'</td><td class="n">'+fb+'</td></tr>';
+  const eco=a.custo>0?Math.round(100*(1-b.custo/a.custo)):0;
+  el('res-resumo').innerHTML='<table class="tb"><tr><th></th><th>A · '+nome(CFG.A)+'</th><th>B · '+nome(CFG.B)+'</th></tr>'+
+    lin('Produtos lidos',a.n,b.n)+
+    lin('Falhas de leitura (respondeu, mas sem JSON válido)',a.falhas,b.falhas)+
+    lin('Erros de chamada (rede/limite; não contam contra o modelo)',a.chamada,b.chamada)+
+    lin('Tempo médio por produto',(a.ms/1000).toFixed(1)+' s',(b.ms/1000).toFixed(1)+' s')+
+    lin('Tokens médios: entrada',Math.round(a.ent),Math.round(b.ent))+
+    lin('Tokens médios: saída (inclui raciocínio)',Math.round(a.sai),Math.round(b.sai))+
+    lin('   dos quais raciocínio oculto',Math.round(a.reas),Math.round(b.reas))+
+    lin('Tokens de entrada vindos do cache',Math.round(a.cache),Math.round(b.cache))+
+    lin('<b>Custo médio por produto</b> (sem desconto de cache)','<b>'+usd(a.custo)+'</b> · '+brl(a.custo),'<b>'+usd(b.custo)+'</b> · '+brl(b.custo))+
+    lin('Projeção: 1.000 produtos',usd(a.custo*1000),usd(b.custo*1000))+
+    lin('Gasto real desta rodada',usd(a.total),usd(b.total))+'</table>'+
+    '<div class="note">Economia de B sobre A: <b>'+eco+'%</b>. O custo não considera o desconto de cache (nas rodadas seguidas o prompt fica em cache; na produção as chamadas são espaçadas, então este é o número realista).</div>'+
+    (a.falhas+b.falhas?'<div class="warn">Houve falhas de leitura: '+R.filter(r=>r.A.erro||r.B.erro).map(r=>'#'+(r.prod.codigo_loja||'?')+(r.A.erro?' A: '+esc(r.A.erro.slice(0,70)):'')+(r.B.erro?' B: '+esc(r.B.erro.slice(0,70)):'')).join(' · ')+'</div>':'');
+}
+function concord(){
+  return CAMPOS.map(c=>{let ab=0,tot=0,adb=0,bdb=0,tdb=0;
+    R.forEach(r=>{if(!(r.A.o&&r.B.o))return;tot++;const ca=c.cmp(r.A.o),cb=c.cmp(r.B.o);if(ca===cb)ab++;
+      if(!c.semDB){const cd=c.cmp(r.db);if(cd&&cd!=='?'){tdb++;if(ca===cd)adb++;if(cb===cd)bdb++;}}});
+    return {c,ab,tot,adb,bdb,tdb};});
+}
+const pct=(x,t)=>t?Math.round(100*x/t)+'% ('+x+'/'+t+')':'—';
+function renderConcord(){
+  el('res-conc').innerHTML='<table class="tb"><tr><th>Campo</th><th>A = B</th><th>A = cadastro</th><th>B = cadastro</th></tr>'+
+    concord().map(x=>'<tr><td>'+x.c.rot+(x.c.nivel==='fiscal'?'<span class="pill fiscal">fiscal</span>':'')+'</td><td class="n">'+pct(x.ab,x.tot)+'</td><td class="n">'+(x.c.semDB?'—':pct(x.adb,x.tdb))+'</td><td class="n">'+(x.c.semDB?'—':pct(x.bdb,x.tdb))+'</td></tr>').join('')+'</table>';
+}
+function divergencias(){
+  const ok=new Set(['fiscal','geral']);if(el('inc-cores')&&el('inc-cores').checked)ok.add('cores');
+  const l=[];R.forEach(r=>{if(!(r.A.o&&r.B.o))return;CAMPOS.forEach(c=>{if(ok.has(c.nivel)&&c.cmp(r.A.o)!==c.cmp(r.B.o))l.push({r,c,key:r.i+'|'+c.k,nivel:c.nivel});});});
+  return l;
+}
+// Resposta 1 / 2 → modelo A / B (a ordem é sorteada por produto)
+const modeloDe=(r,pos)=>CFG.cego?(r.ordem==='AB'?(pos==='1'?'A':'B'):(pos==='1'?'B':'A')):(pos==='1'?'A':'B');
+const posDe=(r,m)=>CFG.cego?(r.ordem==='AB'?(m==='A'?'1':'2'):(m==='A'?'2':'1')):(m==='A'?'1':'2');
+function dvHtml(d){
+  const {r,c,key}=d,v=JULG[key],sel=x=>v&&((x==='ok'&&v==='ok')||(x==='erradas'&&v==='erradas')||((x==='1'||x==='2')&&(v==='A'||v==='B')&&posDe(r,v)===x))?' sel':'';
+  const o1=r[modeloDe(r,'1')].o,o2=r[modeloDe(r,'2')].o,rot=p=>CFG.cego?'Resposta '+p:(modeloDe(r,p)+' · '+(modeloDe(r,p)==='A'?CFG.A.id:CFG.B.id));
+  return '<div class="dv" id="dv-'+r.i+'-'+c.k+'"><div class="h">'+c.rot+'<span class="pill '+c.nivel+'">'+(c.nivel==='fiscal'?'fiscal':c.nivel==='cores'?'cor':'geral')+'</span></div>'+
+    '<div class="opt"><b>'+rot('1')+':</b> '+esc(c.show(o1))+'</div><div class="opt"><b>'+rot('2')+':</b> '+esc(c.show(o2))+'</div>'+
+    '<div class="cad">cadastro atual: '+esc(c.show(r.db))+'</div>'+
+    '<div class="jb"><button class="sec'+sel('1')+'" onclick="julgar(\''+key+'\',\'1\')">'+(CFG.cego?'1':'A')+' está certa</button><button class="sec'+sel('2')+'" onclick="julgar(\''+key+'\',\'2\')">'+(CFG.cego?'2':'B')+' está certa</button>'+
+    '<button class="sec'+sel('ok')+'" onclick="julgar(\''+key+'\',\'ok\')">As duas servem</button><button class="sec'+sel('erradas')+'" onclick="julgar(\''+key+'\',\'erradas\')">As duas erradas</button></div></div>';
+}
+function renderJulgamento(){
+  const dv=divergencias();
+  if(!dv.length){el('res-jul').innerHTML='<div class="note">Nenhuma divergência nos campos selecionados: os dois modelos responderam igual.</div>';renderPlacar();return;}
+  const porProd={};dv.forEach(d=>(porProd[d.r.i]=porProd[d.r.i]||[]).push(d));
+  el('res-jul').innerHTML=Object.keys(porProd).map(i=>{const r=R.find(x=>x.i===+i),p=r.prod;
+    return '<div class="prod"><img src="'+esc(p.foto_url)+'" referrerpolicy="no-referrer" onclick="window.open(this.src)" alt="foto"/><div class="corpo"><div class="tit">#'+esc(p.codigo_loja||'?')+' · '+esc(p.tipo||'?')+' · tam. '+esc(p.tamanho||'?')+'</div>'+porProd[i].map(dvHtml).join('')+'</div></div>';}).join('');
+  renderPlacar();
+}
+function julgar(key,pos){
+  const r=R.find(x=>x.i===+key.split('|')[0]);
+  const novo=(pos==='ok'||pos==='erradas')?pos:modeloDe(r,pos);
+  JULG[key]=(JULG[key]===novo)?undefined:novo; if(JULG[key]===undefined)delete JULG[key];
+  const d=divergencias().find(x=>x.key===key);
+  const caixa=el('dv-'+r.i+'-'+key.split('|')[1]); if(d&&caixa)caixa.outerHTML=dvHtml(d);
+  renderPlacar();
+}
+function placar(){
+  const t={A:{fiscal:0,geral:0},B:{fiscal:0,geral:0},ok:0,erradas:0,julg:0,total:0},dv=divergencias();
+  dv.forEach(d=>{t.total++;const v=JULG[d.key];if(!v)return;t.julg++;if(v==='A'||v==='B')t[v][d.nivel==='fiscal'?'fiscal':'geral']++;else t[v]++;});
+  return t;
+}
+function veredito(){
+  const p=placar(),a=stats('A'),b=stats('B'),n=R.length,eco=a.custo>0?Math.round(100*(1-b.custo/a.custo)):0;
+  const sa=p.A.fiscal+p.A.geral,sb=p.B.fiscal+p.B.geral;
+  if(!p.total)return {k:'ok',t:'Nenhuma divergência nos campos comparados em '+n+' produtos: o B respondeu igual ao A, com '+eco+'% menos custo.'+(n<20?' Amostra pequena (menos de 20): rode com mais produtos antes de decidir.':'')};
+  if(p.julg<Math.ceil(0.8*p.total))return {k:'in',t:'Inconclusivo: julgue pelo menos 80% das divergências ('+p.julg+' de '+p.total+' julgadas).'};
+  const falhas=[];
+  if(b.falhas>a.falhas)falhas.push('o B devolveu mais respostas ilegíveis ('+b.falhas+' contra '+a.falhas+'); em produção cada uma trava a catalogação do produto');
+  if(p.B.fiscal<p.A.fiscal)falhas.push('nos campos FISCAIS (material, tecido, NCM) o B acertou menos ('+p.B.fiscal+' contra '+p.A.fiscal+')');
+  if(sb<sa-Math.floor(0.1*p.julg))falhas.push('no total o B perdeu por mais de 10% das divergências ('+sb+' contra '+sa+')');
+  const base='Placar nas divergências: A '+sa+' · B '+sb+' · as duas servem '+p.ok+' · as duas erradas '+p.erradas+'. ';
+  if(falhas.length)return {k:'no',t:'Mantenha o A. '+base+'Motivo: '+falhas.join('; ')+'.'};
+  return {k:'ok',t:'O B pode substituir o A. '+base+'Sem perda nos campos fiscais e com '+eco+'% menos custo.'+(n<20?' Amostra pequena (menos de 20): considere rodar com mais produtos antes de trocar.':'')};
+}
+function renderPlacar(){
+  const p=placar(),v=veredito();
+  el('placar').innerHTML='<div class="note">Julgadas: <b>'+p.julg+'</b> de '+p.total+' divergências · acertos A: <b>'+(p.A.fiscal+p.A.geral)+'</b> (fiscais '+p.A.fiscal+') · acertos B: <b>'+(p.B.fiscal+p.B.geral)+'</b> (fiscais '+p.B.fiscal+')</div>'+
+    '<div class="ver '+v.k+'">'+esc(v.t)+'</div>';
+  el('rel').value=relatorio();
+}
+function render(){
+  el('c-res').style.display='block';
+  renderResumo();renderConcord();renderJulgamento();
+}
+
+// ── Relatório ────────────────────────────────────────────────────────────────
+function relatorio(){
+  const a=stats('A'),b=stats('B'),p=placar(),v=veredito(),L=[];
+  const nm=m=>m.id+(m.effort&&m.effort!=='omitir'?' ['+m.effort+']':'');
+  L.push('# Laboratório de Catalogação — '+new Date().toLocaleString('pt-BR')+' · A='+nm(CFG.A)+' vs B='+nm(CFG.B));
+  L.push('');L.push(R.length+' produtos'+(CFG.soConf?' (NCM já confirmado)':'')+(CFG.estrat?' · tipos variados':'')+' · gasto da rodada '+usd(a.total+b.total));
+  L.push('');L.push('## Custo e velocidade');
+  L.push('- Falhas de leitura: A '+a.falhas+' · B '+b.falhas+' · erros de chamada (não contam): A '+a.chamada+' · B '+b.chamada);
+  L.push('- Tempo médio: A '+(a.ms/1000).toFixed(1)+'s · B '+(b.ms/1000).toFixed(1)+'s');
+  L.push('- Tokens médios (entrada/saída/raciocínio): A '+Math.round(a.ent)+'/'+Math.round(a.sai)+'/'+Math.round(a.reas)+' · B '+Math.round(b.ent)+'/'+Math.round(b.sai)+'/'+Math.round(b.reas));
+  L.push('- Custo médio por produto: A '+usd(a.custo)+' · B '+usd(b.custo)+' · 1.000 produtos: A '+usd(a.custo*1000)+' · B '+usd(b.custo*1000));
+  L.push('');L.push('## Concordância A=B / A=cadastro / B=cadastro');
+  concord().forEach(x=>L.push('- '+x.c.rot+(x.c.nivel==='fiscal'?' [fiscal]':'')+': '+pct(x.ab,x.tot)+' / '+(x.c.semDB?'—':pct(x.adb,x.tdb))+' / '+(x.c.semDB?'—':pct(x.bdb,x.tdb))));
+  L.push('');L.push('## Julgamento ('+(CFG.cego?'cego':'aberto')+')');
+  L.push('Julgadas '+p.julg+' de '+p.total+' · acertos A '+(p.A.fiscal+p.A.geral)+' (fiscais '+p.A.fiscal+') · B '+(p.B.fiscal+p.B.geral)+' (fiscais '+p.B.fiscal+') · as duas servem '+p.ok+' · as duas erradas '+p.erradas);
+  L.push('');L.push('**Veredito do laboratório:** '+v.t);
+  L.push('');L.push('## Divergências');
+  divergencias().forEach(d=>{const j=JULG[d.key];
+    L.push('- #'+(d.r.prod.codigo_loja||'?')+' '+(d.r.prod.tipo||'')+' tam.'+(d.r.prod.tamanho||'?')+' · '+d.c.rot+' · A: '+d.c.show(d.r.A.o)+' | B: '+d.c.show(d.r.B.o)+' | cadastro: '+d.c.show(d.r.db)+' | julgamento: '+(j==='A'?'A certo':j==='B'?'B certo':j==='ok'?'as duas servem':j==='erradas'?'as duas erradas':'—'));});
+  return L.join('\n');
+}
+function copiar(){const t=el('rel');t.select();try{document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).catch(()=>{});}
+document.addEventListener('input',e=>{if(e.target&&/^(a|b)-(pin|pout|ef)$|^n$/.test(e.target.id||''))try{atualizaEstim();}catch(_){}});
+</script>
+</body></html>
