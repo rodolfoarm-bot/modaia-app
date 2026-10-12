@@ -6160,8 +6160,12 @@ function montarTextosRegras(){
   const hi=g('reg-hora-ini')?.value||'', hf=g('reg-hora-fim')?.value||'';
   const hfi=g('reg-horafds-ini')?.value||'', hff=g('reg-horafds-fim')?.value||'';
   const partes=[];
-  if(regDiasSel.length&&hi&&hf)partes.push(faixaTxt(regDiasSel)+', das '+hi.replace(':','h')+' às '+hf.replace(':','h'));
-  if(regDiasFdsSel.length&&hfi&&hff)partes.push(faixaTxt(regDiasFdsSel)+', das '+hfi.replace(':','h')+' às '+hff.replace(':','h'));
+  // cada grupo escreve só os dias que a tela dele oferece (semana = Seg–Sex; fim de semana = Sáb/Dom).
+  // Um sábado "escondido" no estado da semana virava "Segunda a sábado…; Sábado…" no texto da Sofia.
+  const semanaSel=regDiasSel.filter(d=>['seg','ter','qua','qui','sex'].includes(d));
+  const fdsSel=regDiasFdsSel.filter(d=>d==='sab'||d==='dom');
+  if(semanaSel.length&&hi&&hf)partes.push(faixaTxt(semanaSel)+', das '+hi.replace(':','h')+' às '+hf.replace(':','h'));
+  if(fdsSel.length&&hfi&&hff)partes.push(faixaTxt(fdsSel)+', das '+hfi.replace(':','h')+' às '+hff.replace(':','h'));
   const horario = partes.length ? partes.join('; ')+'.' : null;
   return {formas,parcelamento,desconto,troca,horario};
 }
@@ -6208,6 +6212,7 @@ function preencherRegrasEstruturado(r){
     return {dias,hi,hf};
   }
   const trechos=(r.horario_funcionamento||'').split(';');
+  let legadoFds=[], legadoHi='', legadoHf='';
   trechos.forEach(tr=>{
     const pr=parseTrecho(tr);
     const temFds=pr.dias.some(d=>d==='sab'||d==='dom');
@@ -6218,12 +6223,20 @@ function preencherRegrasEstruturado(r){
       if(g('reg-horafds-fim'))g('reg-horafds-fim').value=pr.hf;
     }else{
       regDiasSel=pr.dias.filter(d=>['seg','ter','qua','qui','sex'].includes(d));
-      // se a faixa incluía sábado (ex.: "segunda a sábado"), joga o sábado no bloco de semana também
-      pr.dias.filter(d=>d==='sab'||d==='dom').forEach(d=>{ if(!regDiasFdsSel.length)regDiasSel.push(d); });
+      // trecho "segunda a sábado" (texto antigo): o grupo da semana NÃO tem chip de Sáb/Dom, então um
+      // sábado guardado ali ficava invisível na tela e voltava ao texto. Vai para o fim de semana (abaixo).
+      const extrasFds=pr.dias.filter(d=>d==='sab'||d==='dom');
+      if(extrasFds.length){ legadoFds=extrasFds; legadoHi=pr.hi; legadoHf=pr.hf; }
       if(g('reg-hora-ini'))g('reg-hora-ini').value=pr.hi;
       if(g('reg-hora-fim'))g('reg-hora-fim').value=pr.hf;
     }
   });
+  // sábado/domingo que só apareceram junto da semana (texto antigo) ganham o bloco próprio, com o mesmo horário
+  if(legadoFds.length&&!regDiasFdsSel.length){
+    regDiasFdsSel=legadoFds;
+    if(g('reg-horafds-ini')&&!g('reg-horafds-ini').value)g('reg-horafds-ini').value=legadoHi;
+    if(g('reg-horafds-fim')&&!g('reg-horafds-fim').value)g('reg-horafds-fim').value=legadoHf;
+  }
   renderRegChips();
 }
 
