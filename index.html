@@ -1010,22 +1010,34 @@ html{visibility:visible}
       </div>
 
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">NFC-e (VENDA A PESSOA FÍSICA)</div>
-      <label class="flabel">CSC — Código de Segurança do Contribuinte</label>
-      <input class="finput" id="fis-csc" style="margin-bottom:8px"/>
-      <label class="flabel">ID do CSC</label>
+      <div style="font-size:11px;color:var(--text3);line-height:1.4;margin-bottom:8px">O contador pega esses códigos no SIARE (Documentos Eletrônicos › Manutenção Cadastro Emissor).</div>
+      <label class="flabel">CSC de teste (homologação)</label>
+      <input class="finput" id="fis-csc-hom" autocomplete="off" style="margin-bottom:8px"/>
+      <label class="flabel">ID do CSC de teste</label>
+      <input class="finput" id="fis-cscid-hom" inputmode="numeric" style="margin-bottom:12px"/>
+      <label class="flabel">CSC de produção</label>
+      <input class="finput" id="fis-csc" autocomplete="off" style="margin-bottom:8px"/>
+      <label class="flabel">ID do CSC de produção</label>
       <input class="finput" id="fis-cscid" inputmode="numeric" style="margin-bottom:12px"/>
 
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:14px">
         <input type="checkbox" id="fis-emitenfe"/> Esta loja também vende para CNPJ (emite NF-e)
       </label>
 
-      <label class="flabel">Ambiente</label>
-      <select class="finput" id="fis-ambiente" style="margin-bottom:14px">
-        <option value="homologacao">Homologação (teste — nota sem valor fiscal)</option>
-        <option value="producao">Produção (nota válida)</option>
-      </select>
-
       <button class="fbtn" onclick="salvarFiscal()">Salvar dados fiscais</button>
+    </div>
+
+    <!-- ── FISCAL: certificado e emissor ── -->
+    <div class="perfil-card" data-cfg="fiscal">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">🔐 Certificado digital e emissor</div>
+      <div id="fis-status" style="margin-bottom:12px"></div>
+      <div style="font-size:11.5px;color:var(--text2);line-height:1.45;margin-bottom:10px">Envie o certificado <b>A1</b> da loja (arquivo <b>.pfx</b> ou <b>.p12</b>). O arquivo e a senha vão direto para o emissor de notas e <b>não ficam guardados no Giro</b>.</div>
+      <label class="flabel">Arquivo do certificado</label>
+      <input class="finput" id="fis-cert" type="file" accept=".pfx,.p12" style="margin-bottom:8px;padding:9px"/>
+      <label class="flabel">Senha do certificado</label>
+      <input class="finput" id="fis-cert-senha" type="password" autocomplete="off" style="margin-bottom:12px"/>
+      <button class="fbtn" id="btn-fis-cert" onclick="enviarAoEmissor(true)" style="margin-bottom:8px">Enviar certificado</button>
+      <button class="fbtn fbtn-outline" id="btn-fis-sync" onclick="enviarAoEmissor(false)">Atualizar dados no emissor</button>
     </div>
 
     <!-- ── FISCAL: confirmação de NCM ── -->
@@ -1179,6 +1191,7 @@ const N8N_BUSCA = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/busca-vended
 const N8N_INPUT = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/input_vendedor';
 const N8N_RELAY = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/vendedor_envia';
 const N8N_EMITIR_NF = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/emitir_nf';
+const N8N_CADASTRO_FISCAL = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/cadastrar_empresa_fiscal';
 const N8N_GESTAO = 'https://warmbloodedmule-n8n.cloudfy.live/webhook/gestao_equipe';
 
 /* Toda chamada ao relay leva o token do usuário logado. O servidor valida
@@ -1713,6 +1726,7 @@ async function carregarPedidos(){
       (fotos||[]).forEach(f=>{PED_FOTOS[f.id]={foto_url:f.foto_url,codigo_loja:f.codigo_loja,tipo:f.tipo,tamanho:f.tamanho};});
     }catch(e){}
   }
+  await carregarNotas();
   if(load)load.style.display='none';
   const fb=document.getElementById('ped-filtro-entrega');
   if(fb)fb.style.display=pedidosSubAba==='concluido'?'flex':'none';
@@ -1862,7 +1876,7 @@ async function salvarEdicao(id){
 /* Botão de dados fiscais no card — só quando a loja tem cadastro fiscal.
    O rótulo já mostra se foi preenchido, para não precisar abrir. */
 function btnFiscal(p){
-  if(!FISCAL_LOJA)return '';
+  if(!fiscalLiberado())return '';
   const ok=!!p.dest_documento;
   const rot=ok
     ? ('🧾 '+(p.dest_tipo==='cnpj'?'CNPJ':'CPF')+' informado')
@@ -1953,6 +1967,7 @@ function renderPedidos(){
         }
       }
       acoes+=contato;
+      acoes+=blocoFiscalConcluido(p);
       // Botão de devolução (admin e vendedora). Some se já foi devolução total.
       if(p.devolucao_status!=='total'){
         acoes+=`<button class="fbtn fbtn-danger-outline" style="margin-top:8px" onclick="abrirDevolucao('${p.id}')">↩️ ${p.devolucao_status==='parcial'?'Nova devolução':'Devolução'}</button>`;
@@ -1992,7 +2007,6 @@ function renderPedidos(){
           ${contato}
           <button class="fbtn fbtn-outline" onclick="editarPedido('${p.id}')">✏️ Editar pedido</button>
           ${btnFiscal(p)}
-          ${blocoNota(p)}
           <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text2);white-space:nowrap">Pagamento:</span><select class="fselect" id="ped-pgto-${p.id}" style="padding:9px 10px" onchange="onPedPgto('${p.id}')">${opts}</select></div>
           <div style="display:flex;gap:6px;align-items:center">
             <span style="font-size:12px;color:var(--text2);white-space:nowrap">Desconto:</span>
@@ -2257,7 +2271,7 @@ async function marcarAtendido(id){
 /* Ponto vermelho no acesso a Configurações quando há NCM pendente —
    mesma linguagem do badge de pedidos, para a pendência não passar batida. */
 function atualizarBadgeFiscal(){
-  const pend=(PAPEL==='admin'&&Array.isArray(PRODS))
+  const pend=(PAPEL==='admin'&&fiscalAtivo()&&Array.isArray(PRODS))
     ? PRODS.filter(p=>p&&p.ativo!==false&&!p.ncm_confirmado).length : 0;
   document.querySelectorAll('.badge-fiscal').forEach(el=>{
     el.style.display=pend>0?'flex':'none';
@@ -2277,7 +2291,7 @@ function atualizarBadgeFiscal(){
 
 function atualizarAvisoNcm(){
   const box=document.getElementById('ncm-aviso'); if(!box)return;
-  if(PAPEL!=='admin'||!Array.isArray(PRODUTOS)){box.innerHTML='';return;}
+  if(PAPEL!=='admin'||!fiscalAtivo()||!Array.isArray(PRODUTOS)){box.innerHTML='';return;}
   const pend=PRODUTOS.filter(p=>p&&p.ativo!==false&&!p.ncm_confirmado);
   if(!pend.length){box.innerHTML='';return;}
   const rev=pend.filter(p=>classificarNCM(p).confianca==='revisar').length;
@@ -2550,68 +2564,97 @@ async function registrarComissao(pedidoId, vendedorId, valorLiquido){
    finaliza é o webhook de retorno do emissor. */
 let NOTAS={};                      // pedido_id -> nota
 async function carregarNotas(){
-  if(!FISCAL_LOJA)return;
+  if(!fiscalLiberado())return;
   try{
     const r=await sbGet('notas_fiscais','loja_id=eq.'+LOJA_ID+'&order=criado_em.desc&limit=200')||[];
     NOTAS={}; r.forEach(n=>{ if(n.pedido_id&&!NOTAS[n.pedido_id])NOTAS[n.pedido_id]=n; });
   }catch(e){}
 }
 
+/* Bloco fiscal do pedido CONCLUÍDO: a nota só sai depois da venda fechada,
+   quando forma de pagamento e desconto já estão definidos. */
+function blocoFiscalConcluido(p){
+  if(!fiscalLiberado())return '';
+  const n=NOTAS[p.id];
+  if(!n&&p.devolucao_status==='total')return '';
+  const podeEditarDados=!n||n.status==='rejeitada'||n.status==='cancelada';
+  return `<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${podeEditarDados?btnFiscal(p):''}${blocoNota(p)}</div>`;
+}
+
 function blocoNota(p){
-  if(!FISCAL_LOJA)return '';
+  if(!fiscalLiberado())return '';
   const n=NOTAS[p.id];
   const esc=x=>String(x==null?'':x).replace(/</g,'&lt;');
+  const teste=n&&n.ambiente!=='producao'?' <span style="font-size:10px;font-weight:700;background:var(--warning-l);color:var(--warning);padding:1px 7px;border-radius:20px">TESTE</span>':'';
   if(!n){
     const pronto=!!p.dest_documento||p.dest_tipo==='nao_identificado';
     return `<button class="fbtn ${pronto?'':'fbtn-outline'}" onclick="emitirNota('${p.id}')" style="font-size:12.5px">🧾 Emitir nota fiscal</button>`;
   }
-  if(n.status==='processando')
-    return `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:8px"><span class="proc-dot"></span>Emitindo nota… <button onclick="carregarNotasERender()" style="margin-left:auto;background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">atualizar</button></div>`;
+  if(n.status==='processando'){
+    const minutos=(Date.now()-new Date(n.emitida_em||n.criado_em).getTime())/60000;
+    const verificar=minutos>2
+      ? `<button class="fbtn fbtn-outline" onclick="emitirNota('${p.id}',true)" style="font-size:11.5px;margin-top:7px">Verificar com o emissor</button>`:'';
+    return `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:9px;padding:9px 11px">
+      <div style="display:flex;align-items:center;gap:8px"><span class="proc-dot"></span>Emitindo nota…${teste}<button onclick="carregarNotasERender()" style="margin-left:auto;background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">atualizar</button></div>${verificar}</div>`;
+  }
   if(n.status==='autorizada'){
     const num=n.numero?('#'+n.numero):'';
+    const lim=limiteCancelamento(n);
+    const podeCanc=podeCancelarNota(n);
+    const horaLim=lim?lim.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     return `<div style="background:var(--success-l);border-radius:9px;padding:9px 11px">
-      <div style="font-size:12.5px;font-weight:700;color:var(--success);margin-bottom:${n.danfe_url?'7px':'0'}">✅ Nota ${esc(num)} autorizada${n.modelo==='55'?' (NF-e)':''}</div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--success);margin-bottom:${n.danfe_url?'7px':'0'}">✅ Nota ${esc(num)} autorizada${n.modelo==='55'?' (NF-e)':''}${teste}</div>
       ${n.chave_acesso?`<div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-bottom:7px">${esc(n.chave_acesso)}</div>`:''}
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        ${n.danfe_url?`<button class="fbtn fbtn-outline" onclick="window.open('${esc(n.danfe_url)}','_blank','noopener')" style="font-size:11.5px;max-width:110px">📄 Ver DANFE</button>`:''}
+        ${n.danfe_url?`<button class="fbtn fbtn-outline" onclick="window.open('${esc(n.danfe_url)}','_blank','noopener')" style="font-size:11.5px;max-width:110px">📄 Ver nota</button>`:''}
         ${n.danfe_url?`<button class="fbtn fbtn-outline" onclick="enviarDanfe('${p.id}')" style="font-size:11.5px;max-width:130px">Enviar ao cliente</button>`:''}
-        ${podeCancelarNota(n)?`<button class="fbtn fbtn-danger-outline" onclick="cancelarNota('${n.id}')" style="font-size:11.5px;max-width:96px">Cancelar</button>`:''}
+        ${podeCanc?`<button class="fbtn fbtn-danger-outline" onclick="cancelarNota('${n.id}')" style="font-size:11.5px;max-width:150px">Cancelar (até ${horaLim})</button>`:''}
       </div>
     </div>`;
   }
   if(n.status==='cancelada')
-    return `<div style="font-size:12px;color:var(--text3);background:var(--surface2);border-radius:9px;padding:9px 11px">🚫 Nota cancelada</div>`;
+    return `<div style="font-size:12px;color:var(--text3);background:var(--surface2);border-radius:9px;padding:9px 11px">🚫 Nota cancelada${teste}
+      <button class="fbtn fbtn-outline" onclick="emitirNota('${p.id}')" style="font-size:11.5px;margin-top:7px">Emitir nova nota</button></div>`;
   return `<div style="background:var(--danger-l,rgba(239,68,68,.12));border-radius:9px;padding:9px 11px">
-    <div style="font-size:12.5px;font-weight:700;color:var(--danger);margin-bottom:4px">⚠️ Nota rejeitada</div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--danger);margin-bottom:4px">⚠️ Nota recusada${teste}</div>
     <div style="font-size:11.5px;color:var(--text2);line-height:1.4;margin-bottom:7px">${esc(n.motivo_erro||'Sem detalhe.')}</div>
     <button class="fbtn fbtn-outline" onclick="emitirNota('${p.id}',true)" style="font-size:11.5px;max-width:130px">Tentar de novo</button>
   </div>`;
 }
 
-/* Cancelamento de NFC-e/NF-e só dentro de 24h da autorização */
+/* Prazo de cancelamento: NFC-e 30 minutos, NF-e 24 horas, contados da autorização */
+function limiteCancelamento(n){
+  if(!n||n.status!=='autorizada')return null;
+  const base=n.autorizada_em||n.emitida_em; if(!base)return null;
+  const minutos=n.modelo==='55'?24*60:30;
+  return new Date(new Date(base).getTime()+minutos*60000);
+}
 function podeCancelarNota(n){
-  if(!n||n.status!=='autorizada'||!n.emitida_em)return false;
-  return (Date.now()-new Date(n.emitida_em).getTime())<24*3600*1000;
+  const lim=limiteCancelamento(n);
+  return !!lim&&Date.now()<lim.getTime();
 }
 
 async function emitirNota(pedidoId,retentar){
   const ped=PEDIDOS.find(x=>x.id===pedidoId); if(!ped)return;
-  if(!ped.dest_documento&&ped.dest_tipo!=='nao_identificado'){
+  if(!retentar&&!ped.dest_documento&&ped.dest_tipo!=='nao_identificado'){
     if(!confirm('Nenhum CPF informado.\n\nEmitir como "consumidor não identificado"?'))
       { abrirDadosFiscais(pedidoId); return; }
   }
   const tok=await tokenFresco();
   if(!tok){showToast('Sua sessão expirou. Entre de novo.',true);return;}
-  showToast('Enviando para a SEFAZ...');
+  showToast(retentar?'Consultando o emissor...':'Enviando para a SEFAZ...');
+  let d={};
   try{
     const r=await fetch(N8N_EMITIR_NF,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({loja_id:LOJA_ID,pedido_id:pedidoId,token:tok,retentar:!!retentar})});
-    const d=await r.json().catch(()=>({}));
-    if(d&&d.ok===false){showToast(d.erro||'Não foi possível emitir.',true);}
-    else{showToast('Nota enviada — acompanhando o retorno da SEFAZ');}
+      body:JSON.stringify({loja_id:LOJA_ID,pedido_id:pedidoId,token:tok})});
+    d=await r.json().catch(()=>({}));
   }catch(e){showToast('Falha ao falar com o emissor.',true);}
-  setTimeout(carregarNotasERender,2500);
-  setTimeout(carregarNotasERender,9000);
+  if(d&&d.ok===true){
+    if(d.status==='autorizada')showToast(d.recuperada?'A nota já estava autorizada ✅':'Nota autorizada ✅');
+    else showToast('Nota enviada — aguardando a SEFAZ');
+  }else if(d&&d.erro){showToast(d.erro,true);}
+  await carregarNotasERender();
+  if(d&&d.status==='processando')setTimeout(carregarNotasERender,8000);
 }
 
 async function carregarNotasERender(){ await carregarNotas(); renderPedidos(); }
@@ -2619,6 +2662,7 @@ async function carregarNotasERender(){ await carregarNotas(); renderPedidos(); }
 async function enviarDanfe(pedidoId){
   const ped=PEDIDOS.find(x=>x.id===pedidoId), n=NOTAS[pedidoId];
   if(!ped||!n||!n.danfe_url)return;
+  if(n.ambiente!=='producao'&&!confirm('Esta é uma nota de TESTE (homologação), sem valor fiscal.\n\nEnviar mesmo assim?'))return;
   try{
     await relayEnviar({loja_id:LOJA_ID,telefone:ped.telefone,
       texto:'Segue a nota fiscal da sua compra 🧾\n'+n.danfe_url,tipo:'texto',vendedor_id:USER_ID});
@@ -2636,7 +2680,8 @@ async function cancelarNota(notaId){
     const r=await fetch(N8N_EMITIR_NF,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({loja_id:LOJA_ID,nota_id:notaId,acao:'cancelar',motivo,token:tok})});
     const d=await r.json().catch(()=>({}));
-    showToast(d&&d.ok===false?(d.erro||'Não foi possível cancelar.'):'Cancelamento enviado');
+    if(d&&d.ok===true)showToast('Nota cancelada ✅');
+    else showToast((d&&d.erro)||'Não foi possível cancelar.',true);
   }catch(e){showToast('Falha ao cancelar.',true);}
   setTimeout(carregarNotasERender,3000);
 }
@@ -2646,6 +2691,17 @@ async function cancelarNota(notaId){
    identificado"); CNPJ exige IE e endereço completo para a NF-e.
    Só aparece quando a loja tem cadastro fiscal ativo. */
 let FISCAL_LOJA=null;
+let MODULO_FISCAL=null;            // lojas_modulos: {fiscal_ativo, fiscal_ambiente, serie_*, certificado_valido_ate, emissor_status}
+function fiscalAtivo(){ return !!(MODULO_FISCAL&&MODULO_FISCAL.fiscal_ativo===true); }
+function fiscalLiberado(){ return fiscalAtivo()&&!!FISCAL_LOJA; }
+async function carregarModuloFiscal(){
+  try{
+    const m=await sbGet('lojas_modulos','loja_id=eq.'+LOJA_ID+'&limit=1');
+    MODULO_FISCAL=(m&&m[0])||null;
+  }catch(e){MODULO_FISCAL=null;}
+  FISCAL_LOJA=null;
+  if(fiscalAtivo()) await carregarFiscalLoja(); else FISCAL_LOJA=false;
+}
 async function carregarFiscalLoja(){
   if(FISCAL_LOJA!==null)return FISCAL_LOJA;
   try{
@@ -3859,7 +3915,7 @@ function mudarOrdem(v){sortMode=v;renderEstoque();}
 /* Bloco fiscal no detalhe do produto: ver o NCM junto da peça é a forma mais
    rápida de perceber que está errado. Editável e confirmável no mesmo lugar. */
 function blocoFiscalDetalhe(p){
-  if(PAPEL!=='admin')return '';
+  if(PAPEL!=='admin'||!fiscalAtivo())return '';
   const r=(typeof classificarNCM==='function')?classificarNCM(p):{ncm:p.ncm,descricao:'',confianca:'media',motivo:''};
   const atual=p.ncm||'';
   const desc=(typeof NCM_DESC!=='undefined'&&NCM_DESC[atual])?NCM_DESC[atual]:(r.descricao||'');
@@ -5203,6 +5259,8 @@ async function carregarPerfilLoja(){
         const al=await sbGet('acesso_equipe_loja','loja_id=eq.'+LOJA_ID+'&select=travado_ate,travado_indefinido,extensao_ate&limit=1');
         ACESSO_LOJA=(al&&al[0])||null;
       }catch(e){ACESSO_LOJA=null;}
+      // Pacote fiscal: quem liga é o dono do Giro (tabela lojas_modulos, só leitura no app)
+      await carregarModuloFiscal();
       const vendedorNome=data[0].nome||'';
       // Agora busca nome da loja usando LOJA_ID já definido
       let nomeLoja='';
@@ -5315,7 +5373,7 @@ let cfgAbaAtual='';
 function renderCfgTabs(){
   const box=document.getElementById('cfg-tabs'); if(!box)return;
   const tabs = PAPEL==='admin'
-    ? [['loja','Loja'],['equipe','Equipe'],['fiscal','Fiscal'],['comissoes','Comissões'],['login','Conta']]
+    ? [['loja','Loja'],['equipe','Equipe'],...(fiscalAtivo()?[['fiscal','Fiscal']]:[]),['comissoes','Comissões'],['login','Conta']]
     : [['comissoes','Comissões'],['login','Conta']];
   box.innerHTML=tabs.map(([k,l])=>`<button class="cfg-tab" data-cfgtab="${k}" onclick="abrirCfgAba('${k}')">${l}</button>`).join('');
 }
@@ -5328,7 +5386,7 @@ function abrirCfgAba(aba){
   });
   document.querySelectorAll('#cfg-tabs [data-cfgtab]').forEach(b=>b.classList.toggle('on',b.dataset.cfgtab===aba));
   if(aba==='comissoes'){ if(PAPEL==='admin')renderComissoesAdmin(); else renderMinhasComissoes(); }
-  if(aba==='fiscal'&&PAPEL==='admin'){ carregarFiscal(); renderNcmGrupos(); }
+  if(aba==='fiscal'&&PAPEL==='admin'&&fiscalAtivo()){ carregarFiscal(); renderNcmGrupos(); }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -5516,12 +5574,12 @@ function classificarNCM(p) {
 /* ═══ FISCAL (só admin) ═══ */
 const FIS_CAMPOS=['cnpj','inscricao_estadual','razao_social','regime_tributario','csosn',
   'cep','uf','logradouro','numero','complemento','bairro','municipio','cod_municipio',
-  'csc','csc_id','ambiente'];
+  'csc','csc_id','csc_homologacao','csc_id_homologacao'];
 const FIS_MAP={cnpj:'fis-cnpj',inscricao_estadual:'fis-ie',razao_social:'fis-razao',
   regime_tributario:'fis-regime',csosn:'fis-csosn',cep:'fis-cep',uf:'fis-uf',
   logradouro:'fis-logradouro',numero:'fis-numero',complemento:'fis-complemento',
   bairro:'fis-bairro',municipio:'fis-municipio',cod_municipio:'fis-codmun',
-  csc:'fis-csc',csc_id:'fis-cscid',ambiente:'fis-ambiente'};
+  csc:'fis-csc',csc_id:'fis-cscid',csc_homologacao:'fis-csc-hom',csc_id_homologacao:'fis-cscid-hom'};
 
 async function carregarFiscal(){
   if(PAPEL!=='admin')return;
@@ -5531,6 +5589,7 @@ async function carregarFiscal(){
     FIS_CAMPOS.forEach(k=>{const el=document.getElementById(FIS_MAP[k]);if(el&&d[k]!=null)el.value=d[k];});
     const chk=document.getElementById('fis-emitenfe'); if(chk)chk.checked=d.emite_nfe===true;
   }catch(e){}
+  renderStatusFiscal();
 }
 async function salvarFiscal(){
   if(PAPEL!=='admin'){showToast('Só a dona da loja pode alterar isso.',true);return;}
@@ -5539,14 +5598,97 @@ async function salvarFiscal(){
   if(body.uf)body.uf=body.uf.toUpperCase();
   const chk=document.getElementById('fis-emitenfe'); body.emite_nfe=chk?chk.checked:false;
   // só marca como pronta quando o essencial estiver preenchido
-  body.ativo=!!(body.cnpj&&body.inscricao_estadual&&body.cod_municipio&&body.csc);
+  body.ativo=!!(body.cnpj&&body.inscricao_estadual&&body.cod_municipio&&(body.csc||body.csc_homologacao));
   try{
     const r=await fetch(SB_URL+'/rest/v1/dados_fiscais_loja?on_conflict=loja_id',{method:'POST',
       headers:{...getHDR(),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(body)});
     if(!r.ok)throw new Error(await r.text());
     showToast(body.ativo?'Dados fiscais salvos ✅':'Salvo — ainda faltam campos para emitir');
+    FISCAL_LOJA=null; await carregarFiscalLoja();
+    // Loja já cadastrada no emissor: leva a alteração para lá também
+    if(MODULO_FISCAL&&MODULO_FISCAL.emissor_status==='cadastrada')setTimeout(()=>enviarAoEmissor(false,true),600);
   }catch(e){showToast('Não foi possível salvar os dados fiscais.',true);}
 }
+
+/* Situação fiscal da loja: ambiente, cadastro no emissor e validade do
+   certificado. Só leitura — ambiente e séries quem muda é o suporte do Giro. */
+let AVISOS_EMISSOR=[];
+function renderStatusFiscal(){
+  const box=document.getElementById('fis-status'); if(!box)return;
+  const m=MODULO_FISCAL||{};
+  const prod=m.fiscal_ambiente==='producao';
+  const linha=(rot,val,cor)=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">${rot}</span><span style="font-weight:700;text-align:right;color:${cor||'var(--text1)'}">${val}</span></div>`;
+  let cert='Não enviado', corCert='var(--warning)';
+  if(m.certificado_valido_ate){
+    const dt=new Date(m.certificado_valido_ate);
+    const dias=Math.floor((dt.getTime()-Date.now())/86400000);
+    const data=dt.toLocaleDateString('pt-BR');
+    if(dias<0){cert='VENCIDO em '+data;corCert='var(--danger)';}
+    else if(dias<=30){cert='Vence em '+dias+' dia'+(dias===1?'':'s')+' ('+data+')';corCert='var(--danger)';}
+    else{cert='Válido até '+data;corCert='var(--success)';}
+  }
+  const emis={cadastrada:['Cadastrada ✅','var(--success)'],erro:['Com erro — tente de novo','var(--danger)']}[m.emissor_status]||['Ainda não cadastrada','var(--warning)'];
+  box.innerHTML=`<div style="background:var(--surface2);border-radius:10px;padding:6px 12px">
+    ${linha('Ambiente',prod?'Produção (nota válida)':'Teste (sem valor fiscal)',prod?'var(--success)':'var(--warning)')}
+    ${linha('Loja no emissor',emis[0],emis[1])}
+    ${linha('Certificado',cert,corCert)}
+    ${linha('Série NFC-e / NF-e',(m.serie_nfce||'1')+' / '+(m.serie_nfe||'1'))}
+  </div>
+  ${AVISOS_EMISSOR.length?`<div style="font-size:11.5px;color:var(--warning);background:var(--warning-l);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.4">${AVISOS_EMISSOR.map(a=>'• '+String(a).replace(/</g,'&lt;')).join('<br>')}</div>`:''}
+  <div style="font-size:10.5px;color:var(--text3);margin-top:6px">Ambiente e série são definidos com o suporte do Giro.</div>`;
+}
+
+function lerArquivoBase64(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(String(r.result||'').split(',')[1]||'');
+    r.onerror=()=>rej(new Error('leitura'));
+    r.readAsDataURL(f);
+  });
+}
+
+/* Envia ao emissor os dados fiscais (e o certificado, se escolhido).
+   O arquivo e a senha passam direto: não são gravados no app nem no banco. */
+async function enviarAoEmissor(comArquivo,silencioso){
+  if(PAPEL!=='admin'){showToast('Só a dona da loja pode fazer isso.',true);return;}
+  const inp=document.getElementById('fis-cert'), sen=document.getElementById('fis-cert-senha');
+  let b64=null, senha=null;
+  if(comArquivo){
+    const f=inp&&inp.files&&inp.files[0];
+    if(!f){showToast('Escolha o arquivo do certificado (.pfx).',true);return;}
+    if(!/\.(pfx|p12)$/i.test(f.name)){showToast('O certificado precisa ser o arquivo .pfx ou .p12 (modelo A1).',true);return;}
+    if(f.size>150000){showToast('Esse arquivo é grande demais para um certificado A1.',true);return;}
+    senha=(sen&&sen.value)||'';
+    if(!senha){showToast('Digite a senha do certificado.',true);return;}
+    try{b64=await lerArquivoBase64(f);}catch(e){showToast('Não consegui ler o arquivo.',true);return;}
+  }
+  const tok=await tokenFresco();
+  if(!tok){showToast('Sua sessão expirou. Entre de novo.',true);return;}
+  const btns=['btn-fis-cert','btn-fis-sync'].map(id=>document.getElementById(id)).filter(Boolean);
+  btns.forEach(b=>b.disabled=true);
+  if(!silencioso)showToast(comArquivo?'Enviando o certificado...':'Atualizando no emissor...');
+  let d={};
+  try{
+    const r=await fetch(N8N_CADASTRO_FISCAL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({loja_id:LOJA_ID,token:tok,
+        ...(b64?{certificado_base64:b64,senha_certificado:senha}:{})})});
+    d=await r.json().catch(()=>({}));
+  }catch(e){d={ok:false,erro:'Falha ao falar com o emissor.'};}
+  finally{
+    b64=null; senha=null;
+    if(comArquivo){ if(inp)inp.value=''; if(sen)sen.value=''; }
+    btns.forEach(b=>b.disabled=false);
+  }
+  if(d&&d.ok===true){
+    AVISOS_EMISSOR=Array.isArray(d.avisos)?d.avisos:[];
+    showToast(comArquivo?'Certificado enviado ✅':'Emissor atualizado ✅');
+  }else{
+    showToast((d&&d.erro)||'Não foi possível enviar.',true);
+  }
+  await carregarModuloFiscal();
+  renderStatusFiscal();
+}
+
 
 /* Conferência de NCM com MINIATURA: ver a peça é o que torna a conferência
    confiável — número sozinho não diz se está certo. Produtos que o motor
@@ -6007,8 +6149,9 @@ async function carregarPerfil(){
     renderAcessoConfig();
     renderComissaoConfig();
     renderMinhasComissoes();
+    await carregarModuloFiscal();   // pacote pode ter sido ligado/desligado pelo suporte
     renderCfgTabs();
-    const _abas=PAPEL==='admin'?['loja','equipe','fiscal','comissoes','login']:['comissoes','login'];
+    const _abas=PAPEL==='admin'?['loja','equipe',...(fiscalAtivo()?['fiscal']:[]),'comissoes','login']:['comissoes','login'];
     abrirCfgAba(_abas.includes(cfgAbaAtual)?cfgAbaAtual:_abas[0]);
     // Carrega dados da loja (lojas_wpp)
     try{
