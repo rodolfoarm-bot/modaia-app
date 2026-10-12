@@ -304,6 +304,7 @@ const CENARIOS=[
   {t:'prova',q:'Nenhuma fala repetida 3x',f:c=>{const m={};let mx=0;c.falasTexto.forEach(f=>{const k=f.slice(0,60);m[k]=(m[k]||0)+1;mx=Math.max(mx,m[k]);});return mx<3;}},
   {t:'prova',q:'Não vendeu além do estoque (body de teste: 1 unidade)',f:c=>(c.carrinho||[]).reduce((t,i)=>t+Number(i.quantidade||0),0)<=1},
   {t:'prova',q:'Respondeu à última mensagem (não ficou em silêncio)',f:c=>c.respostasFinais>=1},
+  {t:'prova',q:'Um "1" ambíguo não fechou o pedido',f:c=>!c.pedido||c.pedido.estado==='aberto'},
  ]},
 
 /* ── 6. ESTOQUE E HONESTIDADE ───────────────────────────────── */
@@ -538,7 +539,7 @@ const GRUPOS=[...new Set(CENARIOS.map(c=>c.grupo))];
 let SEL=new Set(GRUPOS);
 // Versão e contagem calculadas do próprio código: nunca mais ficam desatualizadas,
 // e dá para saber de cara qual arquivo está aberto (se não aparecer "v3", é cache).
-const VERSAO_LAB='v14 · tamanho da escolha';
+const VERSAO_LAB='v15 · fechamento com intenção';
 document.getElementById('cnt').textContent=VERSAO_LAB+' · '+CENARIOS.length+' cenários · '+CENARIOS.reduce((a,c)=>a+c.asserts.length,0)+' assertivas';
 const el=i=>document.getElementById(i);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
